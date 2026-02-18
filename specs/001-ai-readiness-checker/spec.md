@@ -98,14 +98,13 @@ A system administrator or contributor wants to update the set of recognized AI-n
 - **FR-003**: System MUST scan the file structure of the target public GitHub repository's default branch to detect the presence of AI-native development primitives based on configurable file path patterns. The scan interface should accept a branch parameter internally to enable future branch selection without refactoring.
 - **FR-004**: System MUST support detection of the following categories of AI-native development primitives: instruction files, saved prompts, custom agent definitions, skills, and MCP server configurations.
 - **FR-005**: System MUST support detection of primitives for at least these AI development assistants: GitHub Copilot, Claude Code, and OpenAI Codex.
-- **FR-006**: System MUST generate a detailed readiness report listing each primitive, its detection status (present or missing), a description of the primitive, and links to relevant documentation.
+- **FR-006**: System MUST generate a detailed readiness report listing each primitive, its detection status (present or missing), a description of the primitive, and at least one link to relevant documentation for each defined primitive.
 - **FR-007**: System MUST calculate and display an overall AI-native readiness score based on the proportion of detected primitive categories (a category counts as detected if any assistant's pattern for it matches).
 - **FR-008**: System MUST group results by AI development assistant, showing a per-assistant readiness score based on the proportion of that assistant's primitives detected.
 - **FR-009**: System MUST load all primitive definitions, file path patterns, AI assistant mappings, descriptions, and documentation links from JSON configuration files on the backend.
 - **FR-010**: System MUST implement the detection mechanism in a modular fashion so that new primitives and criteria can be added by updating configuration files without code changes.
 - **FR-011**: System MUST display user-friendly error messages for invalid URLs, non-existent repositories, private repositories, and service availability issues.
-- **FR-013**: System MUST display a progress indicator during the scan that communicates distinct stages to the user (e.g., "Fetching file tree", "Matching patterns", "Generating report"), so users understand the system is working and can anticipate completion.
-- **FR-012**: System MUST provide a description and at least one documentation link for each defined AI-native development primitive.
+- **FR-012**: System MUST display a progress indicator during the scan that communicates distinct stages to the user (e.g., "Fetching file tree", "Matching patterns", "Generating report"), so users understand the system is working and can anticipate completion.
 
 ### Key Entities
 

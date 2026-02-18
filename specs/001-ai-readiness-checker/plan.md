@@ -17,7 +17,7 @@ Build a web application that scans public GitHub repositories for AI-native deve
 **Project Type**: Web application (frontend + backend)  
 **Performance Goals**: Complete scan and return report within 15 seconds for repos with up to 10,000 files. API endpoints respond within 200ms at p95 (excluding external GitHub API latency).  
 **Constraints**: Minimal dependencies, no framework lock-in on frontend, JSON-only configuration, container-ready, no persistent storage in v1  
-**Scale/Scope**: Single-page application, 1 API endpoint, ~3 JSON config files, ~5 primitive categories × 3 AI assistants
+**Scale/Scope**: Single-page application, 1 API endpoint, ~2 JSON config files (assistants.json, primitives.json), ~5 primitive categories × 3 AI assistants
 
 ## Constitution Check
 
