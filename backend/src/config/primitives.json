@@ -1,0 +1,217 @@
+{
+  "primitives": [
+    {
+      "name": "Copilot Instructions",
+      "category": "instructions",
+      "description": "Repository-level instructions that customize GitHub Copilot's behavior for your project. These files provide context about coding conventions, preferred patterns, and project-specific guidelines.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/adding-repository-instructions-for-github-copilot"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/copilot-instructions.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Claude Code Instructions",
+      "category": "instructions",
+      "description": "Project-level instructions for Claude Code that define coding standards, architectural patterns, and project-specific context to guide AI assistance.",
+      "docLinks": [
+        "https://docs.anthropic.com/en/docs/claude-code/memory"
+      ],
+      "assistants": {
+        "claude-code": {
+          "patterns": [
+            "CLAUDE.md",
+            ".claude/settings.json"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenAI Codex Instructions",
+      "category": "instructions",
+      "description": "Project-level instructions for OpenAI Codex CLI that define coding standards, preferred libraries, and project conventions.",
+      "docLinks": [
+        "https://platform.openai.com/docs/guides/codex"
+      ],
+      "assistants": {
+        "openai-codex": {
+          "patterns": [
+            "AGENTS.md",
+            ".codex/config.yaml",
+            ".codex/config.json"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Copilot Custom Instructions",
+      "category": "instructions",
+      "description": "VS Code-level custom instructions files that provide additional context and guidelines for GitHub Copilot chat interactions.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/instructions/*.instructions.md",
+            ".instructions.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Copilot Saved Prompts",
+      "category": "prompts",
+      "description": "Reusable prompt files for GitHub Copilot that can be shared across a team. These prompts capture common workflows and can be invoked directly in Copilot Chat.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot#creating-a-prompt-file"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/prompts/*.prompt.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Claude Code Saved Prompts",
+      "category": "prompts",
+      "description": "Saved command templates for Claude Code that automate repetitive tasks and capture best practices for common development workflows.",
+      "docLinks": [
+        "https://docs.anthropic.com/en/docs/claude-code/slash-commands"
+      ],
+      "assistants": {
+        "claude-code": {
+          "patterns": [
+            ".claude/commands/**/*.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Copilot Custom Agents",
+      "category": "agents",
+      "description": "Custom chat participants (agents) for GitHub Copilot that extend its capabilities with domain-specific knowledge and specialized tools.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-in-vs-code/creating-a-copilot-extension"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/agents/*.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Copilot Reusable Prompts (Skills)",
+      "category": "skills",
+      "description": "Reusable prompt-based skills for GitHub Copilot that provide specialized capabilities and domain expertise through structured prompt engineering.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-in-vs-code"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/skills/*.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Claude Code Custom Slash Commands",
+      "category": "skills",
+      "description": "Project-specific slash commands for Claude Code that capture team conventions and automate common development patterns.",
+      "docLinks": [
+        "https://docs.anthropic.com/en/docs/claude-code/slash-commands"
+      ],
+      "assistants": {
+        "claude-code": {
+          "patterns": [
+            ".claude/commands/**/*.md"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Copilot MCP Server Configuration",
+      "category": "mcp-config",
+      "description": "Model Context Protocol (MCP) server configuration for GitHub Copilot that connects AI to external tools, APIs, and data sources for enhanced context.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-in-vs-code/using-mcp-servers-in-vs-code"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".vscode/mcp.json",
+            ".github/copilot/mcp.json"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Claude Code MCP Server Configuration",
+      "category": "mcp-config",
+      "description": "Model Context Protocol (MCP) server configuration for Claude Code that enables integration with external tools and services.",
+      "docLinks": [
+        "https://docs.anthropic.com/en/docs/claude-code/mcp"
+      ],
+      "assistants": {
+        "claude-code": {
+          "patterns": [
+            ".mcp.json",
+            ".claude/mcp_servers.json"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenAI Codex MCP Server Configuration",
+      "category": "mcp-config",
+      "description": "Model Context Protocol (MCP) server configuration for OpenAI Codex CLI that connects to external tools and data sources.",
+      "docLinks": [
+        "https://platform.openai.com/docs/guides/codex"
+      ],
+      "assistants": {
+        "openai-codex": {
+          "patterns": [
+            ".codex/mcp.json"
+          ]
+        }
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "instructions",
+      "name": "Instructions",
+      "description": "Project-level instruction files that guide AI assistant behavior"
+    },
+    {
+      "id": "prompts",
+      "name": "Saved Prompts",
+      "description": "Reusable prompt templates for common development workflows"
+    },
+    {
+      "id": "agents",
+      "name": "Custom Agents",
+      "description": "Custom AI agent definitions with specialized capabilities"
+    },
+    {
+      "id": "skills",
+      "name": "Skills",
+      "description": "Reusable skills and slash commands for AI assistants"
+    },
+    {
+      "id": "mcp-config",
+      "name": "MCP Server Configuration",
+      "description": "Model Context Protocol server configurations for tool integration"
+    }
+  ]
+}

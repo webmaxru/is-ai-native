@@ -23,11 +23,11 @@
 
 **Purpose**: Project initialization, directory structure, and tooling configuration
 
-- [ ] T001 Create project directory structure per plan.md layout (backend/src/config/, backend/src/services/, backend/src/routes/, backend/src/middleware/, backend/src/utils/, backend/tests/unit/, backend/tests/integration/, backend/tests/contract/, backend/tests/performance/, frontend/src/js/, frontend/src/styles/, frontend/src/assets/, frontend/tests/unit/)
-- [ ] T002 Initialize backend Node.js project with Express, Vitest, and supertest dependencies in backend/package.json
-- [ ] T003 [P] Initialize frontend Vite project with vanilla JS template and Vitest dependency in frontend/package.json and frontend/vite.config.js
-- [ ] T004 [P] Configure ESLint and Prettier for backend in backend/.eslintrc.json and backend/.prettierrc
-- [ ] T005 [P] Configure ESLint and Prettier for frontend in frontend/.eslintrc.json and frontend/.prettierrc
+- [x] T001 Create project directory structure per plan.md layout (backend/src/config/, backend/src/services/, backend/src/routes/, backend/src/middleware/, backend/src/utils/, backend/tests/unit/, backend/tests/integration/, backend/tests/contract/, backend/tests/performance/, frontend/src/js/, frontend/src/styles/, frontend/src/assets/, frontend/tests/unit/)
+- [x] T002 Initialize backend Node.js project with Express, Vitest, and supertest dependencies in backend/package.json
+- [x] T003 [P] Initialize frontend Vite project with vanilla JS template and Vitest dependency in frontend/package.json and frontend/vite.config.js
+- [x] T004 [P] Configure ESLint and Prettier for backend in backend/.eslintrc.json and backend/.prettierrc
+- [x] T005 [P] Configure ESLint and Prettier for frontend in frontend/.eslintrc.json and frontend/.prettierrc
 
 ---
 
@@ -37,13 +37,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create primitives configuration JSON with categories (instructions, prompts, agents, skills, MCP config), file path patterns per assistant, descriptions, and documentation links in backend/src/config/primitives.json
-- [ ] T007 [P] Create AI assistants configuration JSON with assistant definitions (GitHub Copilot, Claude Code, OpenAI Codex) in backend/src/config/assistants.json
-- [ ] T008 [P] Implement GitHub URL parser and validator (extract owner/repo, validate format, reject non-GitHub URLs) with JSDoc type annotations in backend/src/utils/url-parser.js
-- [ ] T009 Implement GitHub API client service (fetch repository file tree via REST API using Git Trees endpoint, accept optional branch parameter defaulting to repository default branch, support optional auth token from GITHUB_TOKEN env var, differentiate 403/private from 404/not-found errors, handle rate limiting) with JSDoc type annotations in backend/src/services/github.js
-- [ ] T010 Setup Express server entry point with CORS, JSON body parsing, environment variable configuration (GITHUB_TOKEN, PORT), and route mounting in backend/src/server.js
-- [ ] T011 [P] Implement centralized error handler middleware (handle 404, validation errors, GitHub API 403 for private repos vs 404 for not-found, rate limits with remaining count, user-friendly messages — never expose raw errors or GitHub token) with JSDoc type annotations in backend/src/middleware/error-handler.js
-- [ ] T012 [P] Configure GitHub Actions CI pipeline with lint, type check (JSDoc), unit tests, integration tests, coverage gate, bundle size check, a11y scan, and performance benchmark per constitution Quality Gates table in .github/workflows/ci.yml
+- [x] T006 Create primitives configuration JSON with categories (instructions, prompts, agents, skills, MCP config), file path patterns per assistant, descriptions, and documentation links in backend/src/config/primitives.json
+- [x] T007 [P] Create AI assistants configuration JSON with assistant definitions (GitHub Copilot, Claude Code, OpenAI Codex) in backend/src/config/assistants.json
+- [x] T008 [P] Implement GitHub URL parser and validator (extract owner/repo, validate format, reject non-GitHub URLs) with JSDoc type annotations in backend/src/utils/url-parser.js
+- [x] T009 Implement GitHub API client service (fetch repository file tree via REST API using Git Trees endpoint, accept optional branch parameter defaulting to repository default branch, support optional auth token from GITHUB_TOKEN env var, differentiate 403/private from 404/not-found errors, handle rate limiting) with JSDoc type annotations in backend/src/services/github.js
+- [x] T010 Setup Express server entry point with CORS, JSON body parsing, environment variable configuration (GITHUB_TOKEN, PORT), and route mounting in backend/src/server.js
+- [x] T011 [P] Implement centralized error handler middleware (handle 404, validation errors, GitHub API 403 for private repos vs 404 for not-found, rate limits with remaining count, user-friendly messages — never expose raw errors or GitHub token) with JSDoc type annotations in backend/src/middleware/error-handler.js
+- [x] T012 [P] Configure GitHub Actions CI pipeline with lint, type check (JSDoc), unit tests, integration tests, coverage gate, bundle size check, a11y scan, and performance benchmark per constitution Quality Gates table in .github/workflows/ci.yml
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -59,20 +59,20 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Unit tests for url-parser (valid GitHub URLs, invalid URLs, non-GitHub URLs, edge cases like trailing slashes and .git suffix), scanner (pattern matching against file tree, no matches, multiple file matches for same primitive counted once), and scorer (category-based overall scoring, zero score for empty repo, full score) in backend/tests/unit/
-- [ ] T014 [P] [US1] Integration test for POST /api/scan endpoint (valid repo → full report, invalid URL → 400, non-existent repo → 404, private repo → 403 with clear message, empty repo → zero score, rate-limited → 429 with retry-after) using supertest in backend/tests/integration/
-- [ ] T015 [P] [US1] Contract test for POST /api/scan request/response schema validation (request body shape, response JSON structure with repo URL, timestamp, overall score, per-primitive results) using supertest in backend/tests/contract/
+- [x] T013 [P] [US1] Unit tests for url-parser (valid GitHub URLs, invalid URLs, non-GitHub URLs, edge cases like trailing slashes and .git suffix), scanner (pattern matching against file tree, no matches, multiple file matches for same primitive counted once), and scorer (category-based overall scoring, zero score for empty repo, full score) in backend/tests/unit/
+- [x] T014 [P] [US1] Integration test for POST /api/scan endpoint (valid repo → full report, invalid URL → 400, non-existent repo → 404, private repo → 403 with clear message, empty repo → zero score, rate-limited → 429 with retry-after) using supertest in backend/tests/integration/
+- [x] T015 [P] [US1] Contract test for POST /api/scan request/response schema validation (request body shape, response JSON structure with repo URL, timestamp, overall score, per-primitive results) using supertest in backend/tests/contract/
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement pattern matching scanner service (load primitives.json, match file tree paths against configured glob/regex patterns, return per-primitive detection results with matched files) with JSDoc type annotations in backend/src/services/scanner.js
-- [ ] T017 [US1] Implement overall score calculation (detected categories / total categories × 100, where a category counts as detected if any assistant pattern matches) with JSDoc type annotations in backend/src/services/scorer.js
-- [ ] T018 [US1] Implement POST /api/scan route handler (accept repo URL in body, accept optional branch parameter, validate with url-parser, call github service, run scanner, compute score, return self-contained serializable JSON response object with repo URL, timestamp, overall score, and per-primitive results with progress stage headers) with JSDoc type annotations in backend/src/routes/scan.js
-- [ ] T019 [P] [US1] Create main HTML page with repository URL input field, submit button, progress indicator area, error message area, and report container with WCAG 2.1 Level AA compliance (ARIA labels on form elements, keyboard-navigable controls, visible focus indicators, semantic HTML structure, skip-link) in frontend/src/index.html
-- [ ] T020 [P] [US1] Create responsive CSS styles for input form, progress bar with stage text, error messages, report layout, detected/missing primitive styling, and mobile breakpoints with visible focus styles, sufficient color contrast ratios (4.5:1 minimum), and skip-link styling in frontend/src/styles/main.css
-- [ ] T021 [US1] Implement backend API client module (POST to /api/scan, handle response parsing, error handling, timeout) with JSDoc type annotations in frontend/src/js/api.js
-- [ ] T022 [US1] Implement main application logic (form submission handler, input validation, progress indicator with stages — "Fetching file tree", "Matching patterns", "Generating report", error display, trigger report rendering) with JSDoc type annotations in frontend/src/js/app.js
-- [ ] T023 [US1] Implement basic report rendering (display overall readiness score, list each primitive category with detected/missing status, show matched file paths for detected primitives, handle zero-score and empty-repo states with guidance) with JSDoc type annotations in frontend/src/js/report.js
+- [x] T016 [US1] Implement pattern matching scanner service (load primitives.json, match file tree paths against configured glob/regex patterns, return per-primitive detection results with matched files) with JSDoc type annotations in backend/src/services/scanner.js
+- [x] T017 [US1] Implement overall score calculation (detected categories / total categories × 100, where a category counts as detected if any assistant pattern matches) with JSDoc type annotations in backend/src/services/scorer.js
+- [x] T018 [US1] Implement POST /api/scan route handler (accept repo URL in body, accept optional branch parameter, validate with url-parser, call github service, run scanner, compute score, return self-contained serializable JSON response object with repo URL, timestamp, overall score, and per-primitive results with progress stage headers) with JSDoc type annotations in backend/src/routes/scan.js
+- [x] T019 [P] [US1] Create main HTML page with repository URL input field, submit button, progress indicator area, error message area, and report container with WCAG 2.1 Level AA compliance (ARIA labels on form elements, keyboard-navigable controls, visible focus indicators, semantic HTML structure, skip-link) in frontend/src/index.html
+- [x] T020 [P] [US1] Create responsive CSS styles for input form, progress bar with stage text, error messages, report layout, detected/missing primitive styling, and mobile breakpoints with visible focus styles, sufficient color contrast ratios (4.5:1 minimum), and skip-link styling in frontend/src/styles/main.css
+- [x] T021 [US1] Implement backend API client module (POST to /api/scan, handle response parsing, error handling, timeout) with JSDoc type annotations in frontend/src/js/api.js
+- [x] T022 [US1] Implement main application logic (form submission handler, input validation, progress indicator with stages — "Fetching file tree", "Matching patterns", "Generating report", error display, trigger report rendering) with JSDoc type annotations in frontend/src/js/app.js
+- [x] T023 [US1] Implement basic report rendering (display overall readiness score, list each primitive category with detected/missing status, show matched file paths for detected primitives, handle zero-score and empty-repo states with guidance) with JSDoc type annotations in frontend/src/js/report.js
 
 **Checkpoint**: User Story 1 is fully functional — users can scan a repo and see an overall readiness report
 
@@ -88,13 +88,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US2] Unit tests for per-assistant score calculation (per-assistant detected/total ratio, assistant with zero primitives found, assistant with all found) and contract test update for per-assistant response fields in backend/tests/
+- [x] T024 [P] [US2] Unit tests for per-assistant score calculation (per-assistant detected/total ratio, assistant with zero primitives found, assistant with all found) and contract test update for per-assistant response fields in backend/tests/
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Extend scorer with per-assistant score calculation (for each assistant: detected primitives / total primitives defined for that assistant × 100) with JSDoc type annotations in backend/src/services/scorer.js
-- [ ] T026 [US2] Update scan route response to include per-assistant breakdown (group detection results by assistant, include per-assistant scores alongside overall score) with JSDoc type annotations in backend/src/routes/scan.js
-- [ ] T027 [US2] Extend report rendering to display per-assistant sections (collapsible or tabbed assistant groups, per-assistant score, list of relevant primitives with detected/missing status per assistant) with JSDoc type annotations in frontend/src/js/report.js
+- [x] T025 [US2] Extend scorer with per-assistant score calculation (for each assistant: detected primitives / total primitives defined for that assistant × 100) with JSDoc type annotations in backend/src/services/scorer.js
+- [x] T026 [US2] Update scan route response to include per-assistant breakdown (group detection results by assistant, include per-assistant scores alongside overall score) with JSDoc type annotations in backend/src/routes/scan.js
+- [x] T027 [US2] Extend report rendering to display per-assistant sections (collapsible or tabbed assistant groups, per-assistant score, list of relevant primitives with detected/missing status per assistant) with JSDoc type annotations in frontend/src/js/report.js
 
 **Checkpoint**: Users can now see both overall score and per-assistant breakdown
 
@@ -110,12 +110,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T028 [P] [US3] Contract test update verifying description and docLinks fields are present and non-empty for every primitive in POST /api/scan response in backend/tests/contract/
+- [x] T028 [P] [US3] Contract test update verifying description and docLinks fields are present and non-empty for every primitive in POST /api/scan response in backend/tests/contract/
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Extend scan route response to include primitive descriptions and documentation links from primitives.json for each detection result with JSDoc type annotations in backend/src/routes/scan.js
-- [ ] T030 [US3] Extend report rendering to display primitive descriptions and clickable documentation links (especially prominent for missing primitives to guide adoption) with JSDoc type annotations in frontend/src/js/report.js
+- [x] T029 [US3] Extend scan route response to include primitive descriptions and documentation links from primitives.json for each detection result with JSDoc type annotations in backend/src/routes/scan.js
+- [x] T030 [US3] Extend report rendering to display primitive descriptions and clickable documentation links (especially prominent for missing primitives to guide adoption) with JSDoc type annotations in frontend/src/js/report.js
 
 **Checkpoint**: Report now serves as an educational resource with descriptions and doc links for every primitive
 
@@ -131,13 +131,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T031 [P] [US4] Unit tests for config-loader (valid config loads successfully, missing required fields rejected with clear error, malformed JSON rejected, empty config file rejected, extra fields ignored gracefully) in backend/tests/unit/
+- [x] T031 [P] [US4] Unit tests for config-loader (valid config loads successfully, missing required fields rejected with clear error, malformed JSON rejected, empty config file rejected, extra fields ignored gracefully) in backend/tests/unit/
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] Implement JSON configuration loader with schema validation (validate required fields: name, category, patterns, description, docLinks; report clear errors on malformed config) with JSDoc type annotations in backend/src/services/config-loader.js
-- [ ] T033 [US4] Integrate config loader into server startup and refactor scanner/scorer to use validated config objects instead of direct JSON imports with JSDoc type annotations in backend/src/server.js and backend/src/services/scanner.js and backend/src/services/scorer.js
-- [ ] T034 [US4] Document JSON configuration schema, supported fields, and step-by-step guide for adding new primitives and assistants in docs/configuration.md
+- [x] T032 [US4] Implement JSON configuration loader with schema validation (validate required fields: name, category, patterns, description, docLinks; report clear errors on malformed config) with JSDoc type annotations in backend/src/services/config-loader.js
+- [x] T033 [US4] Integrate config loader into server startup and refactor scanner/scorer to use validated config objects instead of direct JSON imports with JSDoc type annotations in backend/src/server.js and backend/src/services/scanner.js and backend/src/services/scorer.js
+- [x] T034 [US4] Document JSON configuration schema, supported fields, and step-by-step guide for adding new primitives and assistants in docs/configuration.md
 
 **Checkpoint**: Configuration is fully validated and documented — new primitives can be added without code changes
 
@@ -147,13 +147,13 @@
 
 **Purpose**: Containerization, documentation, performance, and security improvements
 
-- [ ] T035 [P] Create backend Dockerfile (Node.js 20 LTS base, copy source, install production deps, expose port, health check) in backend/Dockerfile
-- [ ] T036 [P] Create frontend Dockerfile (Node.js 20 base for build stage, nginx for serve stage, copy built assets) in frontend/Dockerfile
-- [ ] T037 Create docker-compose.yml for local multi-container setup (backend + frontend services, environment variables, port mapping, network) in docker-compose.yml
-- [ ] T038 [P] Configure Vite bundle size budget (set max bundle size threshold, fail build on exceeded budget) in frontend/vite.config.js
-- [ ] T039 Implement scan API performance benchmark script (measure scan latency for repos with 100, 1,000, and 10,000 files; validate ≤15s target from SC-001) in backend/tests/performance/benchmark.js
-- [ ] T040 Optimize GitHub API file tree fetching for large repositories (recursive tree API, pagination, early termination for repos exceeding limits) in backend/src/services/github.js
-- [ ] T041 Security hardening (sanitize user input, validate Content-Type, add rate limiting middleware, ensure GitHub token is never leaked in responses) across backend/src/
+- [x] T035 [P] Create backend Dockerfile (Node.js 20 LTS base, copy source, install production deps, expose port, health check) in backend/Dockerfile
+- [x] T036 [P] Create frontend Dockerfile (Node.js 20 base for build stage, nginx for serve stage, copy built assets) in frontend/Dockerfile
+- [x] T037 Create docker-compose.yml for local multi-container setup (backend + frontend services, environment variables, port mapping, network) in docker-compose.yml
+- [x] T038 [P] Configure Vite bundle size budget (set max bundle size threshold, fail build on exceeded budget) in frontend/vite.config.js
+- [x] T039 Implement scan API performance benchmark script (measure scan latency for repos with 100, 1,000, and 10,000 files; validate ≤15s target from SC-001) in backend/tests/performance/benchmark.js
+- [x] T040 Optimize GitHub API file tree fetching for large repositories (recursive tree API, pagination, early termination for repos exceeding limits) in backend/src/services/github.js
+- [x] T041 Security hardening (sanitize user input, validate Content-Type, add rate limiting middleware, ensure GitHub token is never leaked in responses) across backend/src/
 
 ---
 
