@@ -11,8 +11,13 @@ router.post('/', async (req, res) => {
   }
 
   const url = repo_url.trim();
-  if (!url.includes('github.com')) {
-    return res.status(400).json({ error: 'Only GitHub repositories are supported' });
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== 'github.com') {
+      return res.status(400).json({ error: 'Only GitHub repositories are supported' });
+    }
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL' });
   }
 
   try {
