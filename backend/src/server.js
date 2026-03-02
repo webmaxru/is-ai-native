@@ -62,6 +62,17 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Welcome route
+app.get('/', (_req, res) => {
+  res.json({
+    message: 'Welcome to the AI-Native Readiness Checker API',
+    endpoints: {
+      scan: 'POST /api/scan',
+      health: 'GET /health',
+    },
+  });
+});
+
 // API routes
 app.use('/api', scanRouter);
 

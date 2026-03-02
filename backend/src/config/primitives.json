@@ -185,6 +185,36 @@
           ]
         }
       }
+    },
+    {
+      "name": "Copilot Agent Hooks",
+      "category": "hooks",
+      "description": "Lifecycle hooks for GitHub Copilot that execute custom shell commands at key points during agent sessions, such as before/after tool use, session start/stop, and context compaction.",
+      "docLinks": [
+        "https://code.visualstudio.com/docs/copilot/customization/hooks"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [
+            ".github/hooks/*.json"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Claude Code Agent Hooks",
+      "category": "hooks",
+      "description": "Lifecycle hooks for Claude Code that execute custom shell commands at key points during agent sessions, enabling automated validation, formatting, and security enforcement.",
+      "docLinks": [
+        "https://docs.anthropic.com/en/docs/claude-code/hooks"
+      ],
+      "assistants": {
+        "claude-code": {
+          "patterns": [
+            ".claude/settings.local.json"
+          ]
+        }
+      }
     }
   ],
   "categories": [
@@ -212,6 +242,11 @@
       "id": "mcp-config",
       "name": "MCP Server Configuration",
       "description": "Model Context Protocol server configurations for tool integration"
+    },
+    {
+      "id": "hooks",
+      "name": "Agent Hooks",
+      "description": "Lifecycle hooks that execute custom commands during AI agent sessions"
     }
   ]
 }
