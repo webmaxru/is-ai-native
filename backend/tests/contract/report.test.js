@@ -1,9 +1,19 @@
-import request from 'supertest';
-import app from '../../src/server.js';
 import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
+
+let request;
+let app;
+
+beforeAll(async () => {
+  const [supertest, serverModule] = await Promise.all([
+    import('supertest'),
+    import('../../src/server.js'),
+  ]);
+  request = supertest.default;
+  app = serverModule.default;
+});
 
 afterEach(() => {
   closeDb();
@@ -34,6 +44,23 @@ describe('POST /api/report', () => {
 
   it('returns 400 when result is missing', async () => {
     const res = await request(app).post('/api/report').send({});
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('returns 400 when result schema is invalid', async () => {
+    const res = await request(app)
+      .post('/api/report')
+      .send({
+        result: {
+          repo_url: 'javascript:alert(1)',
+          repo_name: 'x',
+          score: 0,
+          verdict: 'AI-Native',
+          assistants: [],
+          primitives: [],
+        },
+      });
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
   });

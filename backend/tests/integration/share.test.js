@@ -1,9 +1,19 @@
-import request from 'supertest';
-import app from '../../src/server.js';
 import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
+
+let request;
+let app;
+
+beforeAll(async () => {
+  const [supertest, serverModule] = await Promise.all([
+    import('supertest'),
+    import('../../src/server.js'),
+  ]);
+  request = supertest.default;
+  app = serverModule.default;
+});
 
 afterEach(() => {
   closeDb();

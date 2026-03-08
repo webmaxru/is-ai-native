@@ -107,9 +107,10 @@ async function fetchFileTree(owner, repo, token) {
   }
   const repoData = await repoResp.json();
   const branch = repoData.default_branch;
+  const encodedBranch = encodeURIComponent(branch);
 
   const treeResp = await fetch(
-    `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+    `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${encodedBranch}?recursive=1`,
     { headers: headers(token) }
   );
   if (!treeResp.ok) throw new Error(`Failed to fetch file tree: ${treeResp.status}`);

@@ -3,14 +3,18 @@ import { renderReport } from './report.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+let toastTimer = null;
+
 export function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.classList.remove('hidden');
   toast.classList.add('visible');
-  setTimeout(() => {
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     toast.classList.remove('visible');
     toast.classList.add('hidden');
+    toastTimer = null;
   }, 3000);
 }
 

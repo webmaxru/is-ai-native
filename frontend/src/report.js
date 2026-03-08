@@ -34,7 +34,7 @@ export function renderReport(result) {
     <div class="report-card">
       <div class="report-header">
         <h2 class="repo-name">
-          <a href="${escapeHtml(result.repo_url)}" target="_blank" rel="noopener noreferrer">
+          <a id="repo-link" target="_blank" rel="noopener noreferrer">
             ${escapeHtml(result.repo_name)}
           </a>
         </h2>
@@ -67,6 +67,20 @@ export function renderReport(result) {
       </div>
     </div>
   `;
+
+  // Set repo link href via DOM API to prevent javascript: scheme XSS
+  const repoLink = el.querySelector('#repo-link');
+  if (repoLink) {
+    try {
+      const parsed = new URL(result.repo_url);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        repoLink.href = parsed.href;
+      }
+    } catch {
+      // Omit href if the URL is unparseable
+    }
+  }
+
   el.classList.remove('hidden');
   addShareButton(result);
 }

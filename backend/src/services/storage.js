@@ -44,7 +44,7 @@ export function getReport(id) {
     .prepare('SELECT result, expires_at FROM reports WHERE id = ?')
     .get(id);
   if (!row) return null;
-  if (Date.now() > row.expires_at) {
+  if (Date.now() >= row.expires_at) {
     getDb().prepare('DELETE FROM reports WHERE id = ?').run(id);
     return null;
   }
@@ -52,7 +52,7 @@ export function getReport(id) {
 }
 
 export function cleanupExpired() {
-  getDb().prepare('DELETE FROM reports WHERE expires_at < ?').run(Date.now());
+  getDb().prepare('DELETE FROM reports WHERE expires_at <= ?').run(Date.now());
 }
 
 export function closeDb() {
