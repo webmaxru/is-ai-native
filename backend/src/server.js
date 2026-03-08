@@ -36,8 +36,6 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || false }));
-app.use(express.json({ limit: '10kb' }));
-
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -46,9 +44,10 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use('/api/config', configRouter);
-app.use('/api/scan', scanRouter);
-app.use('/api/report', reportRouter);
+app.use('/api/config', express.json({ limit: '1kb' }), configRouter);
+app.use('/api/scan', express.json({ limit: '10kb' }), scanRouter);
+// Report sharing payloads include full scan results, so allow a larger limit
+app.use('/api/report', express.json({ limit: '100kb' }), reportRouter);
 
 app.get('/health', (_req, res) =>
   res.json({

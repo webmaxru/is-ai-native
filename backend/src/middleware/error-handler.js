@@ -33,6 +33,11 @@ export function errorHandler(err, _req, res, _next) {
     return res.status(504).json({ error: 'Request timed out while contacting GitHub. Please try again.' });
   }
 
+  // Payload too large (body size limit exceeded)
+  if (err.status === 413 || err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+
   // Unknown errors — log and return generic message
   console.error('Unhandled error:', err);
   return res.status(500).json({ error: 'Internal server error' });
