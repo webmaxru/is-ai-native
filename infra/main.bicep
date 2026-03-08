@@ -38,7 +38,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   tags: tags
   properties: {
     sku: { name: 'PerGB2018' }
-    retentionInDays: 30
+    retentionInDays: 90
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }
@@ -75,6 +75,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = if (ena
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     supportsHttpsTrafficOnly: true
+    networkAcls: {
+      defaultAction: 'Deny'
+      bypass: 'AzureServices'
+    }
   }
 }
 
@@ -140,6 +144,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: '${namePrefix}-app'
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     environmentId: containerEnv.id
     configuration: {

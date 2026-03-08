@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import scanRouter from './routes/scan.js';
 import reportRouter from './routes/report.js';
@@ -15,8 +16,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN || false }));
+app.use(express.json({ limit: '10kb' }));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

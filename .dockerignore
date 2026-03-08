@@ -1,0 +1,16 @@
+.git
+.github
+.gitignore
+.dockerignore
+.env
+.env.*
+node_modules
+backend/node_modules
+backend/tests
+backend/data
+frontend/tests
+infra
+nginx
+docker-compose.yml
+*.md
+*.log
