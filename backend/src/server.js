@@ -11,6 +11,7 @@ import configRouter from './routes/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
+import { isAppInsightsEnabled } from './services/app-insights.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,6 +55,7 @@ app.get('/health', (_req, res) =>
     status: 'ok',
     githubTokenProvided: !!process.env.GH_TOKEN_FOR_SCAN,
     sharingEnabled: process.env.ENABLE_SHARING === 'true',
+    appInsightsEnabled: isAppInsightsEnabled(),
   })
 );
 

@@ -14,6 +14,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 
 - **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
 - **Report sharing** — Save scan results as shareable links under `/_/report/<uuid>` (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
+- **Operational telemetry** — Emit scan/report custom events to Azure Application Insights so counts, recent activity, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
@@ -154,6 +155,7 @@ npm run test:integration # integration tests only
 | `NODE_ENV` | — | Set to `production` in deployed environments |
 | `GH_TOKEN_FOR_SCAN` | — | GitHub PAT to increase API rate limits for scanning |
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report telemetry for Azure Workbook dashboards |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `DB_PATH` | `./data/reports.db` | Legacy compatibility setting used to derive the report storage directory when `REPORTS_DIR` is unset |
 | `SERVE_FRONTEND` | `false` | Serve frontend static files from Express (single-container mode) |
@@ -180,6 +182,7 @@ All Azure resources are defined in [`infra/main.bicep`](infra/main.bicep). A sin
 | Resource | Purpose |
 | --- | --- |
 | **Log Analytics Workspace** | Centralized container logs and diagnostics |
+| **Application Insights** | Custom scan/report telemetry for Azure Workbook dashboards and drill-down monitoring |
 | **Container Apps Environment** | Consumption plan host (no workload profiles needed) |
 | **Container App** | The application with health / readiness probes, HTTP auto-scaling (0 → 3 replicas), and a system-assigned managed identity |
 | **Azure Storage Account + File Share** | *(conditional, when `enableSharing=true`)* Azure Files mounted for shared-report persistence |
@@ -341,6 +344,61 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 
 ---
 
+## Azure Workbook Monitoring
+
+The Azure deployment can emit custom Application Insights events for each successful scan and each shared-report creation. This gives you Azure-native monitoring without adding a separate persistence-backed dashboard to the app itself.
+
+The primary custom event names are:
+
+- `scan_completed`
+- `scan_failed`
+- `report_created`
+
+Use the workspace-based `customEvents` table for Workbook queries.
+
+**Total scans**
+
+```kusto
+customEvents
+| where name == "scan_completed"
+| summarize total_scans = count()
+```
+
+**Total reports**
+
+```kusto
+customEvents
+| where name == "report_created"
+| summarize total_reports = count()
+```
+
+**Recent scans**
+
+```kusto
+customEvents
+| where name == "scan_completed"
+| project timestamp, repo_name = tostring(customDimensions.repo_name), verdict = tostring(customDimensions.verdict), score = todouble(customMeasurements.score), duration_ms = todouble(customMeasurements.duration_ms)
+| order by timestamp desc
+```
+
+**Recent reports joined back to scans**
+
+```kusto
+let scans = customEvents
+| where name == "scan_completed"
+| project scan_key = tostring(customDimensions.scan_key), scan_time = timestamp, repo_name = tostring(customDimensions.repo_name), score = todouble(customMeasurements.score), verdict = tostring(customDimensions.verdict);
+let reports = customEvents
+| where name == "report_created"
+| project scan_key = tostring(customDimensions.scan_key), report_time = timestamp, report_id = tostring(customDimensions.report_id);
+scans
+| join kind=leftouter reports on scan_key
+| order by scan_time desc
+```
+
+This monitoring surface is intended for operators in Azure. The SPA still only renders live scan results and shared reports.
+
+---
+
 ## API Reference
 
 ### `POST /api/scan`
@@ -387,7 +445,7 @@ Retrieve a shared report by ID *(requires `ENABLE_SHARING=true`)*. Reports expir
 
 ### `GET /health`
 
-Health check endpoint. Returns `{ "status": "ok" }`.
+Health check endpoint. Returns runtime capability flags such as scan token availability, report sharing status, and whether Application Insights telemetry is enabled.
 
 ---
 
@@ -406,6 +464,7 @@ Health check endpoint. Returns `{ "status": "ok" }`.
 │   │   │   └── config.js      # GET /api/config
 │   │   └── services/
 │   │       ├── scanner.js     # GitHub API integration & scoring logic
+│   │       ├── app-insights.js # Azure Application Insights event emission
 │   │       └── storage.js     # File-backed persistence for shared reports
 │   ├── tests/                 # Jest test suites (unit, contract, integration)
 │   ├── package.json

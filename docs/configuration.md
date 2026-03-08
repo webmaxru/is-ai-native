@@ -177,3 +177,32 @@ Common issues:
 - Empty arrays (docLinks, patterns, assistants) → must have at least one entry
 - Malformed JSON → check for trailing commas or mismatched brackets
 - Extra fields → ignored gracefully (no error)
+
+---
+
+## Operational Telemetry
+
+The backend can optionally emit custom Azure Application Insights events for operational monitoring. This is configured with the standard `APPLICATIONINSIGHTS_CONNECTION_STRING` environment variable and does not affect the scan result schema.
+
+### Emitted Events
+
+| Event | When it is sent | Typical dimensions |
+|-------|------------------|--------------------|
+| `scan_completed` | A repository scan succeeds | `repo_url`, `repo_name`, `verdict`, `scan_key`, `scanned_at` |
+| `scan_failed` | A scan request fails validation or backend processing | `repo_url`, `repo_name`, `reason`, `status_code`, `error_name` |
+| `report_created` | A shared report is successfully persisted | `report_id`, `repo_url`, `repo_name`, `verdict`, `scan_key`, `scanned_at` |
+
+### Measurements
+
+- `score`
+- `stars`
+- `duration_ms`
+
+### Typical Use Cases
+
+- Build Azure Workbooks that show total scan count and total report count.
+- Drill into recent scans by repository, verdict, score, or duration.
+- Track scan failures separately from successful scans.
+- Join `report_created` events back to `scan_completed` events with the shared `scan_key` property.
+
+This telemetry is intended for Azure-side monitoring and operator dashboards. It does not replace the in-app live scan view or the existing shared-report persistence feature.

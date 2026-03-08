@@ -25,6 +25,9 @@ param githubToken string = ''
 @description('Enable the report-sharing feature. When true, an Azure Files share is mounted for report persistence.')
 param enableSharing bool = false
 
+@description('Enable Azure Application Insights telemetry for scan/report monitoring.')
+param enableAppInsights bool = true
+
 @description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
 param acrName string = ''
 
@@ -51,6 +54,20 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }
+  }
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (enableAppInsights) {
+  name: '${namePrefix}-appi'
+  location: location
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    RetentionInDays: 31
+    WorkspaceResourceId: logAnalytics.id
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
   }
 }
 
@@ -145,11 +162,22 @@ var tokenEnv = githubToken != '' ? [
   { name: 'GH_TOKEN_FOR_SCAN', secretRef: 'gh-token-for-scan' }
 ] : []
 
-var appEnv = concat(baseEnv, sharingEnv, tokenEnv)
+var appInsightsEnv = enableAppInsights ? [
+  { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
+] : []
+
+var appEnv = concat(baseEnv, sharingEnv, tokenEnv, appInsightsEnv)
 
 // ── Secrets ───────────────────────────────────────────────────────
 var appSecrets = githubToken != '' ? [
   { name: 'gh-token-for-scan', value: githubToken }
+] : []
+
+var appInsightsSecrets = enableAppInsights ? [
+  {
+    name: 'app-insights-connection-string'
+    value: appInsights!.properties.ConnectionString
+  }
 ] : []
 
 // ── Volumes & mounts (only when sharing is enabled) ───────────────
@@ -185,7 +213,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ] : []
       }
-      secrets: concat(appSecrets, acrName != '' ? [
+      secrets: concat(appSecrets, appInsightsSecrets, acrName != '' ? [
         #disable-next-line BCP422
         { name: 'acr-password', value: acr.listCredentials().passwords[0].value }
       ] : [])
@@ -253,6 +281,9 @@ output appUrl string = 'https://${containerApp.properties.configuration.ingress.
 
 @description('Name of the Container App (used by CD workflow to update the image).')
 output containerAppName string = containerApp.name
+
+@description('Name of the Application Insights component used for telemetry.')
+output appInsightsName string = enableAppInsights ? appInsights.name : ''
 
 @description('Resource group name.')
 output resourceGroupName string = resourceGroup().name

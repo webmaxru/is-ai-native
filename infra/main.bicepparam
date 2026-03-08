@@ -10,6 +10,9 @@ param namePrefix = 'is-ai-native'
 // Optionally provide a GH_TOKEN_FOR_SCAN secret to increase GitHub API rate limits for scanning.
 param enableSharing = true
 
+// Application Insights is enabled by default for scan/report telemetry and Azure Workbook monitoring.
+param enableAppInsights = true
+
 param tags = {
   application: 'is-ai-native'
   managedBy: 'bicep'

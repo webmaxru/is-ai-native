@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { saveReport, getReport } from '../services/storage.js';
+import { trackReportCreated } from '../services/app-insights.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VALID_VERDICTS = new Set(['AI-Native', 'AI-Assisted', 'Traditional']);
@@ -46,6 +47,7 @@ router.post('/', (req, res) => {
   }
 
   const id = saveReport(result);
+  void trackReportCreated(result, { reportId: id });
   const url = `/_/report/${id}`;
 
   return res.status(201).json({ id, url });

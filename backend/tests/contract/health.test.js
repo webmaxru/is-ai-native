@@ -17,6 +17,7 @@ describe('GET /health', () => {
   describe('when GH_TOKEN_FOR_SCAN is not set and sharing is disabled', () => {
     beforeEach(() => {
       delete process.env.GH_TOKEN_FOR_SCAN;
+      delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
       process.env.ENABLE_SHARING = 'false';
     });
 
@@ -35,16 +36,23 @@ describe('GET /health', () => {
       const res = await request(app).get('/health');
       expect(res.body.sharingEnabled).toBe(false);
     });
+
+    it('reports appInsightsEnabled as false', async () => {
+      const res = await request(app).get('/health');
+      expect(res.body.appInsightsEnabled).toBe(false);
+    });
   });
 
   describe('when GH_TOKEN_FOR_SCAN is set and sharing is enabled', () => {
     beforeEach(() => {
       process.env.GH_TOKEN_FOR_SCAN = 'ghp_testtoken';
+      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = 'InstrumentationKey=test-key;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/';
       process.env.ENABLE_SHARING = 'true';
     });
 
     afterEach(() => {
       delete process.env.GH_TOKEN_FOR_SCAN;
+      delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
       process.env.ENABLE_SHARING = 'false';
     });
 
@@ -56,6 +64,11 @@ describe('GET /health', () => {
     it('reports sharingEnabled as true', async () => {
       const res = await request(app).get('/health');
       expect(res.body.sharingEnabled).toBe(true);
+    });
+
+    it('reports appInsightsEnabled as true', async () => {
+      const res = await request(app).get('/health');
+      expect(res.body.appInsightsEnabled).toBe(true);
     });
   });
 });
