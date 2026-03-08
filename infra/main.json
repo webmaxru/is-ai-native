@@ -1,0 +1,342 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "9571801176263097184"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources. Defaults to the resource group location."
+      }
+    },
+    "namePrefix": {
+      "type": "string",
+      "defaultValue": "is-ai-native",
+      "minLength": 3,
+      "maxLength": 20,
+      "metadata": {
+        "description": "Name prefix applied to every resource. Must contain only lowercase letters, numbers, and hyphens; 3–20 chars."
+      }
+    },
+    "containerImage": {
+      "type": "string",
+      "metadata": {
+        "description": "Container image to deploy, e.g. ghcr.io/org/repo:sha-abc1234."
+      }
+    },
+    "githubToken": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "GitHub PAT used by the scanner to raise API rate limits. Leave empty for unauthenticated access."
+      }
+    },
+    "enableSharing": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable the report-sharing feature. When true, an Azure Files share is mounted for report persistence."
+      }
+    },
+    "enableAppInsights": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Azure Application Insights telemetry for scan/report monitoring."
+      }
+    },
+    "acrName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity."
+      }
+    },
+    "customDomainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom domain name to bind (e.g. scan.example.com). Leave empty to use the default Azure FQDN. Requires a one-time CLI setup: see README."
+      }
+    },
+    "managedCertName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "application": "is-ai-native",
+        "managedBy": "bicep"
+      },
+      "metadata": {
+        "description": "Tags applied to every resource."
+      }
+    }
+  },
+  "variables": {
+    "baseEnv": [
+      {
+        "name": "NODE_ENV",
+        "value": "production"
+      },
+      {
+        "name": "PORT",
+        "value": "3000"
+      },
+      {
+        "name": "SERVE_FRONTEND",
+        "value": "true"
+      },
+      {
+        "name": "ENABLE_SHARING",
+        "value": "[if(parameters('enableSharing'), 'true', 'false')]"
+      }
+    ],
+    "sharingEnv": "[if(parameters('enableSharing'), createArray(createObject('name', 'DB_PATH', 'value', '/app/data/reports.db')), createArray())]",
+    "tokenEnv": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'GH_TOKEN_FOR_SCAN', 'secretRef', 'gh-token-for-scan')), createArray())]",
+    "appInsightsEnv": "[if(parameters('enableAppInsights'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'secretRef', 'app-insights-connection-string')), createArray())]",
+    "appEnv": "[concat(variables('baseEnv'), variables('sharingEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
+    "appSecrets": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'gh-token-for-scan', 'value', parameters('githubToken'))), createArray())]",
+    "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'sqlite-data', 'storageType', 'AzureFile', 'storageName', 'sqlite-data')), createArray())]",
+    "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'sqlite-data')), createArray())]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}-logs', parameters('namePrefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 31,
+        "features": {
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        }
+      }
+    },
+    {
+      "condition": "[parameters('enableAppInsights')]",
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('{0}-appi', parameters('namePrefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "RetentionInDays": 30,
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}-env', parameters('namePrefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix'))), '2023-09-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix'))), '2023-09-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableSharing')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-05-01",
+      "name": "[take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24)]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false,
+        "supportsHttpsTrafficOnly": true,
+        "networkAcls": {
+          "defaultAction": "Allow"
+        }
+      }
+    },
+    {
+      "condition": "[parameters('enableSharing')]",
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableSharing')]",
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}/{2}', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24), 'default', 'data')]",
+      "properties": {
+        "shareQuota": 1
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24), 'default')]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableSharing')]",
+      "type": "Microsoft.App/managedEnvironments/storages",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}/{1}', format('{0}-env', parameters('namePrefix')), 'sqlite-data')]",
+      "properties": {
+        "azureFile": {
+          "accountName": "[take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24)]",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24)), '2023-05-01').keys[0].value]",
+          "shareName": "data",
+          "accessMode": "ReadWrite"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}-app', parameters('namePrefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "targetPort": 3000,
+            "transport": "http",
+            "allowInsecure": false,
+            "customDomains": "[if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray())]"
+          },
+          "secrets": "[concat(variables('appSecrets'), if(parameters('enableAppInsights'), createArray(createObject('name', 'app-insights-connection-string', 'value', reference(resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix'))), '2020-02-02').ConnectionString)), createArray()), if(not(equals(parameters('acrName'), '')), createArray(createObject('name', 'acr-password', 'value', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value)), createArray()))]",
+          "registries": "[if(not(equals(parameters('acrName'), '')), createArray(createObject('server', format('{0}.azurecr.io', parameters('acrName')), 'username', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username, 'passwordSecretRef', 'acr-password')), createArray())]"
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "app",
+              "image": "[parameters('containerImage')]",
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              },
+              "env": "[variables('appEnv')]",
+              "volumeMounts": "[variables('appVolumeMounts')]",
+              "probes": [
+                {
+                  "type": "Liveness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 3000
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 30,
+                  "timeoutSeconds": 5,
+                  "failureThreshold": 3
+                },
+                {
+                  "type": "Readiness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 3000
+                  },
+                  "initialDelaySeconds": 5,
+                  "periodSeconds": 10,
+                  "timeoutSeconds": 5,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
+                }
+              ]
+            }
+          ],
+          "volumes": "[variables('appVolumes')]",
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 3,
+            "rules": [
+              {
+                "name": "http-scaling",
+                "http": {
+                  "metadata": {
+                    "concurrentRequests": "20"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}-env', parameters('namePrefix')), 'sqlite-data')]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Public URL of the deployed application."
+      },
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn)]"
+    },
+    "containerAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Container App (used by CD workflow to update the image)."
+      },
+      "value": "[format('{0}-app', parameters('namePrefix'))]"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Application Insights component used for telemetry."
+      },
+      "value": "[if(parameters('enableAppInsights'), format('{0}-appi', parameters('namePrefix')), '')]"
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name."
+      },
+      "value": "[resourceGroup().name]"
+    }
+  }
+}

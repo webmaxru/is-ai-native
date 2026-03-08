@@ -64,7 +64,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (enableAppI
   kind: 'web'
   properties: {
     Application_Type: 'web'
-    RetentionInDays: 31
+    RetentionInDays: 30
     WorkspaceResourceId: logAnalytics.id
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
