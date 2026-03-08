@@ -1,10 +1,21 @@
-import { saveReport, getReport, cleanupExpired, closeDb, getDb } from '../../src/services/storage.js';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { saveReport, getReport, cleanupExpired, closeDb } from '../../src/services/storage.js';
 
-// Use in-memory DB for tests
-process.env.DB_PATH = ':memory:';
+let reportsDir;
+
+beforeEach(() => {
+  reportsDir = mkdtempSync(join(tmpdir(), 'is-ai-native-storage-'));
+  process.env.REPORTS_DIR = reportsDir;
+  delete process.env.DB_PATH;
+});
 
 afterEach(() => {
   closeDb();
+  delete process.env.REPORTS_DIR;
+  delete process.env.DB_PATH;
+  rmSync(reportsDir, { recursive: true, force: true });
 });
 
 const sampleResult = {
@@ -38,13 +49,15 @@ describe('getReport', () => {
 
   it('returns null and deletes an expired report', () => {
     const id = saveReport(sampleResult);
-    // Manually expire the row
-    getDb().prepare('UPDATE reports SET expires_at = 0 WHERE id = ?').run(id);
+
+    const reportPath = join(reportsDir, `${id}.json`);
+    const record = JSON.parse(readFileSync(reportPath, 'utf8'));
+    record.expires_at = 0;
+    writeFileSync(reportPath, JSON.stringify(record), 'utf8');
+
     const result = getReport(id);
     expect(result).toBeNull();
-    // Row should be deleted
-    const row = getDb().prepare('SELECT id FROM reports WHERE id = ?').get(id);
-    expect(row).toBeUndefined();
+    expect(() => readFileSync(reportPath, 'utf8')).toThrow();
   });
 });
 
@@ -52,10 +65,32 @@ describe('cleanupExpired', () => {
   it('removes expired reports and keeps active ones', () => {
     const id1 = saveReport(sampleResult);
     const id2 = saveReport({ ...sampleResult, score: 10 });
-    getDb().prepare('UPDATE reports SET expires_at = 0 WHERE id = ?').run(id1);
+
+    const reportPath = join(reportsDir, `${id1}.json`);
+    const record = JSON.parse(readFileSync(reportPath, 'utf8'));
+    record.expires_at = 0;
+    writeFileSync(reportPath, JSON.stringify(record), 'utf8');
+
     cleanupExpired();
     expect(getReport(id2)).not.toBeNull();
-    const row = getDb().prepare('SELECT id FROM reports WHERE id = ?').get(id1);
-    expect(row).toBeUndefined();
+    expect(() => readFileSync(reportPath, 'utf8')).toThrow();
+  });
+
+  it('uses in-memory storage when DB_PATH is :memory:', () => {
+    delete process.env.REPORTS_DIR;
+    process.env.DB_PATH = ':memory:';
+
+    const id = saveReport(sampleResult);
+    expect(getReport(id)).toEqual(sampleResult);
+  });
+
+  it('derives a writable storage directory from legacy DB_PATH values', () => {
+    delete process.env.REPORTS_DIR;
+    process.env.DB_PATH = join(reportsDir, 'reports.db');
+
+    const id = saveReport(sampleResult);
+    const derivedPath = join(reportsDir, 'reports-store', `${id}.json`);
+
+    expect(JSON.parse(readFileSync(derivedPath, 'utf8')).result).toEqual(sampleResult);
   });
 });

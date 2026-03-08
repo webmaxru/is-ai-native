@@ -1,63 +1,144 @@
-import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { join, parse } from 'node:path';
 
 const TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
-let db;
+let memoryStore;
 
-export function getDb() {
-  if (!db) {
-    const dbPath = process.env.DB_PATH || './data/reports.db';
-    if (dbPath !== ':memory:') {
-      mkdirSync(dirname(dbPath), { recursive: true });
-    }
-    db = new DatabaseSync(dbPath);
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS reports (
-        id TEXT PRIMARY KEY,
-        repo_url TEXT,
-        result TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL
-      )
-    `);
+function isMemoryStorage() {
+  return process.env.DB_PATH === ':memory:';
+}
+
+function getMemoryStore() {
+  if (!memoryStore) {
+    memoryStore = new Map();
   }
-  return db;
+
+  return memoryStore;
+}
+
+function getReportsDir() {
+  if (process.env.REPORTS_DIR) {
+    return process.env.REPORTS_DIR;
+  }
+
+  const dbPath = process.env.DB_PATH;
+  if (dbPath && dbPath !== ':memory:') {
+    const parsed = parse(dbPath);
+    return join(parsed.dir || '.', parsed.name ? `${parsed.name}-store` : 'reports');
+  }
+
+  return './data/reports';
+}
+
+function ensureReportsDir() {
+  const reportsDir = getReportsDir();
+  mkdirSync(reportsDir, { recursive: true });
+  return reportsDir;
+}
+
+function getReportPath(id) {
+  return join(ensureReportsDir(), `${id}.json`);
+}
+
+function writeRecord(id, record) {
+  const reportPath = getReportPath(id);
+  const tempPath = `${reportPath}.tmp`;
+
+  writeFileSync(tempPath, JSON.stringify(record), 'utf8');
+  renameSync(tempPath, reportPath);
+}
+
+function readRecord(id) {
+  try {
+    return JSON.parse(readFileSync(getReportPath(id), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return null;
+    }
+
+    throw err;
+  }
+}
+
+function deleteRecord(id) {
+  try {
+    rmSync(getReportPath(id), { force: true });
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw err;
+    }
+  }
 }
 
 export function saveReport(scanResult) {
   const id = randomUUID();
   const now = Date.now();
   const expiresAt = now + TTL_MS;
-  getDb()
-    .prepare(
-      'INSERT INTO reports (id, repo_url, result, created_at, expires_at) VALUES (?, ?, ?, ?, ?)'
-    )
-    .run(id, scanResult.repo_url ?? null, JSON.stringify(scanResult), now, expiresAt);
+
+  const record = {
+    id,
+    repo_url: scanResult.repo_url ?? null,
+    result: scanResult,
+    created_at: now,
+    expires_at: expiresAt,
+  };
+
+  if (isMemoryStorage()) {
+    getMemoryStore().set(id, record);
+    return id;
+  }
+
+  writeRecord(id, record);
   return id;
 }
 
 export function getReport(id) {
-  const row = getDb()
-    .prepare('SELECT result, expires_at FROM reports WHERE id = ?')
-    .get(id);
-  if (!row) return null;
-  if (Date.now() >= row.expires_at) {
-    getDb().prepare('DELETE FROM reports WHERE id = ?').run(id);
+  const record = isMemoryStorage() ? getMemoryStore().get(id) ?? null : readRecord(id);
+  if (!record) return null;
+
+  if (Date.now() >= record.expires_at) {
+    if (isMemoryStorage()) {
+      getMemoryStore().delete(id);
+    } else {
+      deleteRecord(id);
+    }
     return null;
   }
-  return JSON.parse(row.result);
+
+  return record.result;
 }
 
 export function cleanupExpired() {
-  getDb().prepare('DELETE FROM reports WHERE expires_at <= ?').run(Date.now());
+  const now = Date.now();
+
+  if (isMemoryStorage()) {
+    for (const [id, record] of getMemoryStore().entries()) {
+      if (record.expires_at <= now) {
+        getMemoryStore().delete(id);
+      }
+    }
+    return;
+  }
+
+  const reportsDir = ensureReportsDir();
+  for (const entry of readdirSync(reportsDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) {
+      continue;
+    }
+
+    const id = entry.name.slice(0, -5);
+    const record = readRecord(id);
+    if (record && record.expires_at <= now) {
+      deleteRecord(id);
+    }
+  }
 }
 
 export function closeDb() {
-  if (db) {
-    db.close();
-    db = null;
+  if (memoryStore) {
+    memoryStore.clear();
+    memoryStore = null;
   }
 }

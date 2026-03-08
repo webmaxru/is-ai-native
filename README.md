@@ -13,7 +13,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ### Key Features
 
 - **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
-- **Report sharing** — Save scan results as shareable links (backed by SQLite; enabled by default in production). Reports auto-expire after 90 days.
+- **Report sharing** — Save scan results as shareable links (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
@@ -52,16 +52,16 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
                                                    │  (repo scan)   │
                                                    └───────┬────────┘
                                                             │
-                                                   ┌───────▼────────┐
-                                                   │  SQLite (opt.) │
-                                                   │  (shared       │
-                                                   │   reports)     │
-                                                   └────────────────┘
+                                                   ┌───────▼──────────────┐
+                                                   │  File-backed report   │
+                                                   │  store (optional)     │
+                                                   │  for shared reports   │
+                                                   └───────────────────────┘
 ```
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
 - **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score.
-- **Database** — Optional SQLite storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
+- **Storage** — Optional file-backed storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
 - **Reverse Proxy** — In Docker Compose mode, Nginx serves static files and proxies `/api/*` and `/health` to the backend. In single-container mode, Express serves the frontend directly.
 
 ---
@@ -153,8 +153,9 @@ npm run test:integration # integration tests only
 | `PORT` | `3000` | Port the Express server listens on |
 | `NODE_ENV` | — | Set to `production` in deployed environments |
 | `GH_TOKEN_FOR_SCAN` | — | GitHub PAT to increase API rate limits for scanning |
-| `ENABLE_SHARING` | `false` | Enable the report-sharing feature (requires SQLite) |
-| `DB_PATH` | `./data/reports.db` | Path to the SQLite database file |
+| `ENABLE_SHARING` | `false` | Enable the report-sharing feature |
+| `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
+| `DB_PATH` | `./data/reports.db` | Legacy compatibility setting used to derive the report storage directory when `REPORTS_DIR` is unset |
 | `SERVE_FRONTEND` | `false` | Serve frontend static files from Express (single-container mode) |
 | `FRONTEND_PATH` | `../frontend` | Path to the frontend directory (when `SERVE_FRONTEND=true`) |
 | `ALLOWED_ORIGIN` | `false` (CORS disabled) | Allowed CORS origin (e.g., `http://localhost:5173`) |
@@ -181,7 +182,7 @@ All Azure resources are defined in [`infra/main.bicep`](infra/main.bicep). A sin
 | **Log Analytics Workspace** | Centralized container logs and diagnostics |
 | **Container Apps Environment** | Consumption plan host (no workload profiles needed) |
 | **Container App** | The application with health / readiness probes, HTTP auto-scaling (0 → 3 replicas), and a system-assigned managed identity |
-| **Azure Storage Account + File Share** | *(conditional, when `enableSharing=true`)* Azure Files mounted for SQLite persistence |
+| **Azure Storage Account + File Share** | *(conditional, when `enableSharing=true`)* Azure Files mounted for shared-report persistence |
 
 Optional features in the Bicep template:
 - **ACR integration** — Pass `acrName` to pull images from Azure Container Registry using admin credentials stored as secrets.
@@ -405,7 +406,7 @@ Health check endpoint. Returns `{ "status": "ok" }`.
 │   │   │   └── config.js      # GET /api/config
 │   │   └── services/
 │   │       ├── scanner.js     # GitHub API integration & scoring logic
-│   │       └── storage.js     # SQLite persistence for shared reports
+│   │       └── storage.js     # File-backed persistence for shared reports
 │   ├── tests/                 # Jest test suites (unit, contract, integration)
 │   ├── package.json
 │   └── Dockerfile             # Backend-only image (used by docker-compose)

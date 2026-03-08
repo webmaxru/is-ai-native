@@ -1,7 +1,6 @@
 import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
-process.env.DB_PATH = ':memory:';
 process.env.ENABLE_SHARING = 'true';
 
 let request;
@@ -18,6 +17,11 @@ beforeAll(async () => {
 
 afterEach(() => {
   closeDb();
+  process.env.DB_PATH = ':memory:';
+});
+
+beforeEach(() => {
+  process.env.DB_PATH = ':memory:';
 });
 
 describe('Integration: share → retrieve', () => {
@@ -56,5 +60,55 @@ describe('Integration: share → retrieve', () => {
       '/api/report/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
     );
     expect(getRes.status).toBe(404);
+  });
+
+  it('accepts a scan payload shaped like the live scan response', async () => {
+    const scanResult = {
+      repo_url: 'https://github.com/microsoft/skills',
+      repo_name: 'microsoft/skills',
+      description: null,
+      stars: 1234,
+      score: 100,
+      verdict: 'AI-Native',
+      scanned_at: '2026-03-08T21:00:00.000Z',
+      primitives: [
+        {
+          name: 'Instruction Files',
+          category: 'instructions',
+          detected: true,
+          matched_files: ['.github/copilot-instructions.md'],
+          description: 'Instruction files',
+          doc_links: ['https://docs.github.com/en/copilot'],
+          assistant_results: {
+            'github-copilot': {
+              detected: true,
+              matched_files: ['.github/copilot-instructions.md'],
+            },
+          },
+        },
+      ],
+      per_assistant: [
+        {
+          id: 'github-copilot',
+          name: 'GitHub Copilot',
+          score: 100,
+          primitives: [
+            {
+              name: 'Instruction Files',
+              category: 'instructions',
+              detected: true,
+              matched_files: ['.github/copilot-instructions.md'],
+            },
+          ],
+        },
+      ],
+    };
+
+    const shareRes = await request(app).post('/api/report').send({ result: scanResult });
+    expect(shareRes.status).toBe(201);
+
+    const getRes = await request(app).get(`/api/report/${shareRes.body.id}`);
+    expect(getRes.status).toBe(200);
+    expect(getRes.body).toEqual(scanResult);
   });
 });

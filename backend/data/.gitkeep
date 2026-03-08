@@ -1,1 +1,1 @@
-# SQLite data directory — keep the directory but exclude the database file
+# Shared report data directory — keep the directory but exclude stored report files

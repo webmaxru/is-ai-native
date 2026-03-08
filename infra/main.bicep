@@ -22,7 +22,7 @@ param containerImage string
 @secure()
 param githubToken string = ''
 
-@description('Enable the report-sharing feature. When true, an Azure Files share is mounted for SQLite persistence.')
+@description('Enable the report-sharing feature. When true, an Azure Files share is mounted for report persistence.')
 param enableSharing bool = false
 
 @description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
@@ -70,7 +70,7 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-// ── Optional: Azure Storage for SQLite persistence (sharing feature) ──
+// ── Optional: Azure Storage for shared-report persistence ──
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if (enableSharing) {
   // Azure Storage account names: 3–24 chars, lowercase letters and numbers only.
   // namePrefix is documented as lowercase letters/numbers/hyphens; strip hyphens plus
