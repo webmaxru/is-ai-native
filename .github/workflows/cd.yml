@@ -143,6 +143,8 @@ jobs:
             enableSharing=true
             customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
             managedCertName=${{ secrets.MANAGED_CERT_NAME }}
+            secondaryCustomDomainName=${{ secrets.SECONDARY_CUSTOM_DOMAIN_NAME }}
+            secondaryManagedCertName=${{ secrets.SECONDARY_MANAGED_CERT_NAME }}
           failOnStdErr: false
 
       - name: Print application URL

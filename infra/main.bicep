@@ -37,6 +37,12 @@ param customDomainName string = ''
 @description('Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup.')
 param managedCertName string = ''
 
+@description('Optional secondary custom domain name to keep bound alongside the primary domain during migrations or cutovers.')
+param secondaryCustomDomainName string = ''
+
+@description('Name of the existing managed certificate for the optional secondary custom domain.')
+param secondaryManagedCertName string = ''
+
 @description('Tags applied to every resource.')
 param tags object = {
   application: 'is-ai-native'
@@ -141,6 +147,11 @@ resource managedCert 'Microsoft.App/managedEnvironments/managedCertificates@2024
   name: managedCertName
 }
 
+resource secondaryManagedCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (secondaryManagedCertName != '') {
+  parent: containerEnv
+  name: secondaryManagedCertName
+}
+
 // ── ACR reference (for admin credentials) ────────────────────────
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (acrName != '') {
   name: acrName
@@ -189,6 +200,23 @@ var appVolumeMounts = enableSharing ? [
   { mountPath: '/app/data', volumeName: 'sqlite-data' }
 ] : []
 
+var customDomainBindings = concat(
+  (customDomainName != '' && managedCertName != '') ? [
+    {
+      name: customDomainName
+      bindingType: 'SniEnabled'
+      certificateId: managedCert.id
+    }
+  ] : [],
+  (secondaryCustomDomainName != '' && secondaryManagedCertName != '') ? [
+    {
+      name: secondaryCustomDomainName
+      bindingType: 'SniEnabled'
+      certificateId: secondaryManagedCert.id
+    }
+  ] : []
+)
+
 // ── Container App ─────────────────────────────────────────────────
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
@@ -205,13 +233,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 3000
         transport: 'http'
         allowInsecure: false
-        customDomains: (customDomainName != '' && managedCertName != '') ? [
-          {
-            name: customDomainName
-            bindingType: 'SniEnabled'
-            certificateId: managedCert.id
-          }
-        ] : []
+        customDomains: customDomainBindings
       }
       secrets: concat(appSecrets, appInsightsSecrets, acrName != '' ? [
         #disable-next-line BCP422

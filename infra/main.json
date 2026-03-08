@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "9571801176263097184"
+      "templateHash": "13088693750965497163"
     }
   },
   "parameters": {
@@ -73,6 +73,20 @@
         "description": "Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup."
       }
     },
+    "secondaryCustomDomainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional secondary custom domain name to keep bound alongside the primary domain during migrations or cutovers."
+      }
+    },
+    "secondaryManagedCertName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the existing managed certificate for the optional secondary custom domain."
+      }
+    },
     "tags": {
       "type": "object",
       "defaultValue": {
@@ -109,7 +123,8 @@
     "appEnv": "[concat(variables('baseEnv'), variables('sharingEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
     "appSecrets": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'gh-token-for-scan', 'value', parameters('githubToken'))), createArray())]",
     "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'sqlite-data', 'storageType', 'AzureFile', 'storageName', 'sqlite-data')), createArray())]",
-    "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'sqlite-data')), createArray())]"
+    "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'sqlite-data')), createArray())]",
+    "customDomainBindings": "[concat(if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray()), if(and(not(equals(parameters('secondaryCustomDomainName'), '')), not(equals(parameters('secondaryManagedCertName'), ''))), createArray(createObject('name', parameters('secondaryCustomDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('secondaryManagedCertName')))), createArray()))]"
   },
   "resources": [
     {
@@ -242,7 +257,7 @@
             "targetPort": 3000,
             "transport": "http",
             "allowInsecure": false,
-            "customDomains": "[if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray())]"
+            "customDomains": "[variables('customDomainBindings')]"
           },
           "secrets": "[concat(variables('appSecrets'), if(parameters('enableAppInsights'), createArray(createObject('name', 'app-insights-connection-string', 'value', reference(resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix'))), '2020-02-02').ConnectionString)), createArray()), if(not(equals(parameters('acrName'), '')), createArray(createObject('name', 'acr-password', 'value', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value)), createArray()))]",
           "registries": "[if(not(equals(parameters('acrName'), '')), createArray(createObject('server', format('{0}.azurecr.io', parameters('acrName')), 'username', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username, 'passwordSecretRef', 'acr-password')), createArray())]"

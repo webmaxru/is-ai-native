@@ -190,6 +190,7 @@ All Azure resources are defined in [`infra/main.bicep`](infra/main.bicep). A sin
 Optional features in the Bicep template:
 - **ACR integration** — Pass `acrName` to pull images from Azure Container Registry using admin credentials stored as secrets.
 - **Custom domain + managed TLS** — Pass `customDomainName` and `managedCertName` to bind a custom domain with a Let's Encrypt certificate.
+- **Secondary custom domain + managed TLS** — Pass `secondaryCustomDomainName` and `secondaryManagedCertName` to keep a second hostname bound during migrations or gradual cutovers.
 
 Default parameter values live in [`infra/main.bicepparam`](infra/main.bicepparam) for quick manual deployments. The CD workflow passes all parameters inline (`.bicepparam` files cannot be mixed with additional CLI overrides).
 
@@ -318,6 +319,21 @@ To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt cer
                   managedCertName='<cert-name-from-step-5>'
    ```
 
+   To keep an existing hostname active during a migration, pass both domain/certificate pairs in the same deployment:
+
+   ```bash
+   az deployment group create \
+     --resource-group <rg> \
+     --template-file infra/main.bicep \
+     --parameters namePrefix=is-ai-native \
+                  enableSharing=true \
+                  containerImage=ghcr.io/<owner>/is-ai-native:latest \
+                  customDomainName='new.example.com' \
+                  managedCertName='<new-cert-name>' \
+                  secondaryCustomDomainName='old.example.com' \
+                  secondaryManagedCertName='<old-cert-name>'
+   ```
+
 7. **Verify** the binding:
 
    ```bash
@@ -341,6 +357,8 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 | `GH_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
 | `CUSTOM_DOMAIN_NAME` | *(optional)* Custom domain name (e.g., `scan.example.com`). Leave empty to use the default Azure FQDN |
 | `MANAGED_CERT_NAME` | *(optional)* Name of the managed certificate created in the [Custom Domain](#custom-domain-with-managed-tls) setup |
+| `SECONDARY_CUSTOM_DOMAIN_NAME` | *(optional)* Secondary custom domain to keep bound during migrations or parallel-hostname support |
+| `SECONDARY_MANAGED_CERT_NAME` | *(optional)* Managed certificate name for `SECONDARY_CUSTOM_DOMAIN_NAME` |
 
 ---
 
