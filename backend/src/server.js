@@ -36,9 +36,12 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 if (process.env.SERVE_FRONTEND === 'true') {
   const frontendPath = process.env.FRONTEND_PATH || join(__dirname, '../frontend');
   if (existsSync(frontendPath)) {
+    // Serve static assets, then SPA fallback. The regex excludes /api/* so that
+    // requests to unknown API paths still reach the JSON 404 handler below.
     app.use(express.static(frontendPath));
-    // SPA fallback — serve index.html for all unmatched GET requests
-    app.get('*', (_req, res) => res.sendFile(join(frontendPath, 'index.html')));
+    app.get(/^(?!\/api(\/|$))/, (_req, res) =>
+      res.sendFile(join(frontendPath, 'index.html'))
+    );
   }
 }
 
