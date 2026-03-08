@@ -84,6 +84,21 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_report_views = sum(ItemCount)",
+        "size": 0,
+        "title": "Shared report views",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - total report views"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
         "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| make-series scans = sum(ItemCount) default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain}",
         "size": 1,
         "title": "Scan volume over time",
@@ -109,6 +124,21 @@
         "exportToExcelOptions": "visible"
       },
       "name": "query - recent scans"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project TimeGenerated, repo_name, report_id = tostring(Properties.report_id), verdict = tostring(Properties.verdict), score = todouble(Measurements.score)\n| order by TimeGenerated desc",
+        "size": 1,
+        "title": "Recent shared report views",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - recent shared report views"
     },
     {
       "type": 3,
