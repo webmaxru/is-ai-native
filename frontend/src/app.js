@@ -37,13 +37,16 @@ function resolveTheme(mode) {
 }
 
 function updateThemeControls(mode) {
-  const buttons = document.querySelectorAll('[data-theme-option]');
+  const toggle = document.getElementById('theme-toggle');
+  if (!toggle) {
+    return;
+  }
 
-  buttons.forEach((button) => {
-    const selected = button.dataset.themeOption === mode;
-    button.classList.toggle('active', selected);
-    button.setAttribute('aria-pressed', String(selected));
-  });
+  const resolvedTheme = resolveTheme(mode);
+  const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+  toggle.dataset.themeTarget = nextTheme;
+  toggle.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
+  toggle.setAttribute('title', `Switch to ${nextTheme} theme`);
 }
 
 function updateThemeColorMeta(resolvedTheme) {
@@ -75,24 +78,20 @@ function persistThemeMode(mode) {
 }
 
 function initThemeSwitcher() {
-  const buttons = document.querySelectorAll('[data-theme-option]');
-  if (buttons.length === 0) {
+  const toggle = document.getElementById('theme-toggle');
+  if (!toggle) {
     return;
   }
 
   const mode = getSavedThemeMode();
   applyTheme(mode);
 
-  buttons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const nextMode = button.dataset.themeOption;
-      if (!THEME_OPTIONS.has(nextMode)) {
-        return;
-      }
+  toggle.addEventListener('click', () => {
+    const currentResolvedTheme = resolveTheme(document.documentElement.dataset.themeMode || 'system');
+    const nextMode = currentResolvedTheme === 'dark' ? 'light' : 'dark';
 
-      persistThemeMode(nextMode);
-      applyTheme(nextMode);
-    });
+    persistThemeMode(nextMode);
+    applyTheme(nextMode);
   });
 
   themeMediaQuery.addEventListener('change', () => {

@@ -25,7 +25,7 @@
   <meta name="theme-color" content="#290000" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet" />
   <script>
     (() => {
       const storageKey = 'is-ai-native-theme';
@@ -56,13 +56,9 @@
 
   <div class="container">
     <header class="site-header">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch to light theme" title="Switch theme"></button>
       <h1>IsAINative</h1>
       <p class="subtitle">Scan a public GitHub repository to assess AI-native development readiness across instructions, prompts, agents, skills, agent hooks, and MCP servers</p>
-      <div class="theme-switcher" role="group" aria-label="Theme preference">
-        <button type="button" class="theme-option" data-theme-option="system" aria-pressed="true">System</button>
-        <button type="button" class="theme-option" data-theme-option="light" aria-pressed="false">Light</button>
-        <button type="button" class="theme-option" data-theme-option="dark" aria-pressed="false">Dark</button>
-      </div>
     </header>
 
     <main id="main-content" class="main-content">
