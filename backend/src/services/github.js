@@ -52,13 +52,35 @@ export class GitHubApiError extends Error {
 }
 
 /**
+ * Reads GitHub rate limit headers from a response.
+ * @param {Response} resp
+ * @returns {{ rateRemaining: number, rateReset: string | null }}
+ */
+function getRateLimitDetails(resp) {
+  return {
+    rateRemaining: parseInt(resp.headers.get('x-ratelimit-remaining') ?? '', 10),
+    rateReset: resp.headers.get('x-ratelimit-reset'),
+  };
+}
+
+/**
+ * Determines whether a failed authenticated request should be retried without auth.
+ * This protects public-repo scans from broken or over-scoped tokens.
+ * @param {Response} resp
+ * @returns {boolean}
+ */
+function shouldRetryUnauthenticated(resp) {
+  const { rateRemaining } = getRateLimitDetails(resp);
+  return resp.status === 401 || (resp.status === 403 && rateRemaining !== 0);
+}
+
+/**
  * Handles GitHub API error responses and throws descriptive errors.
  * @param {Response} resp - Fetch response
  * @param {string} context - Description of the request for error messages
  */
 async function handleErrorResponse(resp, context) {
-  const rateRemaining = parseInt(resp.headers.get('x-ratelimit-remaining') ?? '', 10);
-  const rateReset = resp.headers.get('x-ratelimit-reset');
+  const { rateRemaining, rateReset } = getRateLimitDetails(resp);
   const body = await resp.json().catch(() => ({}));
 
   if (resp.status === 403 && rateRemaining === 0) {
@@ -72,9 +94,18 @@ async function handleErrorResponse(resp, context) {
     );
   }
 
+  if (resp.status === 401) {
+    throw new GitHubApiError(
+      body.message || 'GitHub authentication failed. The configured token may be invalid or expired.',
+      401,
+      rateRemaining,
+      rateReset
+    );
+  }
+
   if (resp.status === 403) {
     throw new GitHubApiError(
-      'Repository is private or access is forbidden. Only public repositories are supported.',
+      body.message || 'Repository is private or access is forbidden. Only public repositories are supported.',
       403,
       rateRemaining,
       rateReset
@@ -99,6 +130,30 @@ async function handleErrorResponse(resp, context) {
 }
 
 /**
+ * Fetches GitHub JSON, retrying without auth when an optional token blocks access to a public repo.
+ * @param {string} url
+ * @param {string} context
+ * @param {string} [token]
+ * @returns {Promise<any>}
+ */
+async function fetchGitHubJson(url, context, token) {
+  const authenticatedResponse = await fetchWithTimeout(url, { headers: buildHeaders(token) });
+  if (authenticatedResponse.ok) {
+    return authenticatedResponse.json();
+  }
+
+  if (token && shouldRetryUnauthenticated(authenticatedResponse)) {
+    const fallbackResponse = await fetchWithTimeout(url, { headers: buildHeaders() });
+    if (fallbackResponse.ok) {
+      return fallbackResponse.json();
+    }
+    await handleErrorResponse(fallbackResponse, context);
+  }
+
+  await handleErrorResponse(authenticatedResponse, context);
+}
+
+/**
  * Fetches repository metadata and file tree from the GitHub API.
  *
  * @param {string} owner - Repository owner
@@ -109,28 +164,23 @@ async function handleErrorResponse(resp, context) {
  * @returns {Promise<{ paths: string[], repoData: object }>}
  */
 export async function fetchRepoTree(owner, repo, { token, branch } = {}) {
-  const headers = buildHeaders(token);
-
   // Step 1: Fetch repo metadata (includes default branch)
-  const repoResp = await fetchWithTimeout(`${GITHUB_API}/repos/${owner}/${repo}`, { headers });
-  if (!repoResp.ok) {
-    await handleErrorResponse(repoResp, 'Fetch repository metadata');
-  }
-  const repoData = await repoResp.json();
+  const repoData = await fetchGitHubJson(
+    `${GITHUB_API}/repos/${owner}/${repo}`,
+    'Fetch repository metadata',
+    token
+  );
 
   // Step 2: Use specified branch or default branch
   const targetBranch = branch || repoData.default_branch;
   const encodedBranch = encodeURIComponent(targetBranch);
 
   // Step 3: Fetch file tree
-  const treeResp = await fetchWithTimeout(
+  const treeData = await fetchGitHubJson(
     `${GITHUB_API}/repos/${owner}/${repo}/git/trees/${encodedBranch}?recursive=1`,
-    { headers }
+    'Fetch file tree',
+    token
   );
-  if (!treeResp.ok) {
-    await handleErrorResponse(treeResp, 'Fetch file tree');
-  }
-  const treeData = await treeResp.json();
 
   const paths = (treeData.tree || []).map((f) => f.path);
 

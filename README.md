@@ -244,23 +244,44 @@ To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt cer
 
 1. **Deploy without a custom domain first** (if you haven't already) and note the Container App's default FQDN from the deployment output (`appUrl`).
 
-2. **Configure DNS** — Add a CNAME record with your DNS provider:
+2. **Configure DNS** — Add **two** records with your DNS provider:
 
    | Type | Name | Value |
    | --- | --- | --- |
-   | CNAME | `scan.example.com` | `<your-app>.wittybush-059f5ba1.eastus2.azurecontainerapps.io` |
+   | CNAME | `scan.example.com` | `<namePrefix>-app.<env-default-domain>` (from step 1's `appUrl` output) |
+   | TXT | `asuid.scan.example.com` | *Custom domain verification ID* (see step 3) |
 
-3. **Create a managed certificate** in the Container Apps environment:
+3. **Get the domain verification ID** — This value must be set as a TXT record before certificate issuance will succeed:
+
+   ```bash
+   az containerapp env show \
+     --name <namePrefix>-env \
+     --resource-group <rg> \
+     --query properties.customDomainConfiguration.customDomainVerificationId -o tsv
+   ```
+
+   Add the returned value as a TXT record at `asuid.<your-subdomain>` (e.g., `asuid.scan.example.com`).
+
+4. **Add the hostname** to your Container App (required before creating the managed certificate):
+
+   ```bash
+   az containerapp hostname add \
+     --name <namePrefix>-app \
+     --resource-group <rg> \
+     --hostname scan.example.com
+   ```
+
+5. **Create the managed certificate**:
 
    ```bash
    az containerapp env certificate create \
      --name <namePrefix>-env \
      --resource-group <rg> \
-     --certificate-name my-cert \
-     --domain-name scan.example.com
+     --hostname scan.example.com \
+     --validation-method CNAME
    ```
 
-   Azure will validate domain ownership via the CNAME record. Wait until `provisioningState` shows **Succeeded**:
+   Wait until `provisioningState` shows **Succeeded** (this may take a few minutes):
 
    ```bash
    az containerapp env certificate list \
@@ -269,7 +290,18 @@ To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt cer
      --query "[].{name:name, domain:properties.subjectName, state:properties.provisioningState}"
    ```
 
-4. **Redeploy with the custom domain parameters** (pass them via CLI — do not commit domain-specific values to the repo):
+6. **Bind the certificate to the hostname** — note the certificate name from the previous step's output:
+
+   ```bash
+   az containerapp hostname bind \
+     --name <namePrefix>-app \
+     --resource-group <rg> \
+     --hostname scan.example.com \
+     --environment <namePrefix>-env \
+     --certificate <cert-name-from-step-5>
+   ```
+
+   Alternatively, redeploy with the custom domain Bicep parameters (pass via CLI — do not commit domain-specific values to the repo):
 
    ```bash
    az deployment group create \
@@ -279,10 +311,10 @@ To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt cer
                   enableSharing=true \
                   containerImage=ghcr.io/<owner>/is-ai-native:latest \
                   customDomainName='scan.example.com' \
-                  managedCertName='my-cert'
+                  managedCertName='<cert-name-from-step-5>'
    ```
 
-5. **Verify** the binding is active:
+7. **Verify** the binding:
 
    ```bash
    az containerapp show \
@@ -291,7 +323,7 @@ To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt cer
      --query properties.configuration.ingress.customDomains
    ```
 
-> **Tip:** The `customDomainName` and `managedCertName` parameters default to empty strings, so the app works without a custom domain. Pass them only when you're ready to bind one.
+> **Troubleshooting:** If the certificate stays in "Pending" state, verify that both DNS records (CNAME and TXT) are correctly configured. Use `nslookup -type=TXT asuid.scan.example.com` to confirm the TXT record is resolvable. The TXT value must match the `customDomainVerificationId` exactly.
 
 ### Azure Secrets for GitHub Actions
 
@@ -303,6 +335,8 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 | `AZURE_TENANT_ID` | Azure AD tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
 | `GH_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
+| `CUSTOM_DOMAIN_NAME` | *(optional)* Custom domain name (e.g., `scan.example.com`). Leave empty to use the default Azure FQDN |
+| `MANAGED_CERT_NAME` | *(optional)* Name of the managed certificate created in the [Custom Domain](#custom-domain-with-managed-tls) setup |
 
 ---
 
