@@ -3,6 +3,10 @@ import { renderReport } from './report.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
+// GitHub repo: alphanumeric, hyphens, dots, underscores, 1-100 chars
+const REPO_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?\/[a-zA-Z0-9._-]{1,100}$/;
+
 const PROGRESS_STAGES = [
   { label: 'Fetching file tree…', percent: 20 },
   { label: 'Matching patterns…', percent: 60 },
@@ -157,4 +161,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const repoUrl = document.getElementById('repo-url').value.trim();
     if (repoUrl) handleScan(repoUrl, sharingEnabled);
   });
+
+  // Auto-scan from ?repo=owner/repo query parameter
+  const params = new URLSearchParams(window.location.search);
+  const repoParam = params.get('repo');
+  if (repoParam) {
+    const sanitized = repoParam.trim();
+    if (REPO_RE.test(sanitized)) {
+      document.getElementById('repo-url').value = sanitized;
+      handleScan(sanitized, sharingEnabled);
+    } else {
+      showError('Invalid repo parameter. Expected format: owner/repository');
+    }
+  }
 });
