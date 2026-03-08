@@ -1,37 +1,53 @@
 import { Router } from 'express';
-import { scanRepository } from '../services/scanner.js';
+import { parseRepoUrl } from '../utils/url-parser.js';
+import { fetchRepoTree } from '../services/github.js';
+import { scanPrimitives } from '../services/scanner.js';
+import { calculateOverallScore, calculatePerAssistantScores, getVerdict } from '../services/scorer.js';
+import { loadConfig } from '../services/config-loader.js';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
-  const { repo_url } = req.body;
+router.post('/', async (req, res, next) => {
+  const { repo_url, branch } = req.body;
 
   if (!repo_url || typeof repo_url !== 'string') {
     return res.status(400).json({ error: 'repo_url is required' });
   }
 
-  const raw = repo_url.trim();
-  // Accept both "owner/repo" short format and full "https://github.com/owner/repo" URL
-  const url = raw.startsWith('http') ? raw : `https://github.com/${raw}`;
+  let parsed;
   try {
-    const parsed = new URL(url);
-    if (parsed.hostname !== 'github.com') {
-      return res.status(400).json({ error: 'Only GitHub repositories are supported' });
-    }
-  } catch {
-    return res.status(400).json({ error: 'Invalid repository' });
+    parsed = parseRepoUrl(repo_url);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 
   try {
     const token = process.env.GH_TOKEN_FOR_SCAN;
-    const result = await scanRepository(url, token);
-    return res.json(result);
+    const config = loadConfig();
+
+    const { paths, repoData } = await fetchRepoTree(parsed.owner, parsed.repo, {
+      token,
+      branch: branch || undefined,
+    });
+
+    const primitiveResults = scanPrimitives(paths, config.primitives);
+    const overallScore = calculateOverallScore(primitiveResults);
+    const perAssistant = calculatePerAssistantScores(primitiveResults, config.assistants);
+    const verdict = getVerdict(overallScore);
+
+    return res.json({
+      repo_url: parsed.url,
+      repo_name: `${parsed.owner}/${parsed.repo}`,
+      description: repoData.description || null,
+      stars: repoData.stargazers_count,
+      score: overallScore,
+      verdict,
+      scanned_at: new Date().toISOString(),
+      primitives: primitiveResults,
+      per_assistant: perAssistant,
+    });
   } catch (err) {
-    const message = err.message || 'Scan failed';
-    if (message.includes('not found') || message.includes('404')) {
-      return res.status(404).json({ error: 'Repository not found' });
-    }
-    return res.status(502).json({ error: message });
+    next(err);
   }
 });
 

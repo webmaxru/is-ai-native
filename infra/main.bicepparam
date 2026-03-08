@@ -6,9 +6,9 @@ using './main.bicep'
 
 param namePrefix = 'is-ai-native'
 
-// Report sharing is disabled by default (no persistent storage provisioned).
-// Set to true to enable the feature; optionally provide a GH_TOKEN_FOR_SCAN secret to increase GitHub API rate limits for scanning.
-param enableSharing = false
+// Report sharing is enabled by default (Azure Files share provisioned for SQLite persistence).
+// Optionally provide a GH_TOKEN_FOR_SCAN secret to increase GitHub API rate limits for scanning.
+param enableSharing = true
 
 param tags = {
   application: 'is-ai-native'

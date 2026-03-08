@@ -125,10 +125,12 @@ jobs:
         with:
           resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
           template: infra/main.bicep
+          # NOTE: .bicepparam files cannot be mixed with inline overrides.
+          # All runtime parameters are passed inline; static defaults come from main.bicep.
           parameters: >
-            infra/main.bicepparam
             containerImage=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.version }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
+            enableSharing=true
           failOnStdErr: false
 
       - name: Print application URL

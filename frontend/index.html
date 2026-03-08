@@ -7,38 +7,50 @@
   <link rel="stylesheet" href="src/main.css" />
 </head>
 <body>
+  <a href="#scan-form" class="skip-link">Skip to main content</a>
+
   <div class="container">
     <header>
       <h1>🤖 Is it AI-Native?</h1>
-      <p class="subtitle">Scan a GitHub repository to assess its AI-native development practices</p>
+      <p class="subtitle">Scan a GitHub repository to assess its AI-native development readiness</p>
     </header>
 
-    <div id="scan-form" class="card">
-      <form id="form">
-        <div class="input-row">
-          <div class="input-group">
-            <span class="input-prefix">https://github.com/</span>
-            <input
-              type="text"
-              id="repo-url"
-              placeholder="owner/repository"
-              required
-              autocomplete="off"
-            />
+    <main>
+      <div id="scan-form" class="card">
+        <form id="form">
+          <div class="input-row">
+            <div class="input-group">
+              <span class="input-prefix">https://github.com/</span>
+              <input
+                type="text"
+                id="repo-url"
+                placeholder="owner/repository"
+                required
+                autocomplete="off"
+                aria-label="GitHub repository (owner/repository)"
+              />
+            </div>
+            <button type="submit" id="scan-btn">Scan</button>
           </div>
-          <button type="submit" id="scan-btn">Scan</button>
+          <p class="input-hint">Checks for AI-native development primitives: instruction files, saved prompts, custom agents, skills, and MCP server configurations across GitHub Copilot, Claude Code, and OpenAI Codex</p>
+        </form>
+      </div>
+
+      <div id="progress-area" class="hidden" role="status" aria-live="polite">
+        <div class="progress-bar-container">
+          <div id="progress-bar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         </div>
-        <p class="input-hint">Checks for AI assistant configs (GitHub Copilot, Cursor, Windsurf, Aider) and AI-native practices (agent instructions, spec frameworks, CI/CD pipelines, issue templates, and more)</p>
-      </form>
-    </div>
+        <p id="progress-stage" class="progress-stage"></p>
+      </div>
 
-    <div id="error-banner" class="banner banner-error hidden" role="alert"></div>
+      <div id="error-banner" class="banner banner-error hidden" role="alert"></div>
 
-    <div id="snapshot-banner" class="banner banner-info hidden">
-      📸 This is a shared snapshot — results may differ from a fresh scan.
-    </div>
+      <div id="snapshot-banner" class="banner banner-info hidden">
+        📸 This is a shared snapshot — results may differ from a fresh scan.
+      </div>
 
-    <div id="report" class="hidden"></div>
+      <div id="report" class="hidden"></div>
+    </main>
   </div>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

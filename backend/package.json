@@ -7,16 +7,17 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --runInBand",
-    "test:unit": "node --experimental-vm-modules node_modules/.bin/jest tests/unit --runInBand",
-    "test:contract": "node --experimental-vm-modules node_modules/.bin/jest tests/contract --runInBand",
-    "test:integration": "node --experimental-vm-modules node_modules/.bin/jest tests/integration --runInBand"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --runInBand",
+    "test:contract": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/contract --runInBand",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-rate-limit": "^7.2.0",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "minimatch": "^10.2.4"
   },
   "devDependencies": {
     "jest": "^29.7.0",

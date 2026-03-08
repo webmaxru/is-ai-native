@@ -13,8 +13,8 @@ const sampleResult = {
   score: 75,
   verdict: 'AI-Native',
   scanned_at: '2026-01-01T00:00:00.000Z',
-  assistants: [{ id: 'github-copilot', name: 'GitHub Copilot', detected: true }],
-  primitives: [{ id: 'ci-pipelines', name: 'CI / CD Pipelines', detected: true }],
+  primitives: [{ name: 'Instruction Files', category: 'instructions', detected: true, matched_files: [], description: '', doc_links: [] }],
+  per_assistant: [{ id: 'github-copilot', name: 'GitHub Copilot', score: 100, primitives: [] }],
 };
 
 describe('saveReport', () => {

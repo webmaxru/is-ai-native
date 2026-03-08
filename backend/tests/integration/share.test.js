@@ -28,14 +28,11 @@ describe('Integration: share → retrieve', () => {
       score: 80,
       verdict: 'AI-Native',
       scanned_at: '2026-01-01T12:00:00.000Z',
-      assistants: [
-        { id: 'github-copilot', name: 'GitHub Copilot', detected: true },
-        { id: 'cursor', name: 'Cursor', detected: false },
-        { id: 'windsurf', name: 'Windsurf', detected: false },
-      ],
       primitives: [
-        { id: 'ci-pipelines', name: 'CI / CD Pipelines', detected: true },
-        { id: 'dependabot', name: 'Dependabot', detected: true },
+        { name: 'Instruction Files', category: 'instructions', detected: true, matched_files: ['.github/copilot-instructions.md'], description: 'Instruction files', doc_links: [] },
+      ],
+      per_assistant: [
+        { id: 'github-copilot', name: 'GitHub Copilot', score: 100, primitives: [{ name: 'Instruction Files', category: 'instructions', detected: true, matched_files: ['.github/copilot-instructions.md'] }] },
       ],
     };
 

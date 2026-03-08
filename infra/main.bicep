@@ -4,7 +4,7 @@
 //   az deployment group create \
 //     --resource-group <rg> \
 //     --template-file infra/main.bicep \
-//     --parameters @infra/main.bicepparam \
+//     --parameters namePrefix=is-ai-native enableSharing=true \
 //     --parameters containerImage=<image> githubToken=<token>
 
 @description('Azure region for all resources. Defaults to the resource group location.')
@@ -41,7 +41,7 @@ param tags object = {
 }
 
 // ── Log Analytics Workspace (required by Container Apps) ──────────
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${namePrefix}-logs'
   location: location
   tags: tags
@@ -55,7 +55,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 }
 
 // ── Container Apps Environment (Consumption plan — no workload profiles) ─
-resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
+resource containerEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: '${namePrefix}-env'
   location: location
   tags: tags
@@ -71,10 +71,11 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
 }
 
 // ── Optional: Azure Storage for SQLite persistence (sharing feature) ──
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = if (enableSharing) {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if (enableSharing) {
   // Azure Storage account names: 3–24 chars, lowercase letters and numbers only.
   // namePrefix is documented as lowercase letters/numbers/hyphens; strip hyphens plus
   // defensive strips for underscores and dots in case a non-standard prefix is supplied.
+  #disable-next-line BCP334
   name: take(toLower(replace(replace(replace('${namePrefix}data', '-', ''), '_', ''), '.', '')), 24)
   location: location
   tags: tags
@@ -85,30 +86,31 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = if (ena
     allowBlobPublicAccess: false
     supportsHttpsTrafficOnly: true
     networkAcls: {
-      defaultAction: 'Deny'
-      bypass: 'AzureServices'
+      defaultAction: 'Allow'
     }
   }
 }
 
-resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = if (enableSharing) {
+resource fileService 'Microsoft.Storage/storageAccounts/fileServices@2023-05-01' = if (enableSharing) {
   parent: storageAccount
   name: 'default'
 }
 
-resource dataShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = if (enableSharing) {
+resource dataShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-05-01' = if (enableSharing) {
   parent: fileService
   name: 'data'
   properties: { shareQuota: 1 }
 }
 
 // Mount the file share inside the Container Apps Environment
-resource caStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = if (enableSharing) {
+resource caStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if (enableSharing) {
   parent: containerEnv
   name: 'sqlite-data'
   properties: {
     azureFile: {
+      #disable-next-line BCP422
       accountName: storageAccount.name
+      #disable-next-line BCP422
       accountKey: storageAccount.listKeys().keys[0].value
       shareName: 'data'
       accessMode: 'ReadWrite'
@@ -117,7 +119,7 @@ resource caStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = if 
 }
 
 // ── Managed TLS certificate (reference existing — created by one-time CLI setup) ─
-resource managedCert 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (managedCertName != '') {
+resource managedCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (managedCertName != '') {
   parent: containerEnv
   name: managedCertName
 }
@@ -132,7 +134,7 @@ var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
   { name: 'PORT', value: '3000' }
   { name: 'SERVE_FRONTEND', value: 'true' }
-  { name: 'ENABLE_SHARING', value: string(enableSharing) }
+  { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
 ]
 
 var sharingEnv = enableSharing ? [
@@ -160,7 +162,7 @@ var appVolumeMounts = enableSharing ? [
 ] : []
 
 // ── Container App ─────────────────────────────────────────────────
-resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
   location: location
   tags: tags
@@ -184,11 +186,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         ] : []
       }
       secrets: concat(appSecrets, acrName != '' ? [
+        #disable-next-line BCP422
         { name: 'acr-password', value: acr.listCredentials().passwords[0].value }
       ] : [])
       registries: acrName != '' ? [
         {
           server: '${acrName}.azurecr.io'
+          #disable-next-line BCP422
           username: acr.listCredentials().username
           passwordSecretRef: 'acr-password'
         }

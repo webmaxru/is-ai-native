@@ -8,15 +8,32 @@ import rateLimit from 'express-rate-limit';
 import scanRouter from './routes/scan.js';
 import reportRouter from './routes/report.js';
 import configRouter from './routes/config.js';
+import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Validate configuration at startup
+try {
+  const config = loadConfig();
+  console.log(
+    `Config loaded: ${config.primitives.length} primitives, ${config.assistants.length} assistants`
+  );
+} catch (err) {
+  console.error(`Configuration error: ${err.message}`);
+  process.exit(1);
+}
+
+if (!process.env.GH_TOKEN_FOR_SCAN) {
+  console.warn('Warning: GH_TOKEN_FOR_SCAN not set — using unauthenticated GitHub API (60 req/hour)');
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.set('trust proxy', 1); // Azure Container Apps envoy → app
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || false }));
 app.use(express.json({ limit: '10kb' }));
@@ -45,8 +62,6 @@ app.get('/health', (_req, res) =>
 if (process.env.SERVE_FRONTEND === 'true') {
   const frontendPath = process.env.FRONTEND_PATH || join(__dirname, '../frontend');
   if (existsSync(frontendPath)) {
-    // Serve static assets, then SPA fallback. The regex excludes /api/* so that
-    // requests to unknown API paths still reach the JSON 404 handler below.
     app.use(express.static(frontendPath));
     app.get(/^(?!\/api(\/|$))/, (_req, res) =>
       res.sendFile(join(frontendPath, 'index.html'))
@@ -54,16 +69,23 @@ if (process.env.SERVE_FRONTEND === 'true') {
   }
 }
 
-app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
-
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Error handling
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 let server;
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+  // Graceful shutdown
+  const shutdown = () => {
+    console.log('Shutting down gracefully...');
+    if (server) server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10_000);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
   if (process.env.ENABLE_SHARING === 'true') {
     const cleanupInterval = setInterval(cleanupExpired, 60 * 60 * 1000);
     cleanupInterval.unref();

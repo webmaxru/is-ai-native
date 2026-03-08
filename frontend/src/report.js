@@ -16,20 +16,83 @@ function verdictClass(verdict) {
   return 'verdict-traditional';
 }
 
-function indicatorList(items) {
-  return items
-    .map(
-      (item) => `
-      <li class="indicator ${item.detected ? 'detected' : 'not-detected'}">
-        <span class="indicator-icon">${item.detected ? '✅' : '❌'}</span>
-        <span class="indicator-name">${escapeHtml(item.name)}</span>
-      </li>`
-    )
-    .join('');
+function scoreColorClass(score) {
+  if (score > 66) return 'score-green';
+  if (score >= 33) return 'score-yellow';
+  return 'score-red';
+}
+
+function primitiveRow(prim) {
+  const statusIcon = prim.detected ? '✅' : '❌';
+  const statusClass = prim.detected ? 'detected' : 'not-detected';
+
+  const matchedHtml = prim.matched_files?.length
+    ? `<span class="matched-files">${prim.matched_files.map((f) => escapeHtml(f)).join(', ')}</span>`
+    : '';
+
+  const docLinksHtml = prim.doc_links?.length
+    ? `<div class="doc-links">${prim.doc_links
+        .map((link) => `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">📖 Docs</a>`)
+        .join(' ')}</div>`
+    : '';
+
+  const descHtml = prim.description
+    ? `<p class="primitive-desc">${escapeHtml(prim.description)}</p>`
+    : '';
+
+  return `
+    <li class="primitive-item ${statusClass}">
+      <div class="primitive-header">
+        <span class="primitive-icon">${statusIcon}</span>
+        <span class="primitive-name">${escapeHtml(prim.name)}</span>
+        <span class="primitive-category">${escapeHtml(prim.category)}</span>
+      </div>
+      ${matchedHtml}
+      ${descHtml}
+      ${docLinksHtml}
+    </li>`;
+}
+
+function assistantSection(assistant) {
+  const colorClass = scoreColorClass(assistant.score);
+
+  return `
+    <details class="assistant-card" open>
+      <summary class="assistant-header">
+        <span class="assistant-name">${escapeHtml(assistant.name)}</span>
+        <span class="assistant-score ${colorClass}">${assistant.score}%</span>
+      </summary>
+      <ul class="primitive-list">
+        ${assistant.primitives.map(primitiveRow).join('')}
+      </ul>
+    </details>`;
 }
 
 export function renderReport(result, { sharingEnabled = false } = {}) {
   const el = document.getElementById('report');
+  const vClass = verdictClass(result.verdict);
+  const sColorClass = scoreColorClass(result.score);
+
+  const hasPerAssistant = result.per_assistant?.length > 0;
+  const hasPrimitives = result.primitives?.length > 0;
+
+  const overallPrimitivesHtml = hasPrimitives
+    ? `<section class="report-section">
+        <h3>All Primitives</h3>
+        <ul class="primitive-list">${result.primitives.map(primitiveRow).join('')}</ul>
+      </section>`
+    : `<section class="report-section">
+        <h3>All Primitives</h3>
+        <p class="empty-state">No AI-native primitives detected. Check the documentation links below to get started.</p>
+      </section>`;
+
+  const perAssistantHtml = hasPerAssistant
+    ? `<section class="report-section">
+        <h3>Per-Assistant Breakdown</h3>
+        ${result.per_assistant.map(assistantSection).join('')}
+      </section>`
+    : '';
+
   el.innerHTML = `
     <div class="report-card">
       <div class="report-header">
@@ -40,26 +103,21 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         </h2>
         ${result.description ? `<p class="repo-desc">${escapeHtml(result.description)}</p>` : ''}
         <div class="score-row">
-          <div class="score-badge ${escapeHtml(verdictClass(result.verdict))}">
+          <div class="score-badge ${escapeHtml(vClass)}">
             <span class="score-number">${escapeHtml(String(result.score))}</span>
             <span class="score-label">/ 100</span>
           </div>
-          <span class="verdict ${escapeHtml(verdictClass(result.verdict))}">
+          <span class="verdict ${escapeHtml(vClass)}">
             ${escapeHtml(result.verdict)}
           </span>
         </div>
+        <div class="score-bar-container">
+          <div class="score-bar ${sColorClass}" style="width: ${Math.max(2, result.score)}%" role="progressbar" aria-valuenow="${result.score}" aria-valuemin="0" aria-valuemax="100" aria-label="Readiness score: ${result.score} percent"></div>
+        </div>
       </div>
 
-      <div class="report-sections">
-        <section>
-          <h3>AI Assistants</h3>
-          <ul class="indicator-list">${indicatorList(result.assistants)}</ul>
-        </section>
-        <section>
-          <h3>AI-Native Primitives</h3>
-          <ul class="indicator-list">${indicatorList(result.primitives)}</ul>
-        </section>
-      </div>
+      ${perAssistantHtml}
+      ${overallPrimitivesHtml}
 
       <div class="report-footer">
         <span class="scanned-at">Scanned ${escapeHtml(new Date(result.scanned_at).toLocaleString())}</span>

@@ -22,8 +22,8 @@ function validateResult(result) {
   if (typeof result.score !== 'number') return 'result.score must be a number';
   if (!VALID_VERDICTS.has(result.verdict))
     return `result.verdict must be one of: ${Array.from(VALID_VERDICTS).join(', ')}`;
-  if (!Array.isArray(result.assistants)) return 'result.assistants must be an array';
   if (!Array.isArray(result.primitives)) return 'result.primitives must be an array';
+  if (!Array.isArray(result.per_assistant)) return 'result.per_assistant must be an array';
   return null;
 }
 

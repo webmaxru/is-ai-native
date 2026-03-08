@@ -1,0 +1,25 @@
+{
+  "assistants": [
+    {
+      "id": "github-copilot",
+      "name": "GitHub Copilot",
+      "description": "AI pair programmer by GitHub, integrated into VS Code, JetBrains, and GitHub.com",
+      "website": "https://github.com/features/copilot",
+      "docLinks": ["https://docs.github.com/en/copilot"]
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "description": "Agentic coding tool by Anthropic for terminal-based AI-assisted development",
+      "website": "https://docs.anthropic.com/en/docs/claude-code",
+      "docLinks": ["https://docs.anthropic.com/en/docs/claude-code"]
+    },
+    {
+      "id": "openai-codex",
+      "name": "OpenAI Codex CLI",
+      "description": "AI coding agent by OpenAI for terminal-based code generation and editing",
+      "website": "https://openai.com",
+      "docLinks": ["https://github.com/openai/codex"]
+    }
+  ]
+}

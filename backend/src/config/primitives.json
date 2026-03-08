@@ -1,0 +1,99 @@
+{
+  "primitives": [
+    {
+      "name": "Instruction Files",
+      "category": "instructions",
+      "description": "Repository-level instruction files that guide AI coding assistants on project conventions, coding standards, and behavioral guidelines. These files help AI assistants understand your project context and produce more relevant code suggestions.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/adding-repository-instructions-for-github-copilot",
+        "https://docs.anthropic.com/en/docs/claude-code/memory"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".github/copilot-instructions.md"]
+        },
+        "claude-code": {
+          "patterns": ["CLAUDE.md"]
+        },
+        "openai-codex": {
+          "patterns": ["AGENTS.md"]
+        }
+      }
+    },
+    {
+      "name": "Saved Prompts",
+      "category": "prompts",
+      "description": "Reusable prompt templates stored in the repository that encapsulate common workflows, code generation patterns, or specialized tasks. Saved prompts enable team members to reuse proven AI interactions consistently across the project.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".github/prompts/**"]
+        },
+        "claude-code": {
+          "patterns": [".claude/commands/**"]
+        }
+      }
+    },
+    {
+      "name": "Custom Agent Definitions",
+      "category": "agents",
+      "description": "Configuration files that define custom AI agents with specialized roles, tool access, and domain expertise. Custom agents extend AI assistants beyond general-purpose coding into project-specific workflows and automated tasks.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-in-vs-code"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".github/agents/**"]
+        }
+      }
+    },
+    {
+      "name": "Skills",
+      "category": "skills",
+      "description": "Packaged domain knowledge and expertise files that AI assistants can reference to provide specialized guidance. Skills encode best practices, architectural patterns, and domain-specific rules that improve AI-generated code quality.",
+      "docLinks": [
+        "https://docs.github.com/en/copilot/customizing-copilot"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".github/skills/**", ".agents/skills/**"]
+        }
+      }
+    },
+    {
+      "name": "MCP Server Configurations",
+      "category": "mcp-config",
+      "description": "Model Context Protocol (MCP) server configurations that connect AI assistants to external tools, APIs, and data sources. MCP enables AI assistants to interact with your development infrastructure, databases, and third-party services.",
+      "docLinks": [
+        "https://modelcontextprotocol.io/introduction",
+        "https://code.visualstudio.com/docs/copilot/chat/mcp-servers"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".vscode/mcp.json"]
+        },
+        "claude-code": {
+          "patterns": [".mcp.json"]
+        }
+      }
+    },
+    {
+      "name": "Agent Hooks",
+      "category": "hooks",
+      "description": "Lifecycle hook configurations that execute custom shell commands at key points during agent sessions. Hooks provide deterministic, code-driven automation for enforcing security policies, running formatters and linters after edits, creating audit trails, and injecting project context into agent conversations.",
+      "docLinks": [
+        "https://code.visualstudio.com/docs/copilot/customization/hooks"
+      ],
+      "assistants": {
+        "github-copilot": {
+          "patterns": [".github/hooks/**"]
+        },
+        "claude-code": {
+          "patterns": [".claude/settings.json", ".claude/settings.local.json"]
+        }
+      }
+    }
+  ]
+}

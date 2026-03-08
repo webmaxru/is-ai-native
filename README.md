@@ -2,13 +2,20 @@
 
 Scan any GitHub repository to assess how well it embraces AI-native development practices.
 
-The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI assistant configurations (GitHub Copilot, Cursor, Windsurf, Aider), agent instructions, spec frameworks, CI/CD pipelines, issue/PR templates, dev containers, and other engineering primitives — then produces a score and verdict.
+The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex CLI**. It produces a per-assistant breakdown, an overall readiness score, and a verdict.
 
 | Verdict | Score |
 | --- | --- |
 | **AI-Native** | ≥ 60 % |
 | **AI-Assisted** | 30 – 59 % |
 | **Traditional** | < 30 % |
+
+### Key Features
+
+- **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
+- **Report sharing** — Save scan results as shareable links (backed by SQLite; enabled by default in production). Reports auto-expire after 90 days.
+- **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
+- **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
 ---
 
@@ -53,9 +60,9 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ```
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
-- **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree and scores the repository.
-- **Database** — Optional SQLite storage for the report-sharing feature. Shared reports expire after 90 days.
-- **Reverse Proxy** — In Docker Compose mode, Nginx serves static files and proxies `/api/*` to the backend. In single-container mode, Express serves the frontend directly.
+- **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score.
+- **Database** — Optional SQLite storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
+- **Reverse Proxy** — In Docker Compose mode, Nginx serves static files and proxies `/api/*` and `/health` to the backend. In single-container mode, Express serves the frontend directly.
 
 ---
 
@@ -163,18 +170,42 @@ ENABLE_SHARING=true
 
 ## Cloud Deployment (Azure)
 
-The application is designed to run on **Azure Container Apps** (Consumption plan) — a serverless container platform that scales to zero when idle.
+The application is designed to run on **Azure Container Apps** (Consumption plan) — a serverless container platform that scales to zero when idle and includes a free monthly grant.
+
+### Infrastructure as Code (Bicep)
+
+All Azure resources are defined in [`infra/main.bicep`](infra/main.bicep). A single `az deployment group create` provisions everything:
+
+| Resource | Purpose |
+| --- | --- |
+| **Log Analytics Workspace** | Centralized container logs and diagnostics |
+| **Container Apps Environment** | Consumption plan host (no workload profiles needed) |
+| **Container App** | The application with health / readiness probes, HTTP auto-scaling (0 → 3 replicas), and a system-assigned managed identity |
+| **Azure Storage Account + File Share** | *(conditional, when `enableSharing=true`)* Azure Files mounted for SQLite persistence |
+
+Optional features in the Bicep template:
+- **ACR integration** — Pass `acrName` to pull images from Azure Container Registry using admin credentials stored as secrets.
+- **Custom domain + managed TLS** — Pass `customDomainName` and `managedCertName` to bind a custom domain with a Let's Encrypt certificate.
+
+Default parameter values live in [`infra/main.bicepparam`](infra/main.bicepparam) for quick manual deployments. The CD workflow passes all parameters inline (`.bicepparam` files cannot be mixed with additional CLI overrides).
 
 ### CI / CD Pipelines
 
 Two GitHub Actions workflows automate the full lifecycle:
 
-| Workflow | Trigger | What it does |
-| --- | --- | --- |
-| **CI** (`.github/workflows/ci.yml`) | Push to non-main branches, PRs to main | Runs backend tests, builds the Docker image, scans it with [Trivy](https://trivy.dev/) |
-| **CD** (`.github/workflows/cd.yml`) | Push to `main` | Builds & pushes image to GHCR, runs Trivy security scan, deploys to Azure via Bicep |
+| Workflow | File | Trigger | What it does |
+| --- | --- | --- | --- |
+| **CI** | `.github/workflows/ci.yml` | Push to non-main branches, PRs to `main` | Runs backend tests (Jest), builds the Docker image, scans it with [Trivy](https://trivy.dev/), and uploads SARIF results to GitHub Security |
+| **CD** | `.github/workflows/cd.yml` | Push to `main` | Builds & pushes to GHCR, runs Trivy security scan, deploys to Azure via Bicep using OIDC (no long-lived credentials) |
 
-The CD pipeline uses **OIDC-based Azure login** — no long-lived credentials are stored as secrets.
+**CD pipeline flow:**
+
+```
+build-push ──▶ security-scan ──▶ deploy
+  (GHCR)         (Trivy)        (Azure OIDC + arm-deploy)
+```
+
+The deploy step uses `azure/arm-deploy@v2` with OIDC-based Azure login — the GitHub Actions runner exchanges a short-lived OIDC token for an Azure access token, so no service principal secrets need to be stored.
 
 ### Manual Deployment with Bicep
 
@@ -199,16 +230,13 @@ If you prefer to deploy manually:
    az deployment group create \
      --resource-group is-ai-native-rg \
      --template-file infra/main.bicep \
-     --parameters @infra/main.bicepparam \
-     --parameters containerImage=ghcr.io/<owner>/is-ai-native:latest \
+     --parameters namePrefix=is-ai-native \
+                  enableSharing=true \
+                  containerImage=ghcr.io/<owner>/is-ai-native:latest \
                   githubToken=<optional-pat>
    ```
 
-The Bicep template provisions:
-- **Log Analytics Workspace** — centralized logging
-- **Container Apps Environment** — Consumption plan (free monthly grant, scales to zero)
-- **Container App** — the application itself with health probes, auto-scaling (0 → 3 replicas), and a system-assigned managed identity
-- **Azure Storage** *(optional, when `enableSharing=true`)* — Azure Files share mounted for SQLite persistence
+   > **Note:** Do not mix a `.bicepparam` file with inline `--parameters` overrides — use one or the other.
 
 ### Azure Secrets for GitHub Actions
 
@@ -279,6 +307,9 @@ Health check endpoint. Returns `{ "status": "ok" }`.
 ├── backend/
 │   ├── src/
 │   │   ├── server.js          # Express app entry point
+│   │   ├── config/
+│   │   │   ├── primitives.json # AI-native primitive definitions & patterns
+│   │   │   └── assistants.json # Supported AI assistant metadata
 │   │   ├── routes/
 │   │   │   ├── scan.js        # POST /api/scan
 │   │   │   ├── report.js      # GET/POST /api/report
@@ -298,8 +329,10 @@ Health check endpoint. Returns `{ "status": "ok" }`.
 │   │   └── main.css           # Styles
 │   └── tests/                 # Frontend unit tests
 ├── infra/
-│   ├── main.bicep             # Azure Container Apps IaC
+│   ├── main.bicep             # Azure Container Apps IaC (all resources)
 │   └── main.bicepparam        # Default deployment parameters
+├── docs/
+│   └── configuration.md       # Configuration guide for primitives & assistants
 ├── nginx/
 │   └── nginx.conf             # Reverse proxy config (docker-compose)
 ├── .github/

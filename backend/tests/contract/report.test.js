@@ -26,8 +26,8 @@ const sampleResult = {
   score: 75,
   verdict: 'AI-Native',
   scanned_at: '2026-01-01T00:00:00.000Z',
-  assistants: [],
   primitives: [],
+  per_assistant: [],
 };
 
 describe('GET /api/config', () => {
@@ -66,8 +66,8 @@ describe('POST /api/report (sharing enabled)', () => {
           repo_name: 'x',
           score: 0,
           verdict: 'AI-Native',
-          assistants: [],
           primitives: [],
+          per_assistant: [],
         },
       });
     expect(res.status).toBe(400);
