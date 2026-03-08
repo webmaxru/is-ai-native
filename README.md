@@ -238,6 +238,61 @@ If you prefer to deploy manually:
 
    > **Note:** Do not mix a `.bicepparam` file with inline `--parameters` overrides — use one or the other.
 
+### Custom Domain with Managed TLS
+
+To bind a custom domain (e.g., `scan.example.com`) with a free Let's Encrypt certificate:
+
+1. **Deploy without a custom domain first** (if you haven't already) and note the Container App's default FQDN from the deployment output (`appUrl`).
+
+2. **Configure DNS** — Add a CNAME record with your DNS provider:
+
+   | Type | Name | Value |
+   | --- | --- | --- |
+   | CNAME | `scan.example.com` | `<your-app>.wittybush-059f5ba1.eastus2.azurecontainerapps.io` |
+
+3. **Create a managed certificate** in the Container Apps environment:
+
+   ```bash
+   az containerapp env certificate create \
+     --name <namePrefix>-env \
+     --resource-group <rg> \
+     --certificate-name my-cert \
+     --domain-name scan.example.com
+   ```
+
+   Azure will validate domain ownership via the CNAME record. Wait until `provisioningState` shows **Succeeded**:
+
+   ```bash
+   az containerapp env certificate list \
+     --name <namePrefix>-env \
+     --resource-group <rg> \
+     --query "[].{name:name, domain:properties.subjectName, state:properties.provisioningState}"
+   ```
+
+4. **Redeploy with the custom domain parameters** (pass them via CLI — do not commit domain-specific values to the repo):
+
+   ```bash
+   az deployment group create \
+     --resource-group <rg> \
+     --template-file infra/main.bicep \
+     --parameters namePrefix=is-ai-native \
+                  enableSharing=true \
+                  containerImage=ghcr.io/<owner>/is-ai-native:latest \
+                  customDomainName='scan.example.com' \
+                  managedCertName='my-cert'
+   ```
+
+5. **Verify** the binding is active:
+
+   ```bash
+   az containerapp show \
+     --name <namePrefix>-app \
+     --resource-group <rg> \
+     --query properties.configuration.ingress.customDomains
+   ```
+
+> **Tip:** The `customDomainName` and `managedCertName` parameters default to empty strings, so the app works without a custom domain. Pass them only when you're ready to bind one.
+
 ### Azure Secrets for GitHub Actions
 
 Configure the following secrets in your GitHub repository for the CD pipeline:
