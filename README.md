@@ -13,7 +13,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ### Key Features
 
 - **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
-- **Report sharing** — Save scan results as shareable links (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
+- **Report sharing** — Save scan results as shareable links under `/_/report/<uuid>` (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
@@ -378,7 +378,7 @@ Save a scan result for sharing *(requires `ENABLE_SHARING=true`)*.
 **Response:**
 
 ```json
-{ "id": "uuid", "url": "/report/uuid" }
+{ "id": "uuid", "url": "/_/report/uuid" }
 ```
 
 ### `GET /api/report/:id`

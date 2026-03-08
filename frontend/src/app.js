@@ -16,6 +16,24 @@ const PROGRESS_STAGES = [
 let toastTimer = null;
 let progressTimer = null;
 
+function normalizeRepoReference(value) {
+  const sanitized = value.trim();
+  return REPO_RE.test(sanitized) ? sanitized : null;
+}
+
+function getRepoFromPath(pathname) {
+  const match = pathname.match(/^\/([^/]+)\/([^/]+)\/?$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return normalizeRepoReference(`${decodeURIComponent(match[1])}/${decodeURIComponent(match[2])}`);
+  } catch {
+    return null;
+  }
+}
+
 function syncViewState() {
   const body = document.body;
   const report = document.getElementById('report');
@@ -144,8 +162,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // If config fetch fails, treat sharing as disabled
   }
 
-  // Check if this is a shared report URL: /report/<uuid>
-  const match = window.location.pathname.match(/^\/report\/([^/]+)$/);
+  // Check if this is a shared report URL: /_/report/<uuid>
+  const match = window.location.pathname.match(/^\/_\/report\/([^/]+)$/);
   if (match) {
     const id = match[1];
     if (UUID_RE.test(id)) {
@@ -156,19 +174,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Normal scan flow
   const form = document.getElementById('form');
+  const repoInput = document.getElementById('repo-url');
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const repoUrl = document.getElementById('repo-url').value.trim();
+    const repoUrl = repoInput.value.trim();
     if (repoUrl) handleScan(repoUrl, sharingEnabled);
   });
+
+  // Auto-scan from /owner/repo on the current app host
+  const repoFromPath = getRepoFromPath(window.location.pathname);
+  if (repoFromPath) {
+    repoInput.value = repoFromPath;
+    handleScan(repoFromPath, sharingEnabled);
+    return;
+  }
 
   // Auto-scan from ?repo=owner/repo query parameter
   const params = new URLSearchParams(window.location.search);
   const repoParam = params.get('repo');
   if (repoParam) {
-    const sanitized = repoParam.trim();
-    if (REPO_RE.test(sanitized)) {
-      document.getElementById('repo-url').value = sanitized;
+    const sanitized = normalizeRepoReference(repoParam);
+    if (sanitized) {
+      repoInput.value = sanitized;
       handleScan(sanitized, sharingEnabled);
     } else {
       showError('Invalid repo parameter. Expected format: owner/repository');

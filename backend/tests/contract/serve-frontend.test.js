@@ -40,8 +40,8 @@ describe('SERVE_FRONTEND=true', () => {
     expect(res.text).toContain('frontend');
   });
 
-  it('GET /report/<uuid> (SPA route) serves the frontend index.html', async () => {
-    const res = await request(app).get('/report/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  it('GET /_/report/<uuid> (SPA route) serves the frontend index.html', async () => {
+    const res = await request(app).get('/_/report/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
     expect(res.text).toContain('frontend');

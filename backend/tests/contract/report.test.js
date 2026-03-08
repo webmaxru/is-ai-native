@@ -48,7 +48,7 @@ describe('POST /api/report (sharing enabled)', () => {
     expect(res.body.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     );
-    expect(res.body.url).toContain(`/report/${res.body.id}`);
+    expect(res.body.url).toContain(`/_/report/${res.body.id}`);
   });
 
   it('returns 400 when result is missing', async () => {

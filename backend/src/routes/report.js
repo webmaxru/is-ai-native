@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
   }
 
   const id = saveReport(result);
-  const url = `/report/${id}`;
+  const url = `/_/report/${id}`;
 
   return res.status(201).json({ id, url });
 });
