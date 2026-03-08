@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Is it AI-Native?</title>
+  <link rel="stylesheet" href="src/main.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🤖 Is it AI-Native?</h1>
+      <p class="subtitle">Scan a GitHub repository to assess its AI-native development practices</p>
+    </header>
+
+    <div id="scan-form" class="card">
+      <form id="form">
+        <div class="input-row">
+          <input
+            type="url"
+            id="repo-url"
+            placeholder="https://github.com/owner/repository"
+            required
+            autocomplete="off"
+          />
+          <button type="submit" id="scan-btn">Scan</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="error-banner" class="banner banner-error hidden" role="alert"></div>
+
+    <div id="snapshot-banner" class="banner banner-info hidden">
+      📸 This is a shared snapshot — results may differ from a fresh scan.
+    </div>
+
+    <div id="report" class="hidden"></div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
