@@ -13,6 +13,9 @@ FROM node:24-slim
 
 WORKDIR /app
 
+# Copy package.json so Node recognises the directory as ESM ("type": "module")
+COPY backend/package.json ./package.json
+
 # Copy backend node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 

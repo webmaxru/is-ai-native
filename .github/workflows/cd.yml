@@ -27,6 +27,7 @@ jobs:
     outputs:
       image: ${{ steps.meta.outputs.tags }}
       version: ${{ steps.meta.outputs.version }}
+      digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +82,7 @@ jobs:
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@0.31.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-push.outputs.digest }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH

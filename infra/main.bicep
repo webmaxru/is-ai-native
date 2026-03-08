@@ -10,7 +10,7 @@
 @description('Azure region for all resources. Defaults to the resource group location.')
 param location string = resourceGroup().location
 
-@description('Name prefix applied to every resource. Must be lowercase, 3–20 chars.')
+@description('Name prefix applied to every resource. Must contain only lowercase letters, numbers, and hyphens; 3–20 chars.')
 @minLength(3)
 @maxLength(20)
 param namePrefix string = 'is-ai-native'
@@ -63,7 +63,10 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
 
 // ── Optional: Azure Storage for SQLite persistence (sharing feature) ──
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = if (enableSharing) {
-  name: take(toLower(replace('${namePrefix}data', '-', '')), 24)
+  // Azure Storage account names: 3–24 chars, lowercase letters and numbers only.
+  // namePrefix is documented as lowercase letters/numbers/hyphens; strip hyphens plus
+  // defensive strips for underscores and dots in case a non-standard prefix is supplied.
+  name: take(toLower(replace(replace(replace('${namePrefix}data', '-', ''), '_', ''), '.', '')), 24)
   location: location
   tags: tags
   sku: { name: 'Standard_LRS' }

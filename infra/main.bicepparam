@@ -7,7 +7,7 @@ using './main.bicep'
 param namePrefix = 'is-ai-native'
 
 // Report sharing is disabled by default (no persistent storage provisioned).
-// Set to true together with a GITHUB_TOKEN_FOR_SCAN secret to enable the feature.
+// Set to true to enable the feature; optionally provide a GITHUB_TOKEN_FOR_SCAN secret to increase GitHub API rate limits for scanning.
 param enableSharing = false
 
 param tags = {
