@@ -14,7 +14,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 
 - **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
 - **Report sharing** — Save scan results as shareable links under `/_/report/<uuid>` (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
-- **Operational telemetry** — Emit scan/report custom events to Azure Application Insights so counts, recent activity, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
+- **Operational telemetry** — Emit scan/report custom events to Azure Application Insights so counts, recent activity, report views, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
@@ -155,7 +155,7 @@ npm run test:integration # integration tests only
 | `NODE_ENV` | — | Set to `production` in deployed environments |
 | `GH_TOKEN_FOR_SCAN` | — | GitHub PAT to increase API rate limits for scanning |
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report telemetry for Azure Workbook dashboards |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report/view telemetry for Azure Workbook dashboards |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `DB_PATH` | `./data/reports.db` | Legacy compatibility setting used to derive the report storage directory when `REPORTS_DIR` is unset |
 | `SERVE_FRONTEND` | `false` | Serve frontend static files from Express (single-container mode) |

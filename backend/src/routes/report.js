@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { saveReport, getReport } from '../services/storage.js';
-import { trackReportCreated } from '../services/app-insights.js';
+import { trackReportCreated, trackSharedReportViewed } from '../services/app-insights.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VALID_VERDICTS = new Set(['AI-Native', 'AI-Assisted', 'Traditional']);
@@ -68,6 +68,8 @@ router.get('/:id', (req, res) => {
   if (!result) {
     return res.status(404).json({ error: 'Report not found or expired' });
   }
+
+  void trackSharedReportViewed(result, { reportId: id });
 
   return res.json(result);
 });

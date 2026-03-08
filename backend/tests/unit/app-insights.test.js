@@ -5,6 +5,7 @@ import {
   isAppInsightsEnabled,
   parseConnectionString,
   trackReportCreated,
+  trackSharedReportViewed,
   trackScanCompleted,
 } from '../../src/services/app-insights.js';
 
@@ -108,6 +109,23 @@ describe('telemetry sending', () => {
 
     const [payload] = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(payload.data.baseData.name).toBe('report_created');
+    expect(payload.data.baseData.properties.report_id).toBe('abc-123');
+    expect(payload.data.baseData.properties.scan_key).toBe(buildScanKey(sampleResult));
+  });
+
+  it('posts shared-report-viewed telemetry with correlation fields', async () => {
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
+      'InstrumentationKey=test-key;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '',
+    });
+
+    await trackSharedReportViewed(sampleResult, { reportId: 'abc-123' });
+
+    const [payload] = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(payload.data.baseData.name).toBe('shared_report_viewed');
     expect(payload.data.baseData.properties.report_id).toBe('abc-123');
     expect(payload.data.baseData.properties.scan_key).toBe(buildScanKey(sampleResult));
   });

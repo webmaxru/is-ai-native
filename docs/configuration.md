@@ -191,6 +191,7 @@ The backend can optionally emit custom Azure Application Insights events for ope
 | `scan_completed` | A repository scan succeeds | `repo_url`, `repo_name`, `verdict`, `scan_key`, `scanned_at` |
 | `scan_failed` | A scan request fails validation or backend processing | `repo_url`, `repo_name`, `reason`, `status_code`, `error_name` |
 | `report_created` | A shared report is successfully persisted | `report_id`, `repo_url`, `repo_name`, `verdict`, `scan_key`, `scanned_at` |
+| `shared_report_viewed` | A stored shared report is successfully fetched | `report_id`, `repo_url`, `repo_name`, `verdict`, `scan_key`, `scanned_at` |
 
 ### Measurements
 
@@ -202,6 +203,7 @@ The backend can optionally emit custom Azure Application Insights events for ope
 
 - Build Azure Workbooks that show total scan count and total report count.
 - Drill into recent scans by repository, verdict, score, or duration.
+- Track which shared reports are being viewed and correlate those views back to the originating scan.
 - Track scan failures separately from successful scans.
 - Join `report_created` events back to `scan_completed` events with the shared `scan_key` property.
 

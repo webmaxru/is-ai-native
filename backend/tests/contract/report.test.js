@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
@@ -6,6 +7,8 @@ process.env.ENABLE_SHARING = 'true';
 
 let request;
 let app;
+const originalFetch = global.fetch;
+const originalConnectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
 
 beforeAll(async () => {
   const [supertest, serverModule] = await Promise.all([
@@ -18,6 +21,12 @@ beforeAll(async () => {
 
 afterEach(() => {
   closeDb();
+  global.fetch = originalFetch;
+  if (originalConnectionString === undefined) {
+    delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
+  } else {
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = originalConnectionString;
+  }
 });
 
 const sampleResult = {
@@ -83,6 +92,28 @@ describe('GET /api/report/:id (sharing enabled)', () => {
     const getRes = await request(app).get(`/api/report/${id}`);
     expect(getRes.status).toBe(200);
     expect(getRes.body).toEqual(sampleResult);
+  });
+
+  it('emits shared-report-viewed telemetry when Application Insights is enabled', async () => {
+    const postRes = await request(app).post('/api/report').send({ result: sampleResult });
+    const { id } = postRes.body;
+
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
+      'InstrumentationKey=test-key;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '',
+    });
+
+    const getRes = await request(app).get(`/api/report/${id}`);
+
+    expect(getRes.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [payload] = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(payload.data.baseData.name).toBe('shared_report_viewed');
+    expect(payload.data.baseData.properties.report_id).toBe(id);
+    expect(payload.data.baseData.properties.repo_name).toBe(sampleResult.repo_name);
   });
 
   it('returns 404 for an unknown id', async () => {

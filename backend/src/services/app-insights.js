@@ -166,3 +166,21 @@ export async function trackReportCreated(result, { reportId } = {}) {
     }
   );
 }
+
+export async function trackSharedReportViewed(result, { reportId } = {}) {
+  return trackEvent(
+    'shared_report_viewed',
+    {
+      report_id: reportId,
+      repo_url: result.repo_url,
+      repo_name: result.repo_name,
+      verdict: result.verdict,
+      scan_key: buildScanKey(result),
+      scanned_at: result.scanned_at,
+    },
+    {
+      score: result.score,
+      stars: result.stars,
+    }
+  );
+}
