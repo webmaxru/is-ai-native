@@ -72,6 +72,9 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const el = document.getElementById('report');
   const vClass = verdictClass(result.verdict);
   const sColorClass = scoreColorClass(result.score);
+  const shareButtonsHtml = sharingEnabled
+    ? '<button type="button" class="share-btn" data-share-report>🔗 Share Report</button>'
+    : '';
 
   const hasPerAssistant = result.per_assistant?.length > 0;
   const hasPrimitives = result.primitives?.length > 0;
@@ -102,6 +105,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
           </a>
         </h2>
         ${result.description ? `<p class="repo-desc">${escapeHtml(result.description)}</p>` : ''}
+        ${sharingEnabled ? `<div class="report-actions">${shareButtonsHtml}</div>` : ''}
         <div class="score-row">
           <div class="score-badge ${escapeHtml(vClass)}">
             <span class="score-number">${escapeHtml(String(result.score))}</span>
@@ -121,7 +125,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
       <div class="report-footer">
         <span class="scanned-at">Scanned ${escapeHtml(new Date(result.scanned_at).toLocaleString())}</span>
-        ${sharingEnabled ? '<button id="share-btn" class="share-btn">🔗 Share Report</button>' : ''}
+        ${shareButtonsHtml}
       </div>
     </div>
   `;
@@ -146,21 +150,86 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 }
 
 function addShareButton(result) {
-  const btn = document.getElementById('share-btn');
-  if (!btn) return;
+  const buttons = [...document.querySelectorAll('[data-share-report]')];
+  if (buttons.length === 0) return;
 
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    btn.textContent = 'Sharing…';
-    try {
-      const { url } = await shareReport(result);
-      await navigator.clipboard.writeText(url);
-      showToast('✅ Permalink copied to clipboard!');
-      btn.textContent = '✅ Copied!';
-    } catch (err) {
-      showToast(`❌ ${err.message}`);
-      btn.disabled = false;
-      btn.textContent = '🔗 Share Report';
+  let sharedUrlPromise = null;
+
+  const setButtonState = ({ disabled, text }) => {
+    buttons.forEach((button) => {
+      button.disabled = disabled;
+      button.textContent = text;
+    });
+  };
+
+  const resetButtons = () => {
+    setButtonState({ disabled: false, text: '🔗 Share Report' });
+  };
+
+  const resolveShareUrl = async () => {
+    if (!sharedUrlPromise) {
+      sharedUrlPromise = shareReport(result)
+        .then(({ url }) => new URL(url, window.location.origin).href)
+        .catch((error) => {
+          sharedUrlPromise = null;
+          throw error;
+        });
     }
+
+    return sharedUrlPromise;
+  };
+
+  const copyToClipboard = async (url) => {
+    if (!navigator.clipboard?.writeText) {
+      throw new Error('Clipboard sharing is not available in this browser.');
+    }
+
+    await navigator.clipboard.writeText(url);
+    showToast('✅ Permalink copied to clipboard!');
+    setButtonState({ disabled: false, text: '✅ Copied!' });
+  };
+
+  const shareWithNativeApi = async (url) => {
+    if (!navigator.share) {
+      return false;
+    }
+
+    const shareData = {
+      title: `${result.repo_name} AI-native report`,
+      text: `AI-native readiness report for ${result.repo_name}`,
+      url,
+    };
+
+    if (navigator.canShare && !navigator.canShare(shareData)) {
+      return false;
+    }
+
+    await navigator.share(shareData);
+    showToast('✅ Report link ready to share.');
+    setButtonState({ disabled: false, text: '✅ Shared' });
+    return true;
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      setButtonState({ disabled: true, text: 'Sharing…' });
+
+      try {
+        const url = await resolveShareUrl();
+        const shared = await shareWithNativeApi(url);
+
+        if (!shared) {
+          await copyToClipboard(url);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          resetButtons();
+          return;
+        }
+
+        showToast(`❌ ${err.message}`);
+        resetButtons();
+      }
+    });
   });
 }

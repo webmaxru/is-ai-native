@@ -302,6 +302,12 @@ details summary:focus-visible {
   font-size: 0.9rem;
 }
 
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 .score-row {
   display: flex;
   align-items: center;
@@ -637,6 +643,21 @@ details[open] > .assistant-header::before {
 
   .report-section {
     padding: 1rem;
+  }
+
+  .report-actions,
+  .report-footer {
+    justify-content: stretch;
+  }
+
+  .report-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-actions .share-btn,
+  .report-footer .share-btn {
+    width: 100%;
   }
 
   .assistant-header {
