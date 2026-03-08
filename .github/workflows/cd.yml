@@ -128,7 +128,7 @@ jobs:
           parameters: >
             infra/main.bicepparam
             containerImage=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.version }}
-            githubToken=${{ secrets.GITHUB_TOKEN_FOR_SCAN }}
+            githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
           failOnStdErr: false
 
       - name: Print application URL

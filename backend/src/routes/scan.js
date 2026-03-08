@@ -21,7 +21,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const token = process.env.GITHUB_TOKEN;
+    const token = process.env.GH_TOKEN_FOR_SCAN;
     const result = await scanRepository(url, token);
     return res.json(result);
   } catch (err) {

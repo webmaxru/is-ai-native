@@ -90,7 +90,7 @@ curl -X POST http://localhost:3000/api/scan \
   -d '{"repo_url": "https://github.com/webmaxru/is-ai-native"}'
 ```
 
-> **Tip:** Set a `GITHUB_TOKEN` environment variable to avoid GitHub API rate limits (60 req/h unauthenticated → 5 000 req/h authenticated).
+> **Tip:** Set a `GH_TOKEN_FOR_SCAN` environment variable to avoid GitHub API rate limits (60 req/h unauthenticated → 5 000 req/h authenticated).
 
 ### Full Stack with Docker Compose
 
@@ -145,7 +145,7 @@ npm run test:integration # integration tests only
 | --- | --- | --- |
 | `PORT` | `3000` | Port the Express server listens on |
 | `NODE_ENV` | — | Set to `production` in deployed environments |
-| `GITHUB_TOKEN` | — | GitHub PAT to increase API rate limits for scanning |
+| `GH_TOKEN_FOR_SCAN` | — | GitHub PAT to increase API rate limits for scanning |
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature (requires SQLite) |
 | `DB_PATH` | `./data/reports.db` | Path to the SQLite database file |
 | `SERVE_FRONTEND` | `false` | Serve frontend static files from Express (single-container mode) |
@@ -155,7 +155,7 @@ npm run test:integration # integration tests only
 Create a `.env` file in the project root for local overrides (it is git-ignored):
 
 ```env
-GITHUB_TOKEN=ghp_your_personal_access_token
+GH_TOKEN_FOR_SCAN=ghp_your_personal_access_token
 ENABLE_SHARING=true
 ```
 
@@ -219,7 +219,7 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 | `AZURE_CLIENT_ID` | App registration client ID (for OIDC) |
 | `AZURE_TENANT_ID` | Azure AD tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
-| `GITHUB_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
+| `GH_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
 
 ---
 

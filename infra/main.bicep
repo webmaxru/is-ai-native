@@ -28,6 +28,12 @@ param enableSharing bool = false
 @description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
 param acrName string = ''
 
+@description('Custom domain name to bind (e.g. scan.example.com). Leave empty to use the default Azure FQDN. Requires a one-time CLI setup: see README.')
+param customDomainName string = ''
+
+@description('Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup.')
+param managedCertName string = ''
+
 @description('Tags applied to every resource.')
 param tags object = {
   application: 'is-ai-native'
@@ -110,6 +116,12 @@ resource caStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = if 
   }
 }
 
+// ── Managed TLS certificate (reference existing — created by one-time CLI setup) ─
+resource managedCert 'Microsoft.App/managedEnvironments/managedCertificates@2023-05-01' existing = if (managedCertName != '') {
+  parent: containerEnv
+  name: managedCertName
+}
+
 // ── ACR reference (for admin credentials) ────────────────────────
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (acrName != '') {
   name: acrName
@@ -128,14 +140,14 @@ var sharingEnv = enableSharing ? [
 ] : []
 
 var tokenEnv = githubToken != '' ? [
-  { name: 'GITHUB_TOKEN', secretRef: 'github-token' }
+  { name: 'GH_TOKEN_FOR_SCAN', secretRef: 'gh-token-for-scan' }
 ] : []
 
 var appEnv = concat(baseEnv, sharingEnv, tokenEnv)
 
 // ── Secrets ───────────────────────────────────────────────────────
 var appSecrets = githubToken != '' ? [
-  { name: 'github-token', value: githubToken }
+  { name: 'gh-token-for-scan', value: githubToken }
 ] : []
 
 // ── Volumes & mounts (only when sharing is enabled) ───────────────
@@ -163,6 +175,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 3000
         transport: 'http'
         allowInsecure: false
+        customDomains: (customDomainName != '' && managedCertName != '') ? [
+          {
+            name: customDomainName
+            bindingType: 'SniEnabled'
+            certificateId: managedCert.id
+          }
+        ] : []
       }
       secrets: concat(appSecrets, acrName != '' ? [
         { name: 'acr-password', value: acr.listCredentials().passwords[0].value }
