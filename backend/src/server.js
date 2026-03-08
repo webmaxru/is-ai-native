@@ -16,6 +16,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1); // Azure Container Apps envoy → app
 app.use(helmet());
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || false }));
 app.use(express.json({ limit: '10kb' }));
