@@ -13,3 +13,6 @@ dist/
 # Environment
 .env
 .env.local
+
+# Azure / Bicep
+*.bicep.json
