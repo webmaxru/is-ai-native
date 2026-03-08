@@ -1,0 +1,131 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "ecf685f5-6c12-49fd-9f6f-4af7f6fd5144",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "value": {
+              "durationMs": 604800000
+            }
+          },
+          {
+            "id": "39ab8d9e-cb9e-4f6b-9560-c3a06439f0f7",
+            "version": "KqlParameterItem/1.0",
+            "name": "RepoFilter",
+            "label": "Repository",
+            "type": 2,
+            "isRequired": true,
+            "query": "let repos = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where isnotempty(repo_name)\n| summarize by value = repo_name, label = repo_name\n| order by label asc\n| extend selected = false;\ndatatable(value:string, label:string, selected:bool)[\"*\", \"All repos\", true]\n| union repos",
+            "value": "*",
+            "typeSettings": {
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 604800000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces"
+          }
+        ],
+        "style": "above",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - filters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "# Is AI Native Monitoring\n\nAzure Workbook for scan and report telemetry. These views use the `AppEvents` table populated in the Log Analytics workspace by the backend Application Insights integration.\n\nCurrent window: **{TimeRange:label}**  \nRepository: **{RepoFilter}**"
+      },
+      "name": "text - intro"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_scans = sum(ItemCount)",
+        "size": 0,
+        "title": "Total scans",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - total scans"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_reports = sum(ItemCount)",
+        "size": 0,
+        "title": "Total reports",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - total reports"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| make-series scans = sum(ItemCount) default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain}",
+        "size": 1,
+        "title": "Scan volume over time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "time",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - scan trend"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project TimeGenerated, repo_name, verdict = tostring(Properties.verdict), score = todouble(Measurements.score), duration_ms = todouble(Measurements.duration_ms)\n| order by TimeGenerated desc",
+        "size": 1,
+        "title": "Recent scans",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - recent scans"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nlet scans = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project scan_key = tostring(Properties.scan_key), scan_time = TimeGenerated, repo_name, score = todouble(Measurements.score), verdict = tostring(Properties.verdict);\nlet reports = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project scan_key = tostring(Properties.scan_key), report_time = TimeGenerated, report_id = tostring(Properties.report_id);\nscans\n| join kind=leftouter reports on scan_key\n| order by scan_time desc",
+        "size": 1,
+        "title": "Recent reports joined to scans",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - reports joined"
+    }
+  ],
+  "isLocked": false,
+  "fallbackResourceIds": []
+}

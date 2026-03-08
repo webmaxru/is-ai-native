@@ -10,7 +10,7 @@ param workbookSourceId string
 @description('Deterministic workbook resource ID.')
 param workbookId string = guid(subscription().subscriptionId, resourceGroup().name, workbookDisplayName)
 
-var workbookSerializedData = loadTextContent('is-ai-native-monitoring.workbook.json')
+var workbookSerializedData = loadTextContent('is-ai-native-monitoring.workbook.serialized.json')
 
 resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
   name: workbookId
