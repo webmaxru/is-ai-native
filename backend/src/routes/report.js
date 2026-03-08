@@ -4,6 +4,10 @@ import { saveReport, getReport } from '../services/storage.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VALID_VERDICTS = new Set(['AI-Native', 'AI-Assisted', 'Traditional']);
 
+function isSharingEnabled() {
+  return process.env.ENABLE_SHARING === 'true';
+}
+
 function validateResult(result) {
   if (typeof result.repo_url !== 'string') return 'result.repo_url must be a string';
   try {
@@ -26,6 +30,10 @@ function validateResult(result) {
 const router = Router();
 
 router.post('/', (req, res) => {
+  if (!isSharingEnabled()) {
+    return res.status(503).json({ error: 'Sharing is not enabled' });
+  }
+
   const { result } = req.body;
 
   if (!result || typeof result !== 'object') {
@@ -44,6 +52,10 @@ router.post('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
+  if (!isSharingEnabled()) {
+    return res.status(503).json({ error: 'Sharing is not enabled' });
+  }
+
   const { id } = req.params;
 
   if (!UUID_RE.test(id)) {

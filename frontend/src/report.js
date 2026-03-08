@@ -28,7 +28,7 @@ function indicatorList(items) {
     .join('');
 }
 
-export function renderReport(result) {
+export function renderReport(result, { sharingEnabled = false } = {}) {
   const el = document.getElementById('report');
   el.innerHTML = `
     <div class="report-card">
@@ -63,7 +63,7 @@ export function renderReport(result) {
 
       <div class="report-footer">
         <span class="scanned-at">Scanned ${escapeHtml(new Date(result.scanned_at).toLocaleString())}</span>
-        <button id="share-btn" class="share-btn">🔗 Share Report</button>
+        ${sharingEnabled ? '<button id="share-btn" class="share-btn">🔗 Share Report</button>' : ''}
       </div>
     </div>
   `;
@@ -82,7 +82,9 @@ export function renderReport(result) {
   }
 
   el.classList.remove('hidden');
-  addShareButton(result);
+  if (sharingEnabled) {
+    addShareButton(result);
+  }
 }
 
 function addShareButton(result) {

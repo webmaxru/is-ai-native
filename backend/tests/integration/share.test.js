@@ -2,6 +2,7 @@ import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
+process.env.ENABLE_SHARING = 'true';
 
 let request;
 let app;

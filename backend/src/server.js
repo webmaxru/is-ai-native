@@ -3,6 +3,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import scanRouter from './routes/scan.js';
 import reportRouter from './routes/report.js';
+import configRouter from './routes/config.js';
 import { cleanupExpired } from './services/storage.js';
 
 const app = express();
@@ -19,6 +20,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.use('/api/config', configRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/report', reportRouter);
 
@@ -34,8 +36,10 @@ app.use((err, _req, res, _next) => {
 let server;
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  const cleanupInterval = setInterval(cleanupExpired, 60 * 60 * 1000);
-  cleanupInterval.unref();
+  if (process.env.ENABLE_SHARING === 'true') {
+    const cleanupInterval = setInterval(cleanupExpired, 60 * 60 * 1000);
+    cleanupInterval.unref();
+  }
 }
 
 export { app, server };

@@ -2,6 +2,7 @@ import { closeDb } from '../../src/services/storage.js';
 
 process.env.NODE_ENV = 'test';
 process.env.DB_PATH = ':memory:';
+process.env.ENABLE_SHARING = 'true';
 
 let request;
 let app;
@@ -29,7 +30,15 @@ const sampleResult = {
   primitives: [],
 };
 
-describe('POST /api/report', () => {
+describe('GET /api/config', () => {
+  it('returns sharingEnabled: true when ENABLE_SHARING is true', async () => {
+    const res = await request(app).get('/api/config');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ sharingEnabled: true });
+  });
+});
+
+describe('POST /api/report (sharing enabled)', () => {
   it('returns 201 with id and url when given a valid result', async () => {
     const res = await request(app).post('/api/report').send({ result: sampleResult });
 
@@ -66,7 +75,7 @@ describe('POST /api/report', () => {
   });
 });
 
-describe('GET /api/report/:id', () => {
+describe('GET /api/report/:id (sharing enabled)', () => {
   it('returns the stored scan result for a valid id', async () => {
     const postRes = await request(app).post('/api/report').send({ result: sampleResult });
     const { id } = postRes.body;
@@ -88,5 +97,35 @@ describe('GET /api/report/:id', () => {
     const res = await request(app).get('/api/report/not-a-uuid');
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
+  });
+});
+
+describe('/api/report when sharing disabled', () => {
+  beforeEach(() => {
+    process.env.ENABLE_SHARING = 'false';
+  });
+
+  afterEach(() => {
+    process.env.ENABLE_SHARING = 'true';
+  });
+
+  it('POST returns 503', async () => {
+    const res = await request(app).post('/api/report').send({ result: sampleResult });
+    expect(res.status).toBe(503);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('GET returns 503', async () => {
+    const res = await request(app).get(
+      '/api/report/00000000-0000-4000-8000-000000000001'
+    );
+    expect(res.status).toBe(503);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('GET /api/config returns sharingEnabled: false', async () => {
+    const res = await request(app).get('/api/config');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ sharingEnabled: false });
   });
 });

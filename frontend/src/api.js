@@ -1,5 +1,12 @@
 const API_BASE = '/api';
 
+export async function fetchConfig(signal) {
+  const res = await fetch(`${API_BASE}/config`, { signal });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch config');
+  return data; // { sharingEnabled: bool }
+}
+
 export async function scanRepo(repoUrl, signal) {
   const res = await fetch(`${API_BASE}/scan`, {
     method: 'POST',
