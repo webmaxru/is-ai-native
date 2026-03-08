@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-slim AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY backend/package*.json ./
 RUN npm ci --omit=dev
 
 # ── Runtime image ──────────────────────────────────────────────────
-FROM node:24-slim
+FROM node:24-alpine
 
 WORKDIR /app
 
@@ -22,11 +22,16 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy backend source
 COPY backend/src ./src
 
-# Copy frontend static files (served by Express when SERVE_FRONTEND=true)
-COPY frontend ./frontend
+# Copy only runtime frontend assets (served by Express when SERVE_FRONTEND=true)
+COPY frontend/index.html ./frontend/index.html
+COPY frontend/src ./frontend/src
 
-# Prepare data directory and use the pre-created unprivileged node user
-RUN mkdir -p /app/data && chown -R node:node /app
+# Update base packages and remove package-manager tooling not needed at runtime
+RUN apk upgrade --no-cache \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+  && mkdir -p /app/data \
+  && chown -R node:node /app
 
 USER node
 

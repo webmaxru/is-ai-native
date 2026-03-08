@@ -12,6 +12,15 @@ const PROGRESS_STAGES = [
 let toastTimer = null;
 let progressTimer = null;
 
+function syncViewState() {
+  const body = document.body;
+  const report = document.getElementById('report');
+  const isShowingReport = report && !report.classList.contains('hidden');
+
+  body.classList.toggle('landing-view', !isShowingReport);
+  body.classList.toggle('results-view', isShowingReport);
+}
+
 export function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
@@ -84,6 +93,7 @@ function hideProgress() {
 async function loadSharedReport(id, sharingEnabled) {
   document.getElementById('scan-form').classList.add('hidden');
   document.getElementById('snapshot-banner').classList.remove('hidden');
+  syncViewState();
   if (!sharingEnabled) {
     showError('Sharing is not enabled on this instance.');
     return;
@@ -91,6 +101,7 @@ async function loadSharedReport(id, sharingEnabled) {
   try {
     const result = await fetchSharedReport(id);
     renderReport(result, { sharingEnabled: false });
+    syncViewState();
   } catch (err) {
     showError(`Could not load shared report: ${err.message}`);
   }
@@ -101,12 +112,14 @@ async function handleScan(repoUrl, sharingEnabled) {
   setLoading(true);
   showProgress();
   document.getElementById('report').classList.add('hidden');
+  syncViewState();
 
   const controller = new AbortController();
   try {
     const result = await scanRepo(repoUrl, controller.signal);
     hideProgress();
     renderReport(result, { sharingEnabled });
+    syncViewState();
   } catch (err) {
     hideProgress();
     if (err.name !== 'AbortError') {
@@ -118,6 +131,7 @@ async function handleScan(repoUrl, sharingEnabled) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  syncViewState();
   let sharingEnabled = false;
   try {
     const config = await fetchConfig();
