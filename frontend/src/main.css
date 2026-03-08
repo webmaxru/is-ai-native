@@ -315,6 +315,29 @@ header h1 {
   display: none !important;
 }
 
+/* Site footer */
+.site-footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.site-footer a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+.site-footer a:hover {
+  color: var(--text);
+}
+
+.footer-sep {
+  margin: 0 0.4rem;
+}
+
 @media (max-width: 560px) {
   .report-sections {
     grid-template-columns: 1fr;
