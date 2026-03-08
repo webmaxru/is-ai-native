@@ -11,6 +11,7 @@ permissions:
   contents: read    # Checkout code
   packages: write   # Push image to GitHub Container Registry
   security-events: write  # Upload Trivy SARIF results
+  actions: read     # Required by codeql-action/upload-sarif
 
 env:
   REGISTRY: ghcr.io
@@ -89,7 +90,7 @@ jobs:
           exit-code: '1'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
