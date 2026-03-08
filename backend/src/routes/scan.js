@@ -10,14 +10,16 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'repo_url is required' });
   }
 
-  const url = repo_url.trim();
+  const raw = repo_url.trim();
+  // Accept both "owner/repo" short format and full "https://github.com/owner/repo" URL
+  const url = raw.startsWith('http') ? raw : `https://github.com/${raw}`;
   try {
     const parsed = new URL(url);
     if (parsed.hostname !== 'github.com') {
       return res.status(400).json({ error: 'Only GitHub repositories are supported' });
     }
   } catch {
-    return res.status(400).json({ error: 'Invalid URL' });
+    return res.status(400).json({ error: 'Invalid repository' });
   }
 
   try {
