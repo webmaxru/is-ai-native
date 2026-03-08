@@ -2,6 +2,9 @@ import { scanRepo, fetchSharedReport, fetchConfig } from './api.js';
 import { renderReport } from './report.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const THEME_STORAGE_KEY = 'is-ai-native-theme';
+const THEME_OPTIONS = new Set(['system', 'light', 'dark']);
+const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 // GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
 // GitHub repo: alphanumeric, hyphens, dots, underscores, 1-100 chars
@@ -15,6 +18,89 @@ const PROGRESS_STAGES = [
 
 let toastTimer = null;
 let progressTimer = null;
+
+function getSavedThemeMode() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return THEME_OPTIONS.has(saved) ? saved : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function resolveTheme(mode) {
+  if (mode === 'light' || mode === 'dark') {
+    return mode;
+  }
+
+  return themeMediaQuery.matches ? 'dark' : 'light';
+}
+
+function updateThemeControls(mode) {
+  const buttons = document.querySelectorAll('[data-theme-option]');
+
+  buttons.forEach((button) => {
+    const selected = button.dataset.themeOption === mode;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+}
+
+function updateThemeColorMeta(resolvedTheme) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    return;
+  }
+
+  meta.setAttribute('content', resolvedTheme === 'dark' ? '#290000' : '#c4c4c4');
+}
+
+function applyTheme(mode) {
+  const resolvedTheme = resolveTheme(mode);
+  const root = document.documentElement;
+
+  root.dataset.themeMode = mode;
+  root.dataset.theme = resolvedTheme;
+  root.style.colorScheme = resolvedTheme;
+  updateThemeControls(mode);
+  updateThemeColorMeta(resolvedTheme);
+}
+
+function persistThemeMode(mode) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, mode);
+  } catch {
+    // Ignore storage failures and keep the theme in memory only.
+  }
+}
+
+function initThemeSwitcher() {
+  const buttons = document.querySelectorAll('[data-theme-option]');
+  if (buttons.length === 0) {
+    return;
+  }
+
+  const mode = getSavedThemeMode();
+  applyTheme(mode);
+
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextMode = button.dataset.themeOption;
+      if (!THEME_OPTIONS.has(nextMode)) {
+        return;
+      }
+
+      persistThemeMode(nextMode);
+      applyTheme(nextMode);
+    });
+  });
+
+  themeMediaQuery.addEventListener('change', () => {
+    if (document.documentElement.dataset.themeMode === 'system') {
+      applyTheme('system');
+    }
+  });
+}
 
 function normalizeRepoReference(value) {
   const sanitized = value.trim();
@@ -153,6 +239,7 @@ async function handleScan(repoUrl, sharingEnabled) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initThemeSwitcher();
   syncViewState();
   let sharingEnabled = false;
   try {

@@ -21,6 +21,34 @@
     name="twitter:description"
     content="Evaluate how AI-native a GitHub repository is by checking for instructions, prompts, agents, skills, agent hooks, and MCP server configuration."
   />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#290000" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    (() => {
+      const storageKey = 'is-ai-native-theme';
+      let mode = 'system';
+
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+          mode = saved;
+        }
+      } catch {
+        mode = 'system';
+      }
+
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const resolved = mode === 'system' ? (prefersDark ? 'dark' : 'light') : mode;
+      const root = document.documentElement;
+
+      root.dataset.themeMode = mode;
+      root.dataset.theme = resolved;
+      root.style.colorScheme = resolved;
+    })();
+  </script>
   <link rel="stylesheet" href="/src/main.css" />
 </head>
 <body class="landing-view">
@@ -30,6 +58,11 @@
     <header class="site-header">
       <h1>IsAINative</h1>
       <p class="subtitle">Scan a public GitHub repository to assess AI-native development readiness across instructions, prompts, agents, skills, agent hooks, and MCP servers</p>
+      <div class="theme-switcher" role="group" aria-label="Theme preference">
+        <button type="button" class="theme-option" data-theme-option="system" aria-pressed="true">System</button>
+        <button type="button" class="theme-option" data-theme-option="light" aria-pressed="false">Light</button>
+        <button type="button" class="theme-option" data-theme-option="dark" aria-pressed="false">Dark</button>
+      </div>
     </header>
 
     <main id="main-content" class="main-content">
