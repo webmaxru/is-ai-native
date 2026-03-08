@@ -25,6 +25,9 @@ param githubToken string = ''
 @description('Enable the report-sharing feature. When true, an Azure Files share is mounted for SQLite persistence.')
 param enableSharing bool = false
 
+@description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
+param acrName string = ''
+
 @description('Tags applied to every resource.')
 param tags object = {
   application: 'is-ai-native'
@@ -38,7 +41,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   tags: tags
   properties: {
     sku: { name: 'PerGB2018' }
-    retentionInDays: 90
+    retentionInDays: 31
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }
@@ -107,6 +110,11 @@ resource caStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = if 
   }
 }
 
+// ── ACR reference (for admin credentials) ────────────────────────
+resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (acrName != '') {
+  name: acrName
+}
+
 // ── Environment variables ─────────────────────────────────────────
 var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
@@ -156,7 +164,16 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
         transport: 'http'
         allowInsecure: false
       }
-      secrets: appSecrets
+      secrets: concat(appSecrets, acrName != '' ? [
+        { name: 'acr-password', value: acr.listCredentials().passwords[0].value }
+      ] : [])
+      registries: acrName != '' ? [
+        {
+          server: '${acrName}.azurecr.io'
+          username: acr.listCredentials().username
+          passwordSecretRef: 'acr-password'
+        }
+      ] : []
     }
     template: {
       containers: [
