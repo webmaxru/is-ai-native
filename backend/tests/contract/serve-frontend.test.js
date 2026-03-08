@@ -57,6 +57,6 @@ describe('SERVE_FRONTEND=true', () => {
   it('GET /health still returns JSON status', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: 'ok' });
+    expect(res.body).toMatchObject({ status: 'ok' });
   });
 });

@@ -33,7 +33,13 @@ app.use('/api/config', configRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/report', reportRouter);
 
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/health', (_req, res) =>
+  res.json({
+    status: 'ok',
+    githubTokenProvided: !!process.env.GH_TOKEN_FOR_SCAN,
+    sharingEnabled: process.env.ENABLE_SHARING === 'true',
+  })
+);
 
 // Serve frontend static files when SERVE_FRONTEND=true (used in production container)
 if (process.env.SERVE_FRONTEND === 'true') {
