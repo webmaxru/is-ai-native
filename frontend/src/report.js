@@ -59,9 +59,20 @@ function primitiveRow(prim) {
   const icon = found ? '+' : '-';
   const name = escapeHtml(toKebab(prim.name));
   const cat = escapeHtml((prim.category || '').toLowerCase());
-  const fileText = prim.matched_files?.length
-    ? escapeHtml(prim.matched_files.join(', '))
-    : 'not found';
+
+  let fileHtml;
+  if (prim.matched_files?.length) {
+    const fileItems = prim.matched_files
+      .map((f) => `<div class="matched-file-item">${escapeHtml(f)}</div>`)
+      .join('');
+    const count = prim.matched_files.length;
+    fileHtml = `<details class="row-file-accordion" open>
+        <summary>${count} file${count !== 1 ? 's' : ''} found</summary>
+        ${fileItems}
+      </details>`;
+  } else {
+    fileHtml = '<span class="row-file">not found</span>';
+  }
 
   const descHtml = prim.description
     ? `<div class="log-row absent" style="border:none;opacity:1;padding-top:0;">
@@ -81,16 +92,15 @@ function primitiveRow(prim) {
       <span class="row-icon">${icon}</span>
       <span class="row-name">${name}</span>
       <span class="row-cat">${cat}</span>
-      <span class="row-file">${fileText}</span>
+      ${fileHtml}
     </div>${descHtml}${docLinksHtml}`;
 }
 
 /**
  * Render one assistant as a collapsible terminal log section.
  */
-function assistantSection(assistant, scanTime) {
+function assistantSection(assistant) {
   const colorClass = scoreColorClass(assistant.score);
-  const ts = escapeHtml(formatTimestamp(scanTime));
   const slug = escapeHtml(toKebab(assistant.name));
   const rowsHtml = assistant.primitives?.length
     ? assistant.primitives.map(primitiveRow).join('')
@@ -99,7 +109,6 @@ function assistantSection(assistant, scanTime) {
   return `
     <details class="log-section" id="section-${slug}" open>
       <summary class="log-header">
-        <span class="lh-timestamp">${ts}</span>
         <span class="lh-title">${slug}</span>
         <span class="lh-score ${colorClass}">${escapeHtml(String(assistant.score))}/100</span>
         <span class="lh-chevron" aria-hidden="true">▼</span>
@@ -135,12 +144,11 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   // Per-assistant sections (preferred) or flat primitive list
   let sectionsHtml = '';
   if (result.per_assistant?.length) {
-    sectionsHtml = result.per_assistant.map((a) => assistantSection(a, result.scanned_at)).join('');
+    sectionsHtml = result.per_assistant.map((a) => assistantSection(a)).join('');
   } else if (totalPrims > 0) {
     sectionsHtml = `
       <div class="log-section">
         <div class="log-header">
-          <span class="lh-timestamp">${scanTs}</span>
           <span class="lh-title">primitives</span>
           <span class="lh-score ${sColorClass}">${result.score}/100</span>
         </div>
@@ -150,7 +158,6 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     sectionsHtml = `
       <div class="log-section">
         <div class="log-header">
-          <span class="lh-timestamp">${scanTs}</span>
           <span class="lh-title">primitives</span>
           <span class="lh-score score-red">0/100</span>
         </div>

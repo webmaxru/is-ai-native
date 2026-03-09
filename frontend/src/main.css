@@ -517,6 +517,47 @@ kbd {
 }
 .row-docs a:hover { text-decoration: underline; }
 
+/* ── Report: matched-files accordion inside primitive rows ── */
+.row-file-accordion {
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.row-file-accordion > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.row-file-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-file-accordion > summary::before {
+  content: '▼ ';
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.row-file-accordion:not([open]) > summary::before {
+  content: '▶ ';
+}
+
+.matched-file-item {
+  padding: 0.1rem 0 0.1rem 1rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 /* ── Empty per-assistant state ── */
 .log-empty {
   font-size: 0.8rem;
