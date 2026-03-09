@@ -117,6 +117,8 @@ This mode serves the SPA directly from the local `frontend/` directory and keeps
 
 Run the same single-container image that Azure deploys:
 
+Make sure port `3000` is free before starting it. If you already have `npm run dev` or `npm run dev:full` running locally, stop that process first.
+
 ```powershell
 docker compose up --build
 ```
@@ -134,6 +136,8 @@ docker compose down
 ### Single Container
 
 The root `Dockerfile` produces a single image that bundles the Express API **and** the frontend static files. Express serves the bundled frontend automatically when it is present:
+
+This command also expects host port `3000` to be available.
 
 ```powershell
 docker build -t is-ai-native .
