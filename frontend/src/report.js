@@ -209,7 +209,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     <div class="score-share-row">
       <div class="text-progress">
         <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
-        <div class="progress-track">${barHtml}</div>
+        <div class="progress-track" aria-hidden="true">${barHtml}</div>
       </div>
       ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
     </div>
