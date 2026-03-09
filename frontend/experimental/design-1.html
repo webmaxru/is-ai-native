@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-theme-mode="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design 1 Command Center — IsAINative Experiment</title>
+  <meta name="color-scheme" content="light" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+/*
+ * Design 1: "Command Center"
+ * Two-column dashboard: fixed left sidebar + scrollable right pane.
+ * IBM Plex Sans — technical and clean. No rounded corners anywhere.
+ * Palette: off-white background, deep charcoal text, electric blue accent.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:     #0f62fe;
+  --blue-dim: rgba(15,98,254,0.12);
+  --text:     #161616;
+  --text-sub: #6f6f6f;
+  --border:   #e0e0e0;
+  --bg:       #f4f4f4;
+  --sidebar-bg: #ffffff;
+  --sidebar-w:  280px;
+  --mono: 'IBM Plex Mono', 'Cascadia Code', monospace;
+  --sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-brand {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--blue);
+}
+
+.sidebar-brand p {
+  font-size: 0.72rem;
+  color: var(--text-sub);
+  margin-top: 0.35rem;
+  line-height: 1.5;
+}
+
+.sidebar-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-sub);
+  margin-bottom: 0.6rem;
+}
+
+.sidebar-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-input-wrap input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+
+.sidebar-input-wrap input:focus {
+  border-color: var(--blue);
+  outline: 2px solid rgba(15,98,254,0.2);
+}
+
+.sidebar-input-wrap button {
+  padding: 0.6rem 1rem;
+  background: var(--blue);
+  color: #ffffff;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-input-wrap button:hover { background: #0353e9; }
+
+.hint-text {
+  font-size: 0.7rem;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin-top: 0.5rem;
+}
+
+.sidebar-nav {
+  padding: 1rem 0;
+  flex: 1;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  text-decoration: none;
+}
+.sidebar-nav a:hover { background: var(--bg); color: var(--text); }
+.sidebar-nav a.active { background: var(--blue-dim); color: var(--blue); font-weight: 600; border-left: 3px solid var(--blue); padding-left: calc(1.25rem - 3px); }
+
+.sidebar-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-sub);
+}
+.sidebar-footer a { color: var(--text-sub); text-decoration: underline; }
+
+/* ── Main pane ── */
+.main-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.topbar {
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.breadcrumb {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.breadcrumb span { color: var(--text); font-weight: 500; }
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-family: var(--mono);
+}
+
+.content-area {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Score header strip */
+.score-strip {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.score-big {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--blue);
+  font-family: var(--mono);
+}
+
+.score-meta h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.score-meta p { font-size: 0.82rem; color: var(--text-sub); margin-top: 0.2rem; }
+
+.verdict-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.2rem 0.75rem;
+  background: var(--blue);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.score-bar-outer {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+}
+.score-bar-inner {
+  height: 100%;
+  background: var(--blue);
+  width: 87%;
+}
+
+/* Data grid */
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.data-cell {
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+}
+
+.cell-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-sub);
+  margin-bottom: 0.4rem;
+}
+
+.cell-value {
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.cell-sub { font-size: 0.75rem; color: var(--text-sub); margin-top: 0.2rem; }
+
+/* Primitives table */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0;
+}
+
+.section-header h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.prim-table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid var(--border); }
+
+.prim-table th {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.prim-table td {
+  padding: 0.7rem 1rem;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.prim-table tr:last-child td { border-bottom: none; }
+
+.prim-table tr.not-detected { opacity: 0.5; }
+
+.status-ok  { color: var(--blue); font-weight: 700; font-family: var(--mono); }
+.status-no  { color: #6f6f6f;  font-weight: 700; font-family: var(--mono); }
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.mono-file { font-family: var(--mono); font-size: 0.75rem; color: var(--text-sub); }
+
+.score-chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+.assistant-row td { background: var(--bg); font-weight: 600; }
+
+/* Skip link */
+.skip-link { position: absolute; top: -100px; left: 0; background: var(--blue); color: #fff; padding: 0.5rem 1rem; z-index: 200; }
+.skip-link:focus { top: 0; }
+.hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>IsAINative</h1>
+      <p>Scan GitHub repos for AI-native development readiness</p>
+    </div>
+
+    <div class="sidebar-section">
+      <label>Repository</label>
+      <div class="sidebar-input-wrap">
+        <input type="text" value="webmaxru/is-ai-native" aria-label="GitHub repository" />
+        <button type="button">Run Scan</button>
+      </div>
+      <p class="hint-text">Checks for instructions, prompts, agents, skills, hooks, and MCP configurations.</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="active">&#9632; Overview</a>
+      <a href="#">&#9670; GitHub Copilot</a>
+      <a href="#">&#9670; Claude Code</a>
+      <a href="#">&#9670; OpenAI Codex</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      Made in &#127475;&#127476; Norway &#183;
+      <a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </aside>
+
+  <div class="main-pane" id="main-content">
+    <div class="topbar">
+      <div class="breadcrumb">
+        IsAINative &#47; <span>webmaxru/is-ai-native</span>
+      </div>
+      <span class="status-pill">&#9679; AI-NATIVE</span>
+    </div>
+
+    <div class="content-area">
+
+      <div class="score-strip">
+        <div class="score-big">87</div>
+        <div class="score-meta">
+          <h2>webmaxru/is-ai-native</h2>
+          <p>AI-native readiness checker for GitHub repositories</p>
+          <span class="verdict-badge">AI-Native</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:0.4rem;">
+          <div class="score-bar-outer"><div class="score-bar-inner"></div></div>
+          <span style="font-size:0.7rem;color:#6f6f6f;font-family:'IBM Plex Mono',monospace;">87 / 100 readiness score</span>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <div class="data-cell">
+          <div class="cell-label">Scanned at</div>
+          <div class="cell-value">2026-03-09 16:30 UTC</div>
+        </div>
+        <div class="data-cell">
+          <div class="cell-label">Primitives found</div>
+          <div class="cell-value">7 / 9</div>
+          <div class="cell-sub">across 3 AI assistants</div>
+        </div>
+        <div class="data-cell">
+          <div class="cell-label">Top assistant</div>
+          <div class="cell-value">GitHub Copilot</div>
+          <div class="cell-sub">92/100</div>
+        </div>
+        <div class="data-cell">
+          <div class="cell-label">Verdict</div>
+          <div class="cell-value">AI-Native</div>
+          <div class="cell-sub">score &ge; 75</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <h3>Primitives — GitHub Copilot</h3>
+          <span class="score-chip">92/100</span>
+        </div>
+        <table class="prim-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Primitive</th>
+              <th>Category</th>
+              <th>File</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="status-ok">FOUND</td>
+              <td>Instruction files</td>
+              <td><span class="tag">Instructions</span></td>
+              <td class="mono-file">.github/copilot-instructions.md</td>
+            </tr>
+            <tr>
+              <td class="status-ok">FOUND</td>
+              <td>Saved prompts</td>
+              <td><span class="tag">Prompts</span></td>
+              <td class="mono-file">.github/prompts/review.prompt.md</td>
+            </tr>
+            <tr>
+              <td class="status-ok">FOUND</td>
+              <td>Custom agents</td>
+              <td><span class="tag">Agents</span></td>
+              <td class="mono-file">.github/agents/*.yml</td>
+            </tr>
+            <tr class="not-detected">
+              <td class="status-no">MISSING</td>
+              <td>Agent hooks</td>
+              <td><span class="tag">Hooks</span></td>
+              <td class="mono-file">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="section-header">
+          <h3>Primitives — Claude Code</h3>
+          <span class="score-chip">64/100</span>
+        </div>
+        <table class="prim-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Primitive</th>
+              <th>Category</th>
+              <th>File</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="status-ok">FOUND</td>
+              <td>CLAUDE.md instructions</td>
+              <td><span class="tag">Instructions</span></td>
+              <td class="mono-file">CLAUDE.md</td>
+            </tr>
+            <tr class="not-detected">
+              <td class="status-no">MISSING</td>
+              <td>Saved prompts</td>
+              <td><span class="tag">Prompts</span></td>
+              <td class="mono-file">—</td>
+            </tr>
+            <tr class="not-detected">
+              <td class="status-no">MISSING</td>
+              <td>Custom agents</td>
+              <td><span class="tag">Agents</span></td>
+              <td class="mono-file">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

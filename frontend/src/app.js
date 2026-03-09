@@ -55,7 +55,7 @@ function updateThemeColorMeta(resolvedTheme) {
     return;
   }
 
-  meta.setAttribute('content', resolvedTheme === 'dark' ? '#290000' : '#c4c4c4');
+  meta.setAttribute('content', resolvedTheme === 'dark' ? '#050805' : '#1a1c1a');
 }
 
 function applyTheme(mode) {
@@ -156,7 +156,7 @@ function setLoading(loading) {
   const input = document.getElementById('repo-url');
   btn.disabled = loading;
   input.disabled = loading;
-  btn.textContent = loading ? 'Scanning…' : 'Scan';
+  btn.textContent = loading ? 'running...' : 'run-scan';
 }
 
 function showProgress() {
@@ -219,6 +219,9 @@ async function handleScan(repoUrl, sharingEnabled) {
   setLoading(true);
   showProgress();
   document.getElementById('report').classList.add('hidden');
+  // Update topbar to show which repo (owner/repo slug) is being scanned
+  const topbarScope = document.getElementById('topbar-scope');
+  if (topbarScope) topbarScope.textContent = repoUrl;
   syncViewState();
 
   const controller = new AbortController();
