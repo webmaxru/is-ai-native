@@ -22,7 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy backend source
 COPY backend/src ./src
 
-# Copy only runtime frontend assets (served by Express when SERVE_FRONTEND=true)
+# Copy runtime frontend assets so Express can serve them in the single-container image
 COPY frontend/index.html ./frontend/index.html
 COPY frontend/src ./frontend/src
 

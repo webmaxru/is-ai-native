@@ -43,27 +43,27 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ## Architecture
 
 ```
-┌──────────────┐        ┌──────────────────┐        ┌────────────────┐
-│   Browser    │──80──▶│  Nginx / Express  │──3000─▶│  Express API   │
-│  (SPA)       │       │  (static files)   │        │  (Node.js 24)  │
-└──────────────┘        └──────────────────┘        └───────┬────────┘
-                                                            │
-                                                   ┌───────▼────────┐
-                                                   │  GitHub API    │
-                                                   │  (repo scan)   │
-                                                   └───────┬────────┘
-                                                            │
-                                                   ┌───────▼──────────────┐
-                                                   │  File-backed report   │
-                                                   │  store (optional)     │
-                                                   │  for shared reports   │
-                                                   └───────────────────────┘
+┌──────────────┐        ┌────────────────┐
+│   Browser    │──3000─▶│ Express App     │
+│  (SPA)       │        │ SPA + API       │
+└──────────────┘        └───────┬────────┘
+                                │
+                       ┌────────▼────────┐
+                       │  GitHub API     │
+                       │  (repo scan)    │
+                       └────────┬────────┘
+                                │
+                       ┌────────▼──────────────┐
+                       │  File-backed report   │
+                       │  store (optional)     │
+                       │  for shared reports   │
+                       └───────────────────────┘
 ```
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
 - **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score from detected assistant-specific primitive matches.
 - **Storage** — Optional file-backed storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
-- **Reverse Proxy** — In Docker Compose mode, Nginx serves static files and proxies `/api/*` and `/health` to the backend. In single-container mode, Express serves the frontend directly.
+- **Serving model** — Express serves both the SPA and the API in local single-container runs and in Azure Container Apps.
 
 ---
 
@@ -84,27 +84,26 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 
 The quickest way to get started — run the Express API on its own:
 
-```bash
+```powershell
 cd backend
 npm install
 npm run dev          # starts with --watch for live reload
 ```
 
-The API is now available at **http://localhost:3000**. Use any HTTP client to test:
+The API is now available at **http://localhost:3000**. On Windows PowerShell, use `Invoke-RestMethod` to test it:
 
-```bash
-curl -X POST http://localhost:3000/api/scan \
-  -H "Content-Type: application/json" \
-  -d '{"repo_url": "https://github.com/webmaxru/is-ai-native"}'
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/scan -ContentType "application/json" -Body '{"repo_url":"https://github.com/webmaxru/is-ai-native"}'
 ```
 
 > **Tip:** Set a `GH_TOKEN_FOR_SCAN` environment variable to avoid GitHub API rate limits (60 req/h unauthenticated → 5 000 req/h authenticated).
+> The backend `npm` scripts automatically load `../.env` when it exists, so a project-root `.env` file is picked up in local development.
 
 ### Full Stack Without Docker
 
 Run the backend and frontend together through the Express server:
 
-```bash
+```powershell
 cd backend
 npm install
 npm run dev:full
@@ -116,33 +115,34 @@ This mode serves the SPA directly from the local `frontend/` directory and keeps
 
 ### Full Stack with Docker Compose
 
-Run both the frontend (Nginx) and backend as separate containers:
+Run the same single-container image that Azure deploys:
 
-```bash
+```powershell
 docker compose up --build
 ```
 
-Open **http://localhost** in your browser. Nginx serves the SPA and proxies `/api/*` requests to the backend.
+Open **http://localhost:3000** in your browser. Express serves the SPA and the API from the same container.
+
+Docker Compose also reads the project-root `.env` file for variable substitution, so optional values such as `GH_TOKEN_FOR_SCAN`, `APPLICATIONINSIGHTS_CONNECTION_STRING`, and `ALLOWED_ORIGIN` are passed through automatically when present.
 
 To stop:
 
-```bash
+```powershell
 docker compose down
 ```
 
 ### Single Container
 
-The root `Dockerfile` produces a single image that bundles the Express API **and** the frontend static files (served by Express when `SERVE_FRONTEND=true`):
+The root `Dockerfile` produces a single image that bundles the Express API **and** the frontend static files. Express serves the bundled frontend automatically when it is present:
 
-```bash
+```powershell
 docker build -t is-ai-native .
-docker run -p 3000:3000 \
-  -e SERVE_FRONTEND=true \
-  -e NODE_ENV=production \
-  is-ai-native
+docker run -p 3000:3000 -e NODE_ENV=production is-ai-native
 ```
 
 Open **http://localhost:3000**.
+
+If you want the standalone container run to use optional local settings, pass them explicitly with additional `-e` flags such as `GH_TOKEN_FOR_SCAN`, `APPLICATIONINSIGHTS_CONNECTION_STRING`, or `ALLOWED_ORIGIN`.
 
 ---
 
@@ -150,7 +150,7 @@ Open **http://localhost:3000**.
 
 The backend includes unit, contract, and integration tests powered by [Jest](https://jestjs.io/) and [Supertest](https://github.com/ladjs/supertest):
 
-```bash
+```powershell
 cd backend
 npm install
 npm test                # run all tests
@@ -171,12 +171,10 @@ npm run test:integration # integration tests only
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report/view telemetry for Azure Workbook dashboards |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
-| `DB_PATH` | `./data/reports.db` | Legacy compatibility setting used to derive the report storage directory when `REPORTS_DIR` is unset |
-| `SERVE_FRONTEND` | `false` | Serve frontend static files from Express (single-container mode) |
-| `FRONTEND_PATH` | `../frontend` | Path to the frontend directory (when `SERVE_FRONTEND=true`) |
+| `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
 | `ALLOWED_ORIGIN` | `false` (CORS disabled) | Allowed CORS origin (e.g., `http://localhost:5173`) |
 
-Create a `.env` file in the project root for local overrides (it is git-ignored):
+Create a `.env` file in the project root for local overrides. The backend `npm` scripts load it directly, and Docker Compose uses it for variable substitution. The file is git-ignored:
 
 ```env
 GH_TOKEN_FOR_SCAN=ghp_your_personal_access_token
@@ -499,8 +497,7 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 │   │       ├── app-insights.js # Azure Application Insights event emission
 │   │       └── storage.js     # File-backed persistence for shared reports
 │   ├── tests/                 # Jest test suites (unit, contract, integration)
-│   ├── package.json
-│   └── Dockerfile             # Backend-only image (used by docker-compose)
+│   └── package.json
 ├── frontend/
 │   ├── index.html             # SPA entry point
 │   ├── src/
@@ -514,14 +511,12 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 │   └── main.bicepparam        # Default deployment parameters
 ├── docs/
 │   └── configuration.md       # Configuration guide for primitives & assistants
-├── nginx/
-│   └── nginx.conf             # Reverse proxy config (docker-compose)
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml             # CI: test, build, scan
 │       └── cd.yml             # CD: build, push, deploy to Azure
 ├── Dockerfile                 # Single-container production image
-├── docker-compose.yml         # Multi-container local development
+├── docker-compose.yml         # Azure-like single-container local run
 └── README.md
 ```
 

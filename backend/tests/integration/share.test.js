@@ -17,11 +17,11 @@ beforeAll(async () => {
 
 afterEach(() => {
   closeDb();
-  process.env.DB_PATH = ':memory:';
+  process.env.REPORTS_DIR = ':memory:';
 });
 
 beforeEach(() => {
-  process.env.DB_PATH = ':memory:';
+  process.env.REPORTS_DIR = ':memory:';
 });
 
 describe('Integration: share → retrieve', () => {

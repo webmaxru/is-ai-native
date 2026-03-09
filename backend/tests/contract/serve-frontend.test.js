@@ -7,9 +7,8 @@ const tmpDir = mkdtempSync(join(tmpdir(), 'is-ai-native-frontend-'));
 writeFileSync(join(tmpDir, 'index.html'), '<!DOCTYPE html><html><body>frontend</body></html>');
 
 process.env.NODE_ENV = 'test';
-process.env.DB_PATH = ':memory:';
+process.env.REPORTS_DIR = ':memory:';
 process.env.ENABLE_SHARING = 'false';
-process.env.SERVE_FRONTEND = 'true';
 process.env.FRONTEND_PATH = tmpDir;
 
 let request;
@@ -32,7 +31,7 @@ afterAll(() => {
   }
 });
 
-describe('SERVE_FRONTEND=true', () => {
+describe('frontend path configured', () => {
   it('GET / serves the frontend index.html', async () => {
     const res = await request(app).get('/');
     expect(res.status).toBe(200);

@@ -12,7 +12,6 @@ backend/data
 frontend/tests
 frontend/dist
 infra
-nginx
 docker-compose.yml
 *.md
 *.log

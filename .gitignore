@@ -2,9 +2,9 @@
 node_modules/
 backend/node_modules/
 
-# SQLite database
-backend/data/reports.db
-data/reports.db
+# Report-sharing storage
+backend/data/reports/
+data/reports/
 
 # Build artifacts
 dist/

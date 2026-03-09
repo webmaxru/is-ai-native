@@ -128,7 +128,7 @@ resource dataShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-0
 // Mount the file share inside the Container Apps Environment
 resource caStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if (enableSharing) {
   parent: containerEnv
-  name: 'sqlite-data'
+  name: 'reports-data'
   properties: {
     azureFile: {
       #disable-next-line BCP422
@@ -161,13 +161,8 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (
 var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
   { name: 'PORT', value: '3000' }
-  { name: 'SERVE_FRONTEND', value: 'true' }
   { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
 ]
-
-var sharingEnv = enableSharing ? [
-  { name: 'DB_PATH', value: '/app/data/reports.db' }
-] : []
 
 var tokenEnv = githubToken != '' ? [
   { name: 'GH_TOKEN_FOR_SCAN', secretRef: 'gh-token-for-scan' }
@@ -177,7 +172,7 @@ var appInsightsEnv = enableAppInsights ? [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
 ] : []
 
-var appEnv = concat(baseEnv, sharingEnv, tokenEnv, appInsightsEnv)
+var appEnv = concat(baseEnv, tokenEnv, appInsightsEnv)
 
 // ── Secrets ───────────────────────────────────────────────────────
 var appSecrets = githubToken != '' ? [
@@ -193,11 +188,11 @@ var appInsightsSecrets = enableAppInsights ? [
 
 // ── Volumes & mounts (only when sharing is enabled) ───────────────
 var appVolumes = enableSharing ? [
-  { name: 'sqlite-data', storageType: 'AzureFile', storageName: caStorage.name }
+  { name: 'reports-data', storageType: 'AzureFile', storageName: caStorage.name }
 ] : []
 
 var appVolumeMounts = enableSharing ? [
-  { mountPath: '/app/data', volumeName: 'sqlite-data' }
+  { mountPath: '/app/data', volumeName: 'reports-data' }
 ] : []
 
 var customDomainBindings = concat(

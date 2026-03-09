@@ -109,21 +109,16 @@
         "value": "3000"
       },
       {
-        "name": "SERVE_FRONTEND",
-        "value": "true"
-      },
-      {
         "name": "ENABLE_SHARING",
         "value": "[if(parameters('enableSharing'), 'true', 'false')]"
       }
     ],
-    "sharingEnv": "[if(parameters('enableSharing'), createArray(createObject('name', 'DB_PATH', 'value', '/app/data/reports.db')), createArray())]",
     "tokenEnv": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'GH_TOKEN_FOR_SCAN', 'secretRef', 'gh-token-for-scan')), createArray())]",
     "appInsightsEnv": "[if(parameters('enableAppInsights'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'secretRef', 'app-insights-connection-string')), createArray())]",
-    "appEnv": "[concat(variables('baseEnv'), variables('sharingEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
+    "appEnv": "[concat(variables('baseEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
     "appSecrets": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'gh-token-for-scan', 'value', parameters('githubToken'))), createArray())]",
-    "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'sqlite-data', 'storageType', 'AzureFile', 'storageName', 'sqlite-data')), createArray())]",
-    "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'sqlite-data')), createArray())]",
+    "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'reports-data', 'storageType', 'AzureFile', 'storageName', 'reports-data')), createArray())]",
+    "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'reports-data')), createArray())]",
     "customDomainBindings": "[concat(if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray()), if(and(not(equals(parameters('secondaryCustomDomainName'), '')), not(equals(parameters('secondaryManagedCertName'), ''))), createArray(createObject('name', parameters('secondaryCustomDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('secondaryManagedCertName')))), createArray()))]"
   },
   "resources": [
@@ -226,7 +221,7 @@
       "condition": "[parameters('enableSharing')]",
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2024-03-01",
-      "name": "[format('{0}/{1}', format('{0}-env', parameters('namePrefix')), 'sqlite-data')]",
+      "name": "[format('{0}/{1}', format('{0}-env', parameters('namePrefix')), 'reports-data')]",
       "properties": {
         "azureFile": {
           "accountName": "[take(toLower(replace(replace(replace(format('{0}data', parameters('namePrefix')), '-', ''), '_', ''), '.', '')), 24)]",
@@ -319,7 +314,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
-        "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}-env', parameters('namePrefix')), 'sqlite-data')]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}-env', parameters('namePrefix')), 'reports-data')]",
         "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]"
       ]
     }

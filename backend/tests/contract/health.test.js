@@ -1,5 +1,5 @@
 process.env.NODE_ENV = 'test';
-process.env.DB_PATH = ':memory:';
+process.env.REPORTS_DIR = ':memory:';
 
 let request;
 let app;

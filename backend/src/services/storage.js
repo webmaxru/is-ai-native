@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { join, parse } from 'node:path';
+import { join } from 'node:path';
 
 const TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 let memoryStore;
 
 function isMemoryStorage() {
-  return process.env.DB_PATH === ':memory:';
+  return process.env.REPORTS_DIR === ':memory:';
 }
 
 function getMemoryStore() {
@@ -21,12 +21,6 @@ function getMemoryStore() {
 function getReportsDir() {
   if (process.env.REPORTS_DIR) {
     return process.env.REPORTS_DIR;
-  }
-
-  const dbPath = process.env.DB_PATH;
-  if (dbPath && dbPath !== ':memory:') {
-    const parsed = parse(dbPath);
-    return join(parsed.dir || '.', parsed.name ? `${parsed.name}-store` : 'reports');
   }
 
   return './data/reports';

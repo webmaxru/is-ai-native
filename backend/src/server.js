@@ -17,9 +17,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 function resolveFrontendPath(frontendPathOverride = process.env.FRONTEND_PATH) {
+  const projectRoot = resolve(__dirname, '../..');
   const candidates = frontendPathOverride
-    ? [frontendPathOverride]
-    : [join(__dirname, '../frontend'), join(__dirname, '../../frontend')];
+    ? [resolve(process.cwd(), frontendPathOverride), resolve(projectRoot, frontendPathOverride)]
+    : [join(__dirname, '../frontend')];
 
   for (const candidate of candidates) {
     const absolutePath = isAbsolute(candidate) ? candidate : resolve(process.cwd(), candidate);
@@ -74,17 +75,12 @@ app.get('/health', (_req, res) =>
   })
 );
 
-// Serve frontend static files when SERVE_FRONTEND=true (used in production container)
-if (process.env.SERVE_FRONTEND === 'true') {
-  const frontendPath = resolveFrontendPath();
-  if (frontendPath) {
-    app.use(express.static(frontendPath));
-    app.get(/^(?!\/api(\/|$))/, (_req, res) =>
-      res.sendFile(join(frontendPath, 'index.html'))
-    );
-  } else {
-    console.warn('Warning: SERVE_FRONTEND=true but no frontend directory was found');
-  }
+const frontendPath = resolveFrontendPath();
+if (frontendPath) {
+  app.use(express.static(frontendPath));
+  app.get(/^(?!\/api(\/|$))/, (_req, res) =>
+    res.sendFile(join(frontendPath, 'index.html'))
+  );
 }
 
 // Error handling

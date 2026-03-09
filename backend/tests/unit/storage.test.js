@@ -8,13 +8,11 @@ let reportsDir;
 beforeEach(() => {
   reportsDir = mkdtempSync(join(tmpdir(), 'is-ai-native-storage-'));
   process.env.REPORTS_DIR = reportsDir;
-  delete process.env.DB_PATH;
 });
 
 afterEach(() => {
   closeDb();
   delete process.env.REPORTS_DIR;
-  delete process.env.DB_PATH;
   rmSync(reportsDir, { recursive: true, force: true });
 });
 
@@ -76,21 +74,10 @@ describe('cleanupExpired', () => {
     expect(() => readFileSync(reportPath, 'utf8')).toThrow();
   });
 
-  it('uses in-memory storage when DB_PATH is :memory:', () => {
-    delete process.env.REPORTS_DIR;
-    process.env.DB_PATH = ':memory:';
+  it('uses in-memory storage when REPORTS_DIR is :memory:', () => {
+    process.env.REPORTS_DIR = ':memory:';
 
     const id = saveReport(sampleResult);
     expect(getReport(id)).toEqual(sampleResult);
-  });
-
-  it('derives a writable storage directory from legacy DB_PATH values', () => {
-    delete process.env.REPORTS_DIR;
-    process.env.DB_PATH = join(reportsDir, 'reports.db');
-
-    const id = saveReport(sampleResult);
-    const derivedPath = join(reportsDir, 'reports-store', `${id}.json`);
-
-    expect(JSON.parse(readFileSync(derivedPath, 'utf8')).result).toEqual(sampleResult);
   });
 });

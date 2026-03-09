@@ -6,13 +6,13 @@
 
 ## Requirement Completeness
 
-- [x] CHK001 - Are container image requirements specified (base image, multi-stage build, image size budget)? [Completeness, Gap] — **Resolved**: Node.js 20 Alpine base. Multi-stage for frontend (build + nginx). Backend <100MB, frontend <50MB.
-- [x] CHK002 - Are requirements defined for which ports the backend and frontend services expose? [Completeness, Gap] — **Resolved**: Backend: port 3000. Frontend: port 80 (nginx production) / 5173 (Vite dev).
+- [x] CHK001 - Are container image requirements specified (base image, multi-stage build, image size budget)? [Completeness, Gap] — **Resolved**: Node.js runtime image bundles backend and frontend assets for a single-container deployment path.
+- [x] CHK002 - Are requirements defined for which ports the backend and frontend services expose? [Completeness, Gap] — **Resolved**: Single-container runtime exposes port 3000 for both SPA and API traffic.
 - [x] CHK003 - Are environment variable requirements enumerated (GITHUB_TOKEN, PORT, NODE_ENV, API_URL, etc.)? [Completeness, Gap] — **Resolved**: GITHUB_TOKEN (optional), PORT (default 3000), NODE_ENV, VITE_API_URL.
 - [x] CHK004 - Are requirements defined for how the frontend knows the backend API URL in different environments (local dev, container, production)? [Completeness, Gap] — **Resolved**: VITE_API_URL env var at build time for containers; Vite proxy for local dev.
 - [x] CHK005 - Are health check endpoint requirements specified for container orchestration readiness? [Completeness, Gap] — **Resolved**: GET /health returning { status: "ok" }. Used in Dockerfile HEALTHCHECK directive.
 - [x] CHK006 - Are requirements defined for the local development workflow (how to start frontend + backend together)? [Completeness, Gap] — **Resolved**: Backend: `npm run dev`. Frontend: `npm run dev` (Vite with proxy). Or `docker-compose up`.
-- [x] CHK007 - Are requirements defined for whether frontend static assets are served by the backend, a separate web server, or independently? [Completeness, Gap] — **Resolved**: Separate nginx container in production; Vite dev server with proxy in development.
+- [x] CHK007 - Are requirements defined for whether frontend static assets are served by the backend, a separate web server, or independently? [Completeness, Gap] — **Resolved**: Express serves the frontend assets in both the single-container image and local full-stack development mode.
 - [x] CHK008 - Are logging requirements specified (log format, log levels, structured logging for container environments)? [Completeness, Gap] — **Resolved**: Console JSON (structured) in production. Pretty print in development. Levels: info, warn, error.
 - [x] CHK009 - Are startup validation requirements defined (config file existence check, GitHub API reachability probe)? [Completeness, Gap] — **Resolved**: Validate primitives.json and assistants.json exist and are valid JSON. Log warning if GITHUB_TOKEN absent.
 
@@ -20,7 +20,7 @@
 
 - [x] CHK010 - Is "ready for running in container" specified with concrete container runtime requirements (Docker, Podman, OCI-compatible)? [Clarity, Plan Technical Context] — **Resolved**: Docker (OCI-compatible). Tested with Docker Desktop.
 - [x] CHK011 - Is "ready for running locally" defined with prerequisite versions, setup steps, and expected developer experience? [Clarity, Plan Technical Context] — **Resolved**: Node.js 20+, npm 9+. `npm install` in both dirs. `npm run dev` to start.
-- [x] CHK012 - Is the relationship between docker-compose.yml services (frontend, backend) and their networking clearly defined? [Clarity, Plan Project Structure] — **Resolved**: Both on same Docker network. Frontend proxies to `http://backend:3000`.
+- [x] CHK012 - Is the relationship between docker-compose.yml services and their networking clearly defined? [Clarity, Plan Project Structure] — **Resolved**: A single app service binds host port 3000 and serves both SPA and API traffic.
 - [x] CHK013 - Is "Node.js 20 LTS" a hard minimum requirement or a recommendation? [Clarity, Plan Technical Context] — **Resolved**: Hard minimum requirement. Enforced via package.json engines field.
 
 ## Requirement Consistency

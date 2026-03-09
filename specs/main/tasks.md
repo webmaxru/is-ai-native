@@ -147,9 +147,9 @@
 
 **Purpose**: Containerization, documentation, performance, and security improvements
 
-- [x] T035 [P] Create backend Dockerfile (Node.js 20 LTS base, copy source, install production deps, expose port, health check) in backend/Dockerfile
-- [x] T036 [P] Create frontend Dockerfile (Node.js 20 base for build stage, nginx for serve stage, copy built assets) in frontend/Dockerfile
-- [x] T037 Create docker-compose.yml for local multi-container setup (backend + frontend services, environment variables, port mapping, network) in docker-compose.yml
+- [x] T035 [P] Create the production container image in the root Dockerfile (Node.js base, production deps, expose port, health check)
+- [x] T036 [P] Use the root Dockerfile to bundle frontend assets into the Express runtime image for single-container serving
+- [x] T037 Create docker-compose.yml for local single-container setup (bundled SPA + API, environment variables, port mapping) in docker-compose.yml
 - [x] T038 [P] Configure Vite bundle size budget (set max bundle size threshold, fail build on exceeded budget) in frontend/vite.config.js
 - [x] T039 Implement scan API performance benchmark script (measure scan latency for repos with 100, 1,000, and 10,000 files; validate ≤15s target from SC-001) in backend/tests/performance/benchmark.js
 - [x] T040 Optimize GitHub API file tree fetching for large repositories (recursive tree API, pagination, early termination for repos exceeding limits) in backend/src/services/github.js
