@@ -40,14 +40,15 @@ function formatTimestamp(ts) {
 }
 
 /**
- * Generate an ASCII block-character progress bar for a 0–100 score.
- * 50 characters total: filled (█) then trailing (▀).
+ * Generate HTML for a visual progress bar for a 0–100 score.
+ * Filled portion is a solid bar; empty portion is a same-size border-only bar.
  */
-function asciiProgressBar(score) {
-  const TOTAL = 50;
-  const full = Math.floor(score / 2);
-  const rest = TOTAL - full;
-  return '\u2588'.repeat(full) + '\u2580'.repeat(rest);
+function progressBarHtml(score) {
+  const pct = Math.max(0, Math.min(100, score));
+  const rest = 100 - pct;
+  const filled = pct > 0 ? `<span class="bar-filled" style="width:${pct}%"></span>` : '';
+  const empty = rest > 0 ? `<span class="bar-empty" style="width:${rest}%"></span>` : '';
+  return filled + empty;
 }
 
 /**
@@ -132,8 +133,8 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const primsColorClass =
     totalPrims > 0 && foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
 
-  // ASCII bar
-  const asciiBar = asciiProgressBar(result.score);
+  // Progress bar
+  const barHtml = progressBarHtml(result.score);
 
   // Verdict display (terminal-style: uppercase kebab)
   const verdictDisplay = escapeHtml(toKebab(result.verdict).toUpperCase());
@@ -184,19 +185,19 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
   el.innerHTML = `
     <div class="log-summary">
-      <div class="summary-item si-filled">
+      <div class="summary-item">
         <div class="si-label">readiness-score</div>
         <div class="si-value ${sColorClass}">${escapeHtml(String(result.score))}<span class="si-denom">/100</span></div>
       </div>
-      <div class="summary-item si-filled">
+      <div class="summary-item">
         <div class="si-label">verdict</div>
         <div class="si-value ${vClass}">${verdictDisplay}</div>
       </div>
-      <div class="summary-item si-empty">
+      <div class="summary-item">
         <div class="si-label">primitives-found</div>
         <div class="si-value ${primsColorClass}">${foundPrims}/${totalPrims}</div>
       </div>
-      <div class="summary-item si-empty">
+      <div class="summary-item">
         <div class="si-label">scanned-at</div>
         <div class="si-value si-small">${scanTs}</div>
       </div>
@@ -206,7 +207,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     <div class="score-share-row">
       <div class="text-progress">
         <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
-        <span class="ascii-bar">${asciiBar}</span>
+        <div class="progress-track">${barHtml}</div>
       </div>
       ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
     </div>
