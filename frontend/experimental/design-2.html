@@ -3,160 +3,463 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Design 2 Verdant IsAINative Experiment</title>
+  <title>Design 2 Broadsheet — IsAINative Experiment</title>
   <meta name="color-scheme" content="light" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../src/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    /* Experimental Design 2: Verdant — cream-white with teal/emerald accents */
-    :root[data-theme='light'] {
-      --font-display: 'DM Sans', 'Segoe UI', sans-serif;
-      --font-body: 'DM Sans', 'Segoe UI', sans-serif;
-      --font-mono: 'DM Mono', 'Fira Code', monospace;
-      --palette-1: #065f46;
-      --palette-2: #059669;
-      --palette-3: #0d9488;
-      --palette-4: #065f46; /* same deep emerald as --palette-1; used for surface/bg-start role */
-      --palette-5: #0f766e;
-      --primary: #059669;
-      --primary-hover: #047857;
-      --native: #059669;
-      --assisted: #0d9488;
-      --traditional: #374151;
-      --bg: #f7faf8;
-      --surface: #ecf4ef;
-      --surface2: #d1e7da;
-      --text: #1a2e22;
-      --text-muted: #4d7a5c;
-      --border: rgba(5, 150, 105, 0.15);
-      --error: #b91c1c;
-      --info: #059669;
-      --radius: 14px;
-      --score-green: #059669;
-      --score-yellow: #0d9488;
-      --score-red: #374151;
-      --bg-gradient-start: #f7faf8;
-      --bg-glow-1: rgba(5, 150, 105, 0.07);
-      --bg-glow-2: rgba(13, 148, 136, 0.06);
-      --bg-orb-1: rgba(5, 150, 105, 0.09);
-      --bg-orb-2: rgba(6, 95, 70, 0.06);
-      --card-bg: #ffffff;
-      --card-shadow: rgba(26, 46, 34, 0.07);
-      --input-bg: #ffffff;
-      --focus-ring: rgba(5, 150, 105, 0.18);
-      --button-text: #ffffff;
-      --button-shadow: rgba(5, 150, 105, 0.28);
-      --button-shadow-hover: rgba(5, 150, 105, 0.4);
-      --progress-track: #d1e7da;
-      --banner-error-bg: rgba(185, 28, 28, 0.06);
-      --banner-info-bg: rgba(5, 150, 105, 0.07);
-      --report-bg: #ffffff;
-      --verdict-native-bg: rgba(5, 150, 105, 0.08);
-      --verdict-assisted-bg: rgba(13, 148, 136, 0.08);
-      --verdict-traditional-bg: rgba(55, 65, 81, 0.07);
-      --assistant-card-bg: #f7faf8;
-      --assistant-score-green-bg: rgba(5, 150, 105, 0.09);
-      --assistant-score-yellow-bg: rgba(13, 148, 136, 0.09);
-      --assistant-score-red-bg: rgba(55, 65, 81, 0.07);
-      --category-bg: rgba(5, 150, 105, 0.09);
-      --toast-bg: #1a2e22;
-      --toggle-bg: #ffffff;
-      --toggle-shadow: rgba(26, 46, 34, 0.08);
-      --toggle-icon: #059669;
-      --toggle-hover-bg: #f7faf8;
-      --toggle-border: rgba(5, 150, 105, 0.2);
-      --title-gradient: linear-gradient(135deg, #065f46 0%, #059669 50%, #0d9488 100%);
-    }
-    body { background: linear-gradient(180deg, #f0f7f3 0%, #f7faf8 100%); }
-    .card { border: 1px solid rgba(5,150,105,0.12); box-shadow: 0 2px 8px rgba(26,46,34,0.06); }
-    .report-card { border: 1px solid rgba(5,150,105,0.12); box-shadow: 0 2px 8px rgba(26,46,34,0.06); }
-    .input-group { border-color: #d1e7da; border-radius: 10px; }
-    .site-header h1 { font-weight: 700; letter-spacing: -0.03em; }
-    .input-row button, .share-btn { background: linear-gradient(135deg,#059669,#0d9488); border-radius: 10px; box-shadow: 0 2px 10px rgba(5,150,105,0.3); }
-    .input-row button:hover:not(:disabled), .share-btn:hover:not(:disabled) { background: linear-gradient(135deg,#047857,#0f766e); }
-    .assistant-card { border-left: 3px solid rgba(5,150,105,0.25); border-radius: 10px; }
-    details[open].assistant-card { border-left-color: #059669; }
-    .progress-bar { background: linear-gradient(90deg,#059669 0%,#0d9488 100%); }
+/*
+ * Design 2: "Broadsheet"
+ * Newspaper / editorial layout. Full-width masthead bar. Open two-column
+ * grid: oversized score on left, primitives list on right. No box frames —
+ * only horizontal rules structure the page.
+ * Fonts: Playfair Display headings, Source Serif 4 body, Source Sans 3 UI.
+ * Palette: warm white background, near-black ink, deep red accent.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:      #181210;
+  --ink-dim:  #6b5d56;
+  --rule:     #c8b9b0;
+  --red:      #c0392b;
+  --bg:       #faf8f5;
+  --column-gap: 2.5rem;
+  --serif-display: 'Playfair Display', Georgia, serif;
+  --serif-body:    'Source Serif 4', Georgia, serif;
+  --sans:          'Source Sans 3', 'Segoe UI', sans-serif;
+}
+
+html { background: var(--bg); }
+body {
+  font-family: var(--serif-body);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── Masthead ── */
+.masthead {
+  border-bottom: 3px double var(--rule);
+  padding: 0.6rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.masthead-brand {
+  font-family: var(--serif-display);
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.masthead-brand sup {
+  font-size: 0.4em;
+  vertical-align: super;
+  color: var(--red);
+  font-family: var(--sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.masthead-meta {
+  text-align: right;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+
+.masthead-meta strong { color: var(--ink); }
+
+/* ── Dateline bar ── */
+.dateline {
+  border-bottom: 1px solid var(--rule);
+  padding: 0.3rem 2rem;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  color: var(--ink-dim);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.dateline span { color: var(--ink); font-weight: 600; }
+
+/* ── Scan bar ── */
+.scan-bar {
+  background: var(--ink);
+  padding: 0.75rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.scan-bar label {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a89e98;
+  white-space: nowrap;
+}
+
+.scan-bar input {
+  flex: 1;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #ffffff;
+  font-family: 'Source Serif 4', monospace;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.scan-bar input::placeholder { color: rgba(255,255,255,0.35); }
+.scan-bar input:focus { border-color: rgba(255,255,255,0.5); }
+
+.scan-bar button {
+  padding: 0.4rem 1.25rem;
+  background: var(--red);
+  color: #ffffff;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.scan-bar button:hover { background: #a93226; }
+
+/* ── Page body ── */
+.page-body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ── Story header (like a newspaper story kicker) ── */
+.story-kicker {
+  border-top: 4px solid var(--red);
+  padding: 1.5rem 0 0;
+  margin-top: 0;
+}
+
+.kicker-label {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--red);
+}
+
+.kicker-headline {
+  font-family: var(--serif-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-top: 0.3rem;
+}
+
+.kicker-deck {
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: var(--ink-dim);
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+
+/* ── Two-column layout ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--column-gap);
+  border-top: 1px solid var(--rule);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+/* Left: score column */
+.score-col { border-right: 1px solid var(--rule); padding-right: var(--column-gap); }
+
+.score-numeral {
+  font-family: var(--serif-display);
+  font-size: 6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.score-denom {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+  margin-top: 0.25rem;
+}
+
+.score-verdict {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.15rem 0.6rem;
+  background: var(--ink);
+  color: #ffffff;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.score-bar-outer {
+  margin-top: 1rem;
+  width: 100%;
+  height: 4px;
+  background: var(--rule);
+}
+.score-bar-inner { height: 100%; background: var(--ink); width: 87%; }
+
+.sub-scores { margin-top: 1rem; }
+
+.sub-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+}
+
+.sub-score-row span:last-child { font-weight: 600; }
+
+.share-link {
+  display: block;
+  margin-top: 1rem;
+  padding: 0.45rem 0;
+  background: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  width: 100%;
+}
+.share-link:hover { background: var(--ink); color: #ffffff; }
+
+/* Right: primitives column */
+.prim-col {}
+
+.assistant-section { margin-bottom: 1.5rem; }
+
+.assistant-byline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.assistant-byline h3 {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.assistant-byline .ascore {
+  font-family: var(--serif-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.prim-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.85rem;
+}
+
+.prim-row:last-child { border-bottom: none; }
+
+.prim-row.absent { opacity: 0.45; }
+
+.prim-status {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: 16px;
+  flex-shrink: 0;
+  color: var(--red);
+}
+
+.prim-row.absent .prim-status { color: var(--ink-dim); }
+
+.prim-name { flex: 1; font-weight: 600; }
+.prim-file { font-size: 0.72rem; color: var(--ink-dim); font-family: 'Courier New', monospace; }
+.prim-cat {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  border: 1px solid var(--rule);
+  padding: 0.05rem 0.35rem;
+}
+
+/* Footer */
+.paper-footer {
+  border-top: 3px double var(--rule);
+  margin: 2rem 0 0;
+  padding: 0.75rem 2rem;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.paper-footer a { color: var(--ink-dim); text-decoration: underline; }
+
+.skip-link { position: absolute; top: -100px; left: 0; background: var(--red); color: #fff; padding: 0.5rem 1rem; z-index: 200; }
+.skip-link:focus { top: 0; }
   </style>
 </head>
-<body class="results-view">
-  <a href="#scan-form" class="skip-link">Skip to main content</a>
-  <div class="container">
-    <header class="site-header">
-      <button type="button" class="theme-toggle" aria-label="Switch to dark theme" title="Switch theme"></button>
-      <h1>IsAINative</h1>
-      <p class="subtitle">Scan a public GitHub repository to assess AI-native development readiness across instructions, prompts, agents, skills, agent hooks, and MCP servers</p>
-    </header>
-    <main id="main-content" class="main-content">
-      <div id="scan-form" class="card">
-        <form>
-          <div class="input-row">
-            <div class="input-group">
-              <span class="input-prefix">https://github.com/</span>
-              <input type="text" placeholder="owner/repository" value="webmaxru/is-ai-native" autocomplete="off" aria-label="GitHub repository" />
-            </div>
-            <button type="submit">Scan</button>
-          </div>
-          <p class="input-hint">Checks for AI-native development primitives: instruction files, saved prompts, custom agents, skills, agent hooks, and MCP server configurations.</p>
-        </form>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="masthead">
+    <div class="masthead-brand">
+      IsAINative<sup aria-label="beta">&#946;</sup>
+    </div>
+    <div class="masthead-meta">
+      <strong>Monday, 9 March 2026</strong><br />
+      AI-Native Development Intelligence
+    </div>
+  </header>
+
+  <div class="dateline">
+    <span>Repository Scan</span>
+    <span>webmaxru/is-ai-native</span>
+    <span style="margin-left:auto;">Score: <span>87/100</span></span>
+  </div>
+
+  <div class="scan-bar">
+    <label for="repo-input">Scan repository</label>
+    <input id="repo-input" type="text" value="webmaxru/is-ai-native" aria-label="GitHub repository" placeholder="owner/repository" />
+    <button type="button">Scan</button>
+  </div>
+
+  <div class="page-body" id="main-content">
+    <div class="story-kicker">
+      <div class="kicker-label">Analysis Report</div>
+      <h1 class="kicker-headline">webmaxru/is-ai-native</h1>
+      <p class="kicker-deck">AI-native readiness checker for GitHub repositories — scanned 2026-03-09 16:30 UTC</p>
+    </div>
+
+    <div class="two-col">
+      <div class="score-col">
+        <div class="score-numeral">87</div>
+        <div class="score-denom">out of 100 points</div>
+        <div class="score-bar-outer"><div class="score-bar-inner"></div></div>
+        <div class="score-verdict">AI-Native</div>
+
+        <div class="sub-scores">
+          <div class="sub-score-row"><span>GitHub Copilot</span><span>92</span></div>
+          <div class="sub-score-row"><span>Claude Code</span><span>64</span></div>
+          <div class="sub-score-row"><span>OpenAI Codex</span><span>58</span></div>
+        </div>
+
+        <button class="share-link">Share Report</button>
       </div>
-      <div id="report">
-        <div class="report-card">
-          <div class="report-header">
-            <div class="repo-name"><a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">webmaxru/is-ai-native</a></div>
-            <div class="repo-desc">AI-native readiness checker for GitHub repositories</div>
-            <div class="score-row">
-              <div class="score-badge verdict-native"><span class="score-number">87</span><span class="score-label">/100</span></div>
-              <div class="verdict verdict-native">AI-Native</div>
-            </div>
-            <div class="score-bar-container"><div class="score-bar score-green" style="width:87%"></div></div>
-            <div class="report-actions"><button class="share-btn">Share results</button></div>
-          </div>
-          <div class="report-section">
+
+      <div class="prim-col">
+        <div class="assistant-section">
+          <div class="assistant-byline">
             <h3>GitHub Copilot</h3>
-            <details class="assistant-card" open>
-              <summary class="assistant-header">
-                <span class="assistant-name">GitHub Copilot</span>
-                <span class="assistant-score score-green">92/100</span>
-              </summary>
-              <ul class="primitive-list">
-                <li class="primitive-item">
-                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">Instruction files</span><span class="primitive-category">Instructions</span></div>
-                  <span class="matched-files">.github/copilot-instructions.md</span>
-                </li>
-                <li class="primitive-item">
-                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">Saved prompts</span><span class="primitive-category">Prompts</span></div>
-                  <span class="matched-files">.github/prompts/review.prompt.md</span>
-                </li>
-                <li class="primitive-item not-detected">
-                  <div class="primitive-header"><span class="primitive-icon">&#10007;</span><span class="primitive-name">Agent hooks</span><span class="primitive-category">Hooks</span></div>
-                  <p class="primitive-desc">No agent hooks configuration found</p>
-                </li>
-              </ul>
-            </details>
-            <details class="assistant-card">
-              <summary class="assistant-header">
-                <span class="assistant-name">Claude Code</span>
-                <span class="assistant-score score-yellow">64/100</span>
-              </summary>
-              <ul class="primitive-list">
-                <li class="primitive-item">
-                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">CLAUDE.md instructions</span><span class="primitive-category">Instructions</span></div>
-                  <span class="matched-files">CLAUDE.md</span>
-                </li>
-              </ul>
-            </details>
+            <span class="ascore">92/100</span>
           </div>
-          <div class="report-footer"><span class="scanned-at">Scanned at 2026-03-09 16:30:00 UTC</span></div>
+          <div class="prim-row">
+            <span class="prim-status">&#10003;</span>
+            <span class="prim-name">Instruction files</span>
+            <span class="prim-cat">Instructions</span>
+            <span class="prim-file">.github/copilot-instructions.md</span>
+          </div>
+          <div class="prim-row">
+            <span class="prim-status">&#10003;</span>
+            <span class="prim-name">Saved prompts</span>
+            <span class="prim-cat">Prompts</span>
+            <span class="prim-file">.github/prompts/review.prompt.md</span>
+          </div>
+          <div class="prim-row">
+            <span class="prim-status">&#10003;</span>
+            <span class="prim-name">Custom agents</span>
+            <span class="prim-cat">Agents</span>
+            <span class="prim-file">.github/agents/*.yml</span>
+          </div>
+          <div class="prim-row absent">
+            <span class="prim-status">&#10007;</span>
+            <span class="prim-name">Agent hooks</span>
+            <span class="prim-cat">Hooks</span>
+            <span class="prim-file">not found</span>
+          </div>
+        </div>
+
+        <div class="assistant-section">
+          <div class="assistant-byline">
+            <h3>Claude Code</h3>
+            <span class="ascore">64/100</span>
+          </div>
+          <div class="prim-row">
+            <span class="prim-status">&#10003;</span>
+            <span class="prim-name">CLAUDE.md instructions</span>
+            <span class="prim-cat">Instructions</span>
+            <span class="prim-file">CLAUDE.md</span>
+          </div>
+          <div class="prim-row absent">
+            <span class="prim-status">&#10007;</span>
+            <span class="prim-name">Saved prompts</span>
+            <span class="prim-cat">Prompts</span>
+            <span class="prim-file">not found</span>
+          </div>
+          <div class="prim-row absent">
+            <span class="prim-status">&#10007;</span>
+            <span class="prim-name">Custom agents</span>
+            <span class="prim-cat">Agents</span>
+            <span class="prim-file">not found</span>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
-  <footer class="site-footer">
+
+  <footer class="paper-footer">
     <span>Made in &#127475;&#127476; Norway by <a href="https://www.linkedin.com/in/webmax" target="_blank" rel="noopener noreferrer">Maxim Salnikov</a></span>
-    <span class="footer-sep">&#183;</span>
     <a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">GitHub</a>
   </footer>
 </body>
