@@ -60,7 +60,7 @@ function primitiveRow(prim) {
   const found = prim.detected;
   const rowClass = found ? 'found' : 'absent';
   const icon = found ? '+' : '-';
-  const name = escapeHtml(toKebab(prim.name));
+  const name = escapeHtml(prim.name);
   const cat = escapeHtml((prim.category || '').toLowerCase());
 
   let fileHtml;
@@ -188,7 +188,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   el.innerHTML = `
     <div class="log-summary">
       <div class="summary-item">
-        <div class="si-label">readiness-score</div>
+        <div class="si-label">readiness score</div>
         <div class="si-value ${sColorClass}">${escapeHtml(String(result.score))}<span class="si-denom">/100</span></div>
       </div>
       <div class="summary-item">
@@ -196,14 +196,14 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <div class="si-value ${vClass}">${verdictDisplay}</div>
       </div>
       <div class="summary-item">
-        <div class="si-label">primitives-found</div>
+        <div class="si-label">primitives found</div>
         <div class="si-value ${primsColorClass}">${foundPrims}/${totalPrims}</div>
       </div>
       <div class="summary-item">
-        <div class="si-label">scanned-at</div>
+        <div class="si-label">scanned at</div>
         <div class="si-value si-small">${scanTs}</div>
       </div>
-      ${assistantChipsHtml ? `<div class="summary-assistant-scores">${assistantChipsHtml}</div>` : ''}
+      ${assistantChipsHtml ? `<div class="summary assistant scores">${assistantChipsHtml}</div>` : ''}
     </div>
 
     <div class="score-share-row">
