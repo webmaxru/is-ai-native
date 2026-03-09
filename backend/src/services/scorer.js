@@ -1,23 +1,33 @@
 /**
- * Calculates the overall readiness score using a category-based hybrid model.
+ * Calculates the overall readiness score across all supported assistant/primitive pairs.
  *
- * Overall score = (number of categories with at least one detected pattern across any assistant)
- *                 / (total defined categories) × 100
+ * Overall score = (detected assistant-specific primitive matches)
+ *                 / (total assistant-specific primitive opportunities) × 100
+ *
+ * This ensures that a primitive only counts for the assistants that actually support it,
+ * and missing coverage for one assistant is not masked by another assistant matching the
+ * same primitive category.
  *
  * @param {object[]} primitiveResults - Array of primitive scan results
- * @param {string} primitiveResults[].category - Primitive category
- * @param {boolean} primitiveResults[].detected - Whether the primitive was detected
+ * @param {object} primitiveResults[].assistant_results - Per-assistant detection results
  * @returns {number} Overall score 0–100 (rounded)
  */
 export function calculateOverallScore(primitiveResults) {
-  const categories = new Set(primitiveResults.map((p) => p.category));
-  if (categories.size === 0) return 0;
+  let totalOpportunities = 0;
+  let detectedOpportunities = 0;
 
-  const detectedCategories = new Set(
-    primitiveResults.filter((p) => p.detected).map((p) => p.category)
-  );
+  for (const primitive of primitiveResults) {
+    for (const assistantResult of Object.values(primitive.assistant_results || {})) {
+      totalOpportunities += 1;
+      if (assistantResult?.detected) {
+        detectedOpportunities += 1;
+      }
+    }
+  }
 
-  return Math.round((detectedCategories.size / categories.size) * 100);
+  if (totalOpportunities === 0) return 0;
+
+  return Math.round((detectedOpportunities / totalOpportunities) * 100);
 }
 
 /**

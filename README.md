@@ -2,7 +2,7 @@
 
 Scan any GitHub repository to assess how well it embraces AI-native development practices.
 
-The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex CLI**. It produces a per-assistant breakdown, an overall readiness score, and a verdict.
+The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex CLI**. It produces a per-assistant breakdown, an overall readiness score based on assistant-specific primitive coverage, and a verdict.
 
 | Verdict | Score |
 | --- | --- |
@@ -61,7 +61,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ```
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
-- **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score.
+- **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score from detected assistant-specific primitive matches.
 - **Storage** — Optional file-backed storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
 - **Reverse Proxy** — In Docker Compose mode, Nginx serves static files and proxies `/api/*` and `/health` to the backend. In single-container mode, Express serves the frontend directly.
 

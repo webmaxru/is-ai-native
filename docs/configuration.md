@@ -45,7 +45,7 @@ print a clear error message indicating which field is missing or invalid.
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | `string` | Human-readable primitive name. Must be non-empty. |
-| `category` | `string` | Grouping category (e.g., `instructions`, `prompts`, `agents`, `skills`, `mcp-config`). Categories are used for overall score calculation. |
+| `category` | `string` | Grouping category (e.g., `instructions`, `prompts`, `agents`, `skills`, `mcp-config`). Categories organize related primitives in reports, but the overall score is based on assistant-specific primitive coverage. |
 | `description` | `string` | Explanation of what this primitive does and why it matters. Shown in the report for both detected and missing primitives. |
 | `docLinks` | `string[]` | One or more URLs to official documentation. Must have at least one entry. |
 | `assistants` | `object` | Maps assistant IDs to their detection patterns. Must have at least one assistant. |
@@ -127,8 +127,8 @@ Patterns use [minimatch](https://github.com/isaacs/minimatch) syntax with `dot: 
 
 ### Tips
 
-- Use an **existing category** to group related primitives (affects overall score calculation).
-- Use a **new category** to create a separate scoring dimension.
+- Use an **existing category** to group related primitives in the report UI.
+- Use a **new category** to create a separate reporting dimension.
 - Add patterns for **all relevant assistants** so each gets accurate scores.
 - Provide **helpful documentation links** — they're shown prominently for missing primitives.
 
