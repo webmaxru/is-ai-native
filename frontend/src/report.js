@@ -40,14 +40,17 @@ function formatTimestamp(ts) {
 }
 
 /**
- * Generate an ASCII block-character progress bar for a 0–100 score.
- * 50 characters total: filled (█) then trailing (▀).
+ * Generate HTML for a block-based progress bar for a 0–100 score.
+ * TOTAL_BLOCKS discrete blocks: filled ones are solid, the rest are border-only (empty).
  */
-function asciiProgressBar(score) {
-  const TOTAL = 50;
-  const full = Math.floor(score / 2);
-  const rest = TOTAL - full;
-  return '\u2588'.repeat(full) + '\u2580'.repeat(rest);
+function progressBarHtml(score) {
+  const TOTAL_BLOCKS = 50;
+  const full = Math.min(TOTAL_BLOCKS, Math.floor((Math.max(0, Math.min(100, score)) / 100) * TOTAL_BLOCKS));
+  const blocks = [];
+  for (let i = 0; i < TOTAL_BLOCKS; i++) {
+    blocks.push(`<span class="${i < full ? 'bar-filled' : 'bar-empty'}"></span>`);
+  }
+  return blocks.join('');
 }
 
 /**
@@ -132,8 +135,8 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const primsColorClass =
     totalPrims > 0 && foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
 
-  // ASCII bar
-  const asciiBar = asciiProgressBar(result.score);
+  // Progress bar
+  const barHtml = progressBarHtml(result.score);
 
   // Verdict display (terminal-style: uppercase kebab)
   const verdictDisplay = escapeHtml(toKebab(result.verdict).toUpperCase());
@@ -203,12 +206,13 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
       ${assistantChipsHtml ? `<div class="summary-assistant-scores">${assistantChipsHtml}</div>` : ''}
     </div>
 
-    <div class="text-progress">
-      <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
-      <span class="ascii-bar">${asciiBar}</span>
+    <div class="score-share-row">
+      <div class="text-progress">
+        <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
+        <div class="progress-track" aria-hidden="true">${barHtml}</div>
+      </div>
+      ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
     </div>
-
-    ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
 
     ${sectionsHtml}
 
