@@ -101,7 +101,7 @@ function assistantSection(assistant, scanTime) {
       <summary class="log-header">
         <span class="lh-timestamp">${ts}</span>
         <span class="lh-title">${slug}</span>
-        <span class="lh-score ${colorClass}">${assistant.score}/100</span>
+        <span class="lh-score ${colorClass}">${escapeHtml(String(assistant.score))}/100</span>
         <span class="lh-chevron" aria-hidden="true">▼</span>
       </summary>
       ${rowsHtml}
@@ -169,7 +169,8 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
           .map((a) => {
             const slug = escapeHtml(toKebab(a.name));
             const cc = scoreColorClass(a.score);
-            return `<a href="#section-${slug}" class="as-chip ${cc}">${slug}: ${a.score}%</a>`;
+            const score = escapeHtml(String(Math.round(Number(a.score))));
+            return `<a href="#section-${slug}" class="as-chip ${cc}">${slug}: ${score}%</a>`;
           })
           .join('')
       : '';

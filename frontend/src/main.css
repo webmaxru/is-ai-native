@@ -586,7 +586,7 @@ kbd {
 
 /* ── Snapshot banner home link ── */
 .snapshot-home-link {
-  display: inline-block;
+  display: block;
   margin-top: 0.4rem;
   color: var(--amber);
   text-decoration: underline;
