@@ -156,7 +156,7 @@ function setLoading(loading) {
   const input = document.getElementById('repo-url');
   btn.disabled = loading;
   input.disabled = loading;
-  btn.textContent = loading ? 'running...' : 'run-scan';
+  btn.textContent = loading ? 'running...' : 'scan';
 }
 
 function showProgress() {

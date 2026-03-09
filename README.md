@@ -100,6 +100,20 @@ curl -X POST http://localhost:3000/api/scan \
 
 > **Tip:** Set a `GH_TOKEN_FOR_SCAN` environment variable to avoid GitHub API rate limits (60 req/h unauthenticated → 5 000 req/h authenticated).
 
+### Full Stack Without Docker
+
+Run the backend and frontend together through the Express server:
+
+```bash
+cd backend
+npm install
+npm run dev:full
+```
+
+Open **http://localhost:3000** in your browser.
+
+This mode serves the SPA directly from the local `frontend/` directory and keeps the backend API on the same origin, so no extra frontend dev server or CORS setup is required.
+
 ### Full Stack with Docker Compose
 
 Run both the frontend (Nginx) and backend as separate containers:

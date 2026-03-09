@@ -429,13 +429,13 @@ kbd {
   min-width: 0;
 }
 
-.bar-filled {
-  background: var(--green);
-}
+.progress-track.score-green .bar-filled { background: var(--green); }
+.progress-track.score-yellow .bar-filled { background: var(--amber); }
+.progress-track.score-red .bar-filled { background: var(--red); }
 
 .bar-empty {
   background: transparent;
-  border: 1px solid var(--green);
+  border: 1px solid var(--rule);
 }
 
 /* ── Report: per-assistant log sections ── */

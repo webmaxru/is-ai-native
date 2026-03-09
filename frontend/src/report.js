@@ -43,14 +43,14 @@ function formatTimestamp(ts) {
  * Generate HTML for a block-based progress bar for a 0–100 score.
  * TOTAL_BLOCKS discrete blocks: filled ones are solid, the rest are border-only (empty).
  */
-function progressBarHtml(score) {
+function progressBarHtml(score, colorClass) {
   const TOTAL_BLOCKS = 50;
   const full = Math.min(TOTAL_BLOCKS, Math.floor((Math.max(0, Math.min(100, score)) / 100) * TOTAL_BLOCKS));
   const blocks = [];
   for (let i = 0; i < TOTAL_BLOCKS; i++) {
     blocks.push(`<span class="${i < full ? 'bar-filled' : 'bar-empty'}"></span>`);
   }
-  return blocks.join('');
+  return `<div class="progress-track ${colorClass}" aria-hidden="true">${blocks.join('')}</div>`;
 }
 
 /**
@@ -136,7 +136,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     totalPrims > 0 && foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
 
   // Progress bar
-  const barHtml = progressBarHtml(result.score);
+  const barHtml = progressBarHtml(result.score, sColorClass);
 
   // Verdict display (terminal-style: uppercase kebab)
   const verdictDisplay = escapeHtml(toKebab(result.verdict).toUpperCase());
@@ -209,7 +209,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     <div class="score-share-row">
       <div class="text-progress">
         <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
-        <div class="progress-track" aria-hidden="true">${barHtml}</div>
+        ${barHtml}
       </div>
       ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
     </div>

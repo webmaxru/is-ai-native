@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "dev:full": "node --watch scripts/dev-full.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --runInBand",
     "test:contract": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/contract --runInBand",

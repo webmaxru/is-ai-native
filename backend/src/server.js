@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
+import { join, dirname, isAbsolute, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import express from 'express';
 import cors from 'cors';
@@ -15,6 +15,21 @@ import { isAppInsightsEnabled } from './services/app-insights.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+function resolveFrontendPath(frontendPathOverride = process.env.FRONTEND_PATH) {
+  const candidates = frontendPathOverride
+    ? [frontendPathOverride]
+    : [join(__dirname, '../frontend'), join(__dirname, '../../frontend')];
+
+  for (const candidate of candidates) {
+    const absolutePath = isAbsolute(candidate) ? candidate : resolve(process.cwd(), candidate);
+    if (existsSync(absolutePath)) {
+      return absolutePath;
+    }
+  }
+
+  return null;
+}
 
 // Validate configuration at startup
 try {
@@ -61,12 +76,14 @@ app.get('/health', (_req, res) =>
 
 // Serve frontend static files when SERVE_FRONTEND=true (used in production container)
 if (process.env.SERVE_FRONTEND === 'true') {
-  const frontendPath = process.env.FRONTEND_PATH || join(__dirname, '../frontend');
-  if (existsSync(frontendPath)) {
+  const frontendPath = resolveFrontendPath();
+  if (frontendPath) {
     app.use(express.static(frontendPath));
     app.get(/^(?!\/api(\/|$))/, (_req, res) =>
       res.sendFile(join(frontendPath, 'index.html'))
     );
+  } else {
+    console.warn('Warning: SERVE_FRONTEND=true but no frontend directory was found');
   }
 }
 
@@ -93,5 +110,5 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
-export { app, server };
+export { app, server, resolveFrontendPath };
 export default app;
