@@ -410,6 +410,7 @@ kbd {
 .log-section {
   display: flex;
   flex-direction: column;
+  margin-bottom: 1rem;
 }
 
 .log-header {
@@ -666,6 +667,7 @@ kbd {
 .report-top-bar {
   display: flex;
   justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 
 /* ── Report: collapsible accordion sections ── */
