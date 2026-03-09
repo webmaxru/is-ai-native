@@ -766,6 +766,7 @@ a:focus-visible {
   .row-name { min-width: 10rem; }
 
   .row-file { display: none; }
+  .row-file-accordion { display: none; }
 
   .log-footer {
     padding: 0.6rem 1rem;
