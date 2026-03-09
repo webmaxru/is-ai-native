@@ -401,7 +401,7 @@ kbd {
   line-height: 1.4;
 }
 
-/* ── Report: ASCII progress bar ── */
+/* ── Report: score progress bar ── */
 .text-progress {
   font-size: 0.8rem;
   color: var(--muted);
