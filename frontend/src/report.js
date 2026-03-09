@@ -27,9 +27,16 @@ function toKebab(str) {
   return str.toLowerCase().replace(/\s+/g, '-');
 }
 
-/** Format an ISO timestamp string as compact UTC without milliseconds (e.g. "2026-03-09T16:30:01Z"). */
+/** Format an ISO timestamp string as human-friendly UTC (e.g. "9 Mar 2026 16:30 UTC"). */
 function formatTimestamp(ts) {
-  return new Date(ts).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const d = new Date(ts);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = d.getUTCDate();
+  const month = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year} ${hh}:${mm} UTC`;
 }
 
 /**
@@ -79,7 +86,7 @@ function primitiveRow(prim) {
 }
 
 /**
- * Render one assistant as a terminal log section.
+ * Render one assistant as a collapsible terminal log section.
  */
 function assistantSection(assistant, scanTime) {
   const colorClass = scoreColorClass(assistant.score);
@@ -90,14 +97,15 @@ function assistantSection(assistant, scanTime) {
     : '<p class="log-empty">no primitives data available</p>';
 
   return `
-    <div class="log-section">
-      <div class="log-header">
+    <details class="log-section" id="section-${slug}" open>
+      <summary class="log-header">
         <span class="lh-timestamp">${ts}</span>
         <span class="lh-title">${slug}</span>
-        <span class="lh-score ${colorClass}">${assistant.score}/100</span>
-      </div>
+        <span class="lh-score ${colorClass}">${escapeHtml(String(assistant.score))}/100</span>
+        <span class="lh-chevron" aria-hidden="true">▼</span>
+      </summary>
       ${rowsHtml}
-    </div>`;
+    </details>`;
 }
 
 export function renderReport(result, { sharingEnabled = false } = {}) {
@@ -121,7 +129,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   // Verdict display (terminal-style: uppercase kebab)
   const verdictDisplay = escapeHtml(toKebab(result.verdict).toUpperCase());
 
-  // ISO timestamp (compact, no milliseconds)
+  // Human-friendly timestamp
   const scanTs = escapeHtml(formatTimestamp(result.scanned_at));
 
   // Per-assistant sections (preferred) or flat primitive list
@@ -154,6 +162,19 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
     ? '<button type="button" class="share-btn" data-share-report>share-report</button>'
     : '';
 
+  // Per-assistant score chips for summary (link to each section)
+  const assistantChipsHtml =
+    result.per_assistant?.length
+      ? result.per_assistant
+          .map((a) => {
+            const slug = escapeHtml(toKebab(a.name));
+            const cc = scoreColorClass(a.score);
+            const score = escapeHtml(String(Math.round(Number(a.score))));
+            return `<a href="#section-${slug}" class="as-chip ${cc}">${slug}: ${score}%</a>`;
+          })
+          .join('')
+      : '';
+
   el.innerHTML = `
     <div class="log-summary">
       <div class="summary-item">
@@ -172,12 +193,15 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <div class="si-label">scanned-at</div>
         <div class="si-value si-small">${scanTs}</div>
       </div>
+      ${assistantChipsHtml ? `<div class="summary-assistant-scores">${assistantChipsHtml}</div>` : ''}
     </div>
 
     <div class="text-progress">
       <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
       <span class="ascii-bar">${asciiBar}</span>
     </div>
+
+    ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
 
     ${sectionsHtml}
 

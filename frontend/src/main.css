@@ -107,6 +107,7 @@ body {
   color: var(--topbar-accent);
   font-size: 0.85rem;
   letter-spacing: 0.04em;
+  text-decoration: none;
 }
 
 .topbar-sep {
@@ -583,6 +584,82 @@ kbd {
   opacity: 1;
 }
 
+/* ── Snapshot banner home link ── */
+.snapshot-home-link {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 0.82rem;
+}
+.snapshot-home-link:hover { opacity: 0.8; }
+
+/* ── Report: per-assistant score chips in summary ── */
+.summary-assistant-scores {
+  width: 100%;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.72rem;
+}
+
+.as-chip {
+  text-decoration: none;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid currentColor;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+.as-chip:hover { opacity: 1; }
+.as-chip.score-green { color: var(--green); }
+.as-chip.score-yellow { color: var(--amber); }
+.as-chip.score-red { color: var(--red); }
+.as-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+/* ── Report: top share bar ── */
+.report-top-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Report: collapsible accordion sections ── */
+details.log-section {
+  display: flex;
+  flex-direction: column;
+}
+
+details.log-section > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+details.log-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.log-section > summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.lh-chevron {
+  margin-left: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+details.log-section:not([open]) .lh-chevron {
+  transform: rotate(-90deg);
+}
+
 /* ── Site footer ── */
 .log-footer {
   border-top: 1px solid var(--rule);
@@ -653,5 +730,15 @@ a:focus-visible {
     padding: 0.6rem 1rem;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  /* Progress bar: taller for easier visual tracking on small screens */
+  .progress-bar-container {
+    height: 6px;
+  }
+
+  /* ASCII progress bar: hide the decorative 50-char bar on narrow screens */
+  .ascii-bar {
+    display: none;
   }
 }
