@@ -289,5 +289,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       showError('Invalid repo parameter. Expected format: owner/repository');
     }
+    return;
   }
+
+  // No auto-scan: focus the repo input for immediate typing
+  repoInput.focus();
 });

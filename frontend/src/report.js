@@ -203,12 +203,13 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
       ${assistantChipsHtml ? `<div class="summary-assistant-scores">${assistantChipsHtml}</div>` : ''}
     </div>
 
-    <div class="text-progress">
-      <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
-      <span class="ascii-bar">${asciiBar}</span>
+    <div class="score-share-row">
+      <div class="text-progress">
+        <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
+        <span class="ascii-bar">${asciiBar}</span>
+      </div>
+      ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
     </div>
-
-    ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
 
     ${sectionsHtml}
 
