@@ -166,7 +166,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   }
 
   const shareButtonHtml = sharingEnabled
-    ? '<button type="button" class="share-btn" data-share-report>share-report</button>'
+    ? '<button type="button" class="share-btn" data-share-report>share report</button>'
     : '';
 
   // Per-assistant score chips for summary (link to each section)

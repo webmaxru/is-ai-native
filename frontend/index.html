@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IsAINative | Scan GitHub Repositories for AI-Native Readiness</title>
+  <title>Is AI Native | Scan GitHub Repositories for AI-Native Readiness</title>
   <meta
     name="description"
     content="IsAINative scans public GitHub repositories for instructions, prompts, custom agents, skills, agent hooks, and MCP server configuration to measure AI-native development readiness."
@@ -50,7 +50,7 @@
   <header class="term-topbar">
     <a href="/" class="app-name">is-ai-native</a>
     <span class="topbar-sep" aria-hidden="true">/</span>
-    <span id="topbar-scope" class="topbar-scope">ready</span>
+    <span id="topbar-scope" class="topbar-scope">check your repo</span>
     <div class="tbar-right">
       <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch to dark theme" title="Switch theme"></button>
       <a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -58,7 +58,7 @@
   </header>
 
   <div id="scan-form" class="scan-line">
-    <span class="scan-prompt" aria-hidden="true">$</span>
+    <span class="scan-prompt" aria-hidden="true">✨</span>
     <form id="form" class="scan-form-inner">
       <span class="scan-cmd" aria-hidden="true">github.com/</span>
       <input
@@ -70,7 +70,7 @@
         spellcheck="false"
         aria-label="GitHub repository (owner/repository)"
       />
-      <button type="submit" id="scan-btn">run-scan</button>
+      <button type="submit" id="scan-btn">scan</button>
     </form>
   </div>
 
@@ -78,8 +78,8 @@
 
     <div id="landing-msg" class="landing-msg">
       <div class="hint-row">
-        <span class="hint-label">system</span>
-        <span class="hint-text">is-ai-native ready — checks GitHub repositories for AI-native development primitives</span>
+        <span class="hint-label">about</span>
+        <span class="hint-text">is-ai-native — checks GitHub repositories for AI-native development primitives</span>
       </div>
       <div class="hint-row hint-dim">
         <span class="hint-label">&gt;</span>
@@ -105,7 +105,7 @@
     <div id="error-banner" class="banner banner-error hidden" role="alert"></div>
 
     <div id="snapshot-banner" class="banner banner-info hidden">
-      &#x1F4F8; This is a shared snapshot — results may differ from a fresh scan.
+      &#x1F4F8; This is a shared snapshot (see the date below) — results may differ from a fresh scan.
       <a href="/" class="snapshot-home-link">Get a report for your own repo &rarr;</a>
     </div>
 
