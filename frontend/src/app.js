@@ -4,6 +4,7 @@ import { renderReport } from './report.js';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
 const THEME_OPTIONS = new Set(['system', 'light', 'dark']);
+const ALT_SCHEMES = new Set(['ocean', 'forest', 'nebula']);
 const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 // GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
@@ -74,6 +75,18 @@ function persistThemeMode(mode) {
     localStorage.setItem(THEME_STORAGE_KEY, mode);
   } catch {
     // Ignore storage failures and keep the theme in memory only.
+  }
+}
+
+function applyAltSchemeFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const scheme = params.get('scheme');
+  if (ALT_SCHEMES.has(scheme)) {
+    document.documentElement.dataset.altScheme = scheme;
+    // Alt schemes are dark-mode overlays; force dark theme for a consistent preview.
+    persistThemeMode('dark');
+  } else {
+    delete document.documentElement.dataset.altScheme;
   }
 }
 
@@ -238,6 +251,7 @@ async function handleScan(repoUrl, sharingEnabled) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  applyAltSchemeFromUrl();
   initThemeSwitcher();
   syncViewState();
   let sharingEnabled = false;

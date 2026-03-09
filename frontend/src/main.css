@@ -848,3 +848,175 @@ details[open] > .assistant-header::before {
     padding-top: 0.75rem;
   }
 }
+
+/* =========================================================
+   Alternative dark mode color schemes (preview via ?scheme=)
+   ========================================================= */
+
+/* --- Scheme: Ocean (deep blue / teal) --- */
+:root[data-theme='dark'][data-alt-scheme='ocean'] {
+  --palette-1: #1565a3;
+  --palette-2: #2196b8;
+  --palette-3: #5ac8e0;
+  --palette-4: #071b32;
+  --palette-5: #030c18;
+  --primary: var(--palette-3);
+  --primary-hover: var(--palette-2);
+  --native: var(--palette-3);
+  --assisted: var(--palette-2);
+  --traditional: var(--palette-1);
+  --bg: var(--palette-5);
+  --surface: var(--palette-4);
+  --surface2: var(--palette-1);
+  --text: #cde8f5;
+  --text-muted: #79b8d0;
+  --border: var(--palette-2);
+  --error: var(--palette-2);
+  --info: var(--palette-3);
+  --score-green: var(--palette-3);
+  --score-yellow: var(--palette-2);
+  --score-red: var(--palette-1);
+  --bg-gradient-start: #030c18;
+  --bg-glow-1: rgba(90, 200, 224, 0.2);
+  --bg-glow-2: rgba(33, 150, 184, 0.22);
+  --bg-orb-1: rgba(90, 200, 224, 0.24);
+  --bg-orb-2: rgba(21, 101, 163, 0.28);
+  --card-bg: linear-gradient(180deg, rgba(7, 27, 50, 0.94), rgba(3, 12, 24, 0.98));
+  --card-shadow: rgba(0, 5, 14, 0.42);
+  --input-bg: rgba(3, 12, 24, 0.78);
+  --focus-ring: rgba(90, 200, 224, 0.22);
+  --button-text: var(--text);
+  --button-shadow: rgba(7, 27, 50, 0.4);
+  --button-shadow-hover: rgba(21, 101, 163, 0.4);
+  --progress-track: rgba(7, 27, 50, 0.64);
+  --banner-error-bg: rgba(33, 150, 184, 0.16);
+  --banner-info-bg: rgba(90, 200, 224, 0.16);
+  --report-bg: linear-gradient(180deg, rgba(7, 27, 50, 0.98), rgba(3, 12, 24, 1));
+  --verdict-native-bg: rgba(90, 200, 224, 0.14);
+  --verdict-assisted-bg: rgba(33, 150, 184, 0.14);
+  --verdict-traditional-bg: rgba(21, 101, 163, 0.16);
+  --assistant-card-bg: rgba(3, 12, 24, 0.72);
+  --assistant-score-green-bg: rgba(90, 200, 224, 0.14);
+  --assistant-score-yellow-bg: rgba(33, 150, 184, 0.14);
+  --assistant-score-red-bg: rgba(21, 101, 163, 0.18);
+  --category-bg: rgba(7, 27, 50, 0.76);
+  --toast-bg: rgba(7, 27, 50, 0.94);
+  --toggle-bg: rgba(3, 12, 24, 0.82);
+  --toggle-shadow: rgba(0, 5, 14, 0.24);
+  --toggle-icon: var(--palette-3);
+  --toggle-hover-bg: rgba(7, 27, 50, 0.92);
+  --toggle-border: rgba(90, 200, 224, 0.24);
+  --title-gradient: linear-gradient(135deg, var(--palette-1) 0%, var(--palette-2) 45%, var(--palette-3) 100%);
+}
+
+/* --- Scheme: Forest (deep green / gold) --- */
+:root[data-theme='dark'][data-alt-scheme='forest'] {
+  --palette-1: #1a7843;
+  --palette-2: #30a863;
+  --palette-3: #c9a000;
+  --palette-4: #072518;
+  --palette-5: #031009;
+  --primary: var(--palette-3);
+  --primary-hover: var(--palette-2);
+  --native: var(--palette-3);
+  --assisted: var(--palette-2);
+  --traditional: var(--palette-1);
+  --bg: var(--palette-5);
+  --surface: var(--palette-4);
+  --surface2: var(--palette-1);
+  --text: #d5f0e2;
+  --text-muted: #78c49a;
+  --border: var(--palette-2);
+  --error: var(--palette-2);
+  --info: var(--palette-3);
+  --score-green: var(--palette-3);
+  --score-yellow: var(--palette-2);
+  --score-red: var(--palette-1);
+  --bg-gradient-start: #031009;
+  --bg-glow-1: rgba(201, 160, 0, 0.2);
+  --bg-glow-2: rgba(48, 168, 99, 0.22);
+  --bg-orb-1: rgba(201, 160, 0, 0.24);
+  --bg-orb-2: rgba(26, 120, 67, 0.28);
+  --card-bg: linear-gradient(180deg, rgba(7, 37, 24, 0.94), rgba(3, 16, 9, 0.98));
+  --card-shadow: rgba(0, 7, 3, 0.42);
+  --input-bg: rgba(3, 16, 9, 0.78);
+  --focus-ring: rgba(201, 160, 0, 0.22);
+  --button-text: var(--text);
+  --button-shadow: rgba(7, 37, 24, 0.4);
+  --button-shadow-hover: rgba(26, 120, 67, 0.4);
+  --progress-track: rgba(7, 37, 24, 0.64);
+  --banner-error-bg: rgba(48, 168, 99, 0.16);
+  --banner-info-bg: rgba(201, 160, 0, 0.16);
+  --report-bg: linear-gradient(180deg, rgba(7, 37, 24, 0.98), rgba(3, 16, 9, 1));
+  --verdict-native-bg: rgba(201, 160, 0, 0.14);
+  --verdict-assisted-bg: rgba(48, 168, 99, 0.14);
+  --verdict-traditional-bg: rgba(26, 120, 67, 0.16);
+  --assistant-card-bg: rgba(3, 16, 9, 0.72);
+  --assistant-score-green-bg: rgba(201, 160, 0, 0.14);
+  --assistant-score-yellow-bg: rgba(48, 168, 99, 0.14);
+  --assistant-score-red-bg: rgba(26, 120, 67, 0.18);
+  --category-bg: rgba(7, 37, 24, 0.76);
+  --toast-bg: rgba(7, 37, 24, 0.94);
+  --toggle-bg: rgba(3, 16, 9, 0.82);
+  --toggle-shadow: rgba(0, 7, 3, 0.24);
+  --toggle-icon: var(--palette-3);
+  --toggle-hover-bg: rgba(7, 37, 24, 0.92);
+  --toggle-border: rgba(201, 160, 0, 0.24);
+  --title-gradient: linear-gradient(135deg, var(--palette-1) 0%, var(--palette-2) 45%, var(--palette-3) 100%);
+}
+
+/* --- Scheme: Nebula (deep purple / cyan) --- */
+:root[data-theme='dark'][data-alt-scheme='nebula'] {
+  --palette-1: #7c38ed;
+  --palette-2: #a855f7;
+  --palette-3: #22d3ee;
+  --palette-4: #100a1e;
+  --palette-5: #07040e;
+  --primary: var(--palette-3);
+  --primary-hover: var(--palette-2);
+  --native: var(--palette-3);
+  --assisted: var(--palette-2);
+  --traditional: var(--palette-1);
+  --bg: var(--palette-5);
+  --surface: var(--palette-4);
+  --surface2: var(--palette-1);
+  --text: #ede8ff;
+  --text-muted: #b89cf4;
+  --border: var(--palette-2);
+  --error: var(--palette-2);
+  --info: var(--palette-3);
+  --score-green: var(--palette-3);
+  --score-yellow: var(--palette-2);
+  --score-red: var(--palette-1);
+  --bg-gradient-start: #07040e;
+  --bg-glow-1: rgba(34, 211, 238, 0.2);
+  --bg-glow-2: rgba(168, 85, 247, 0.22);
+  --bg-orb-1: rgba(34, 211, 238, 0.22);
+  --bg-orb-2: rgba(124, 56, 237, 0.28);
+  --card-bg: linear-gradient(180deg, rgba(16, 10, 30, 0.94), rgba(7, 4, 14, 0.98));
+  --card-shadow: rgba(2, 0, 8, 0.44);
+  --input-bg: rgba(7, 4, 14, 0.78);
+  --focus-ring: rgba(34, 211, 238, 0.22);
+  --button-text: var(--text);
+  --button-shadow: rgba(16, 10, 30, 0.42);
+  --button-shadow-hover: rgba(124, 56, 237, 0.42);
+  --progress-track: rgba(16, 10, 30, 0.64);
+  --banner-error-bg: rgba(168, 85, 247, 0.16);
+  --banner-info-bg: rgba(34, 211, 238, 0.16);
+  --report-bg: linear-gradient(180deg, rgba(16, 10, 30, 0.98), rgba(7, 4, 14, 1));
+  --verdict-native-bg: rgba(34, 211, 238, 0.12);
+  --verdict-assisted-bg: rgba(168, 85, 247, 0.14);
+  --verdict-traditional-bg: rgba(124, 56, 237, 0.16);
+  --assistant-card-bg: rgba(7, 4, 14, 0.72);
+  --assistant-score-green-bg: rgba(34, 211, 238, 0.12);
+  --assistant-score-yellow-bg: rgba(168, 85, 247, 0.14);
+  --assistant-score-red-bg: rgba(124, 56, 237, 0.18);
+  --category-bg: rgba(16, 10, 30, 0.76);
+  --toast-bg: rgba(16, 10, 30, 0.94);
+  --toggle-bg: rgba(7, 4, 14, 0.82);
+  --toggle-shadow: rgba(2, 0, 8, 0.24);
+  --toggle-icon: var(--palette-3);
+  --toggle-hover-bg: rgba(16, 10, 30, 0.92);
+  --toggle-border: rgba(34, 211, 238, 0.24);
+  --title-gradient: linear-gradient(135deg, var(--palette-1) 0%, var(--palette-2) 45%, var(--palette-3) 100%);
+}
