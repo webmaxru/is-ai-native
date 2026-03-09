@@ -45,7 +45,7 @@ function formatTimestamp(ts) {
  */
 function progressBarHtml(score) {
   const TOTAL_BLOCKS = 50;
-  const full = Math.round((Math.max(0, Math.min(100, score)) / 100) * TOTAL_BLOCKS);
+  const full = Math.min(TOTAL_BLOCKS, Math.floor((Math.max(0, Math.min(100, score)) / 100) * TOTAL_BLOCKS));
   const blocks = [];
   for (let i = 0; i < TOTAL_BLOCKS; i++) {
     blocks.push(`<span class="${i < full ? 'bar-filled' : 'bar-empty'}"></span>`);
