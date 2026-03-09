@@ -415,27 +415,27 @@ kbd {
   margin-bottom: 0.3rem;
 }
 
-/* ── Report: visual progress bar ── */
+/* ── Report: block-based progress bar ── */
 .progress-track {
   display: flex;
-  height: 1.1rem;
+  gap: 2px;
   width: 100%;
+}
+
+.progress-track .bar-filled,
+.progress-track .bar-empty {
+  flex: 1;
+  height: 1.1rem;
+  min-width: 0;
 }
 
 .bar-filled {
   background: var(--green);
-  min-width: 0;
 }
 
 .bar-empty {
   background: transparent;
   border: 1px solid var(--green);
-  min-width: 0;
-}
-
-/* When both segments are present, avoid doubled border between them */
-.bar-filled + .bar-empty {
-  border-left: none;
 }
 
 /* ── Report: per-assistant log sections ── */
@@ -712,7 +712,7 @@ kbd {
 @media (min-width: 621px) {
   .score-share-row {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
   }
 

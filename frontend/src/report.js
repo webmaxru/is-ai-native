@@ -40,15 +40,17 @@ function formatTimestamp(ts) {
 }
 
 /**
- * Generate HTML for a visual progress bar for a 0–100 score.
- * Filled portion is a solid bar; empty portion is a same-size border-only bar.
+ * Generate HTML for a block-based progress bar for a 0–100 score.
+ * TOTAL_BLOCKS discrete blocks: filled ones are solid, the rest are border-only (empty).
  */
 function progressBarHtml(score) {
-  const pct = Math.max(0, Math.min(100, score));
-  const rest = 100 - pct;
-  const filled = pct > 0 ? `<span class="bar-filled" style="width:${pct}%"></span>` : '';
-  const empty = rest > 0 ? `<span class="bar-empty" style="width:${rest}%"></span>` : '';
-  return filled + empty;
+  const TOTAL_BLOCKS = 50;
+  const full = Math.round((Math.max(0, Math.min(100, score)) / 100) * TOTAL_BLOCKS);
+  const blocks = [];
+  for (let i = 0; i < TOTAL_BLOCKS; i++) {
+    blocks.push(`<span class="${i < full ? 'bar-filled' : 'bar-empty'}"></span>`);
+  }
+  return blocks.join('');
 }
 
 /**
