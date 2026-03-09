@@ -113,7 +113,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const totalPrims = result.primitives?.length ?? 0;
   const foundPrims = result.primitives?.filter((p) => p.detected).length ?? 0;
   const primsColorClass =
-    foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
+    totalPrims > 0 && foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
 
   // ASCII bar
   const asciiBar = asciiProgressBar(result.score);
