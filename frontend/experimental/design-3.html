@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-theme-mode="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design 3 Ember IsAINative Experiment</title>
+  <meta name="color-scheme" content="light" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../src/main.css" />
+  <style>
+    /* Experimental Design 3: Ember — warm ivory with amber/terracotta accents */
+    :root[data-theme='light'] {
+      --font-display: 'Lora', Georgia, serif;
+      --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+      --font-mono: 'Fira Code', 'Cascadia Code', monospace;
+      /* Palette values represent semantic roles (dark→mid→light→hover variants), not strict brightness order */
+      --palette-1: #92400e;
+      --palette-2: #d97706;
+      --palette-3: #f59e0b;
+      --palette-4: #b45309;
+      --palette-5: #c2410c;
+      --primary: #d97706;
+      --primary-hover: #b45309;
+      --native: #d97706;
+      --assisted: #c2410c;
+      --traditional: #44403c;
+      --bg: #fdf8f0;
+      --surface: #fef3e2;
+      --surface2: #fde68a;
+      --text: #1c1410;
+      --text-muted: #78584a;
+      --border: rgba(217, 119, 6, 0.18);
+      --error: #b91c1c;
+      --info: #d97706;
+      --radius: 18px;
+      --score-green: #d97706;
+      --score-yellow: #c2410c;
+      --score-red: #44403c;
+      --bg-gradient-start: #fdf8f0;
+      --bg-glow-1: rgba(217, 119, 6, 0.09);
+      --bg-glow-2: rgba(194, 65, 12, 0.07);
+      --bg-orb-1: rgba(217, 119, 6, 0.1);
+      --bg-orb-2: rgba(146, 64, 14, 0.07);
+      --card-bg: #fffdf7;
+      --card-shadow: rgba(28, 20, 16, 0.08);
+      --input-bg: #fffdf7;
+      --focus-ring: rgba(217, 119, 6, 0.2);
+      --button-text: #ffffff;
+      --button-shadow: rgba(217, 119, 6, 0.3);
+      --button-shadow-hover: rgba(180, 83, 9, 0.4);
+      --progress-track: #fde68a;
+      --banner-error-bg: rgba(185, 28, 28, 0.07);
+      --banner-info-bg: rgba(217, 119, 6, 0.08);
+      --report-bg: #fffdf7;
+      --verdict-native-bg: rgba(217, 119, 6, 0.1);
+      --verdict-assisted-bg: rgba(194, 65, 12, 0.1);
+      --verdict-traditional-bg: rgba(68, 64, 60, 0.07);
+      --assistant-card-bg: #fdf8f0;
+      --assistant-score-green-bg: rgba(217, 119, 6, 0.1);
+      --assistant-score-yellow-bg: rgba(194, 65, 12, 0.1);
+      --assistant-score-red-bg: rgba(68, 64, 60, 0.07);
+      --category-bg: rgba(217, 119, 6, 0.1);
+      --toast-bg: #1c1410;
+      --toggle-bg: #fffdf7;
+      --toggle-shadow: rgba(28, 20, 16, 0.09);
+      --toggle-icon: #d97706;
+      --toggle-hover-bg: #fef3e2;
+      --toggle-border: rgba(217, 119, 6, 0.22);
+      --title-gradient: linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%);
+    }
+    body { background: linear-gradient(180deg, #fdf3e4 0%, #fdf8f0 100%); }
+    .card { border: 1px solid rgba(217,119,6,0.14); box-shadow: 0 2px 10px rgba(28,20,16,0.07), 0 12px 32px rgba(28,20,16,0.05); }
+    .report-card { border: 1px solid rgba(217,119,6,0.14); box-shadow: 0 2px 10px rgba(28,20,16,0.07), 0 12px 32px rgba(28,20,16,0.05); }
+    .input-group { border-color: rgba(217,119,6,0.2); border-radius: 12px; }
+    .site-header h1 { font-style: italic; letter-spacing: -0.02em; }
+    .subtitle { font-family: 'Source Sans 3', 'Segoe UI', sans-serif; }
+    .input-row button, .share-btn { background: linear-gradient(135deg,#d97706,#b45309); border-radius: 12px; box-shadow: 0 2px 12px rgba(217,119,6,0.32); }
+    .input-row button:hover:not(:disabled), .share-btn:hover:not(:disabled) { background: linear-gradient(135deg,#b45309,#92400e); box-shadow: 0 4px 20px rgba(180,83,9,0.42); }
+    .assistant-card { border-radius: 12px; }
+    .assistant-card details { border-bottom: 1px solid rgba(217,119,6,0.1); }
+    .progress-bar { background: linear-gradient(90deg,#d97706 0%,#f59e0b 100%); }
+    .report-section h3 { font-family: 'Lora', Georgia, serif; text-transform: none; font-weight: 600; font-size: 0.95rem; letter-spacing: 0; }
+  </style>
+</head>
+<body class="results-view">
+  <a href="#scan-form" class="skip-link">Skip to main content</a>
+  <div class="container">
+    <header class="site-header">
+      <button type="button" class="theme-toggle" aria-label="Switch to dark theme" title="Switch theme"></button>
+      <h1>IsAINative</h1>
+      <p class="subtitle">Scan a public GitHub repository to assess AI-native development readiness across instructions, prompts, agents, skills, agent hooks, and MCP servers</p>
+    </header>
+    <main id="main-content" class="main-content">
+      <div id="scan-form" class="card">
+        <form>
+          <div class="input-row">
+            <div class="input-group">
+              <span class="input-prefix">https://github.com/</span>
+              <input type="text" placeholder="owner/repository" value="webmaxru/is-ai-native" autocomplete="off" aria-label="GitHub repository" />
+            </div>
+            <button type="submit">Scan</button>
+          </div>
+          <p class="input-hint">Checks for AI-native development primitives: instruction files, saved prompts, custom agents, skills, agent hooks, and MCP server configurations.</p>
+        </form>
+      </div>
+      <div id="report">
+        <div class="report-card">
+          <div class="report-header">
+            <div class="repo-name"><a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">webmaxru/is-ai-native</a></div>
+            <div class="repo-desc">AI-native readiness checker for GitHub repositories</div>
+            <div class="score-row">
+              <div class="score-badge verdict-native"><span class="score-number">87</span><span class="score-label">/100</span></div>
+              <div class="verdict verdict-native">AI-Native</div>
+            </div>
+            <div class="score-bar-container"><div class="score-bar score-green" style="width:87%"></div></div>
+            <div class="report-actions"><button class="share-btn">Share results</button></div>
+          </div>
+          <div class="report-section">
+            <h3>GitHub Copilot</h3>
+            <details class="assistant-card" open>
+              <summary class="assistant-header">
+                <span class="assistant-name">GitHub Copilot</span>
+                <span class="assistant-score score-green">92/100</span>
+              </summary>
+              <ul class="primitive-list">
+                <li class="primitive-item">
+                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">Instruction files</span><span class="primitive-category">Instructions</span></div>
+                  <span class="matched-files">.github/copilot-instructions.md</span>
+                </li>
+                <li class="primitive-item">
+                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">Saved prompts</span><span class="primitive-category">Prompts</span></div>
+                  <span class="matched-files">.github/prompts/review.prompt.md</span>
+                </li>
+                <li class="primitive-item not-detected">
+                  <div class="primitive-header"><span class="primitive-icon">&#10007;</span><span class="primitive-name">Agent hooks</span><span class="primitive-category">Hooks</span></div>
+                  <p class="primitive-desc">No agent hooks configuration found</p>
+                </li>
+              </ul>
+            </details>
+            <details class="assistant-card">
+              <summary class="assistant-header">
+                <span class="assistant-name">Claude Code</span>
+                <span class="assistant-score score-yellow">64/100</span>
+              </summary>
+              <ul class="primitive-list">
+                <li class="primitive-item">
+                  <div class="primitive-header"><span class="primitive-icon">&#10003;</span><span class="primitive-name">CLAUDE.md instructions</span><span class="primitive-category">Instructions</span></div>
+                  <span class="matched-files">CLAUDE.md</span>
+                </li>
+              </ul>
+            </details>
+          </div>
+          <div class="report-footer"><span class="scanned-at">Scanned at 2026-03-09 16:30:00 UTC</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <footer class="site-footer">
+    <span>Made in &#127475;&#127476; Norway by <a href="https://www.linkedin.com/in/webmax" target="_blank" rel="noopener noreferrer">Maxim Salnikov</a></span>
+    <span class="footer-sep">&#183;</span>
+    <a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </footer>
+</body>
+</html>
