@@ -1,0 +1,1 @@
+For design and frontend related tasks, always use Playwright MCP for making resulting screenshots and always attach these screenshots to the PR description.
