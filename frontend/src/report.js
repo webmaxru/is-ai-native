@@ -184,19 +184,19 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
   el.innerHTML = `
     <div class="log-summary">
-      <div class="summary-item">
+      <div class="summary-item si-filled">
         <div class="si-label">readiness-score</div>
         <div class="si-value ${sColorClass}">${escapeHtml(String(result.score))}<span class="si-denom">/100</span></div>
       </div>
-      <div class="summary-item">
+      <div class="summary-item si-filled">
         <div class="si-label">verdict</div>
         <div class="si-value ${vClass}">${verdictDisplay}</div>
       </div>
-      <div class="summary-item">
+      <div class="summary-item si-empty">
         <div class="si-label">primitives-found</div>
         <div class="si-value ${primsColorClass}">${foundPrims}/${totalPrims}</div>
       </div>
-      <div class="summary-item">
+      <div class="summary-item si-empty">
         <div class="si-label">scanned-at</div>
         <div class="si-value si-small">${scanTs}</div>
       </div>
