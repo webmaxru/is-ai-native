@@ -16,14 +16,28 @@ import { isAppInsightsEnabled } from './services/app-insights.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function resolveFrontendPath(frontendPathOverride = process.env.FRONTEND_PATH) {
-  const projectRoot = resolve(__dirname, '../..');
+function resolveFrontendPath(
+  frontendPathOverride = process.env.FRONTEND_PATH,
+  { cwd = process.cwd(), baseDir = __dirname } = {}
+) {
+  const sourceCheckoutRoot = resolve(baseDir, '../..');
+  const bundledAppRoot = resolve(baseDir, '..');
+  const defaultCandidates = [
+    join(sourceCheckoutRoot, 'frontend'),
+    join(bundledAppRoot, 'frontend'),
+  ];
   const candidates = frontendPathOverride
-    ? [resolve(process.cwd(), frontendPathOverride), resolve(projectRoot, frontendPathOverride)]
-    : [join(projectRoot, 'frontend')];
+    ? [
+        frontendPathOverride,
+        resolve(cwd, frontendPathOverride),
+        resolve(sourceCheckoutRoot, frontendPathOverride),
+        resolve(bundledAppRoot, frontendPathOverride),
+        ...defaultCandidates,
+      ]
+    : defaultCandidates;
 
   for (const candidate of candidates) {
-    const absolutePath = isAbsolute(candidate) ? candidate : resolve(process.cwd(), candidate);
+    const absolutePath = isAbsolute(candidate) ? candidate : resolve(cwd, candidate);
     if (existsSync(absolutePath)) {
       return absolutePath;
     }
@@ -81,6 +95,8 @@ if (frontendPath) {
   app.get(/^(?!\/api(\/|$))/, (_req, res) =>
     res.sendFile(join(frontendPath, 'index.html'))
   );
+} else if (process.env.NODE_ENV === 'production') {
+  console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
 }
 
 // Error handling
