@@ -1,9 +1,13 @@
 import { Router } from 'express';
 
-const router = Router();
+export function createConfigRouter(runtime) {
+  const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json({ sharingEnabled: process.env.ENABLE_SHARING === 'true' });
-});
+  router.get('/', (_req, res) => {
+    res.json({ sharingEnabled: runtime.sharingEnabled });
+  });
 
-export default router;
+  return router;
+}
+
+export default createConfigRouter;

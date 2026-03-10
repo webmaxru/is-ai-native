@@ -5,10 +5,6 @@ import { trackReportCreated, trackSharedReportViewed } from '../services/app-ins
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const VALID_VERDICTS = new Set(['AI-Native', 'AI-Assisted', 'Traditional']);
 
-function isSharingEnabled() {
-  return process.env.ENABLE_SHARING === 'true';
-}
-
 function validateResult(result) {
   if (typeof result.repo_url !== 'string') return 'result.repo_url must be a string';
   try {
@@ -28,50 +24,54 @@ function validateResult(result) {
   return null;
 }
 
-const router = Router();
+export function createReportRouter(runtime) {
+  const router = Router();
 
-router.post('/', (req, res) => {
-  if (!isSharingEnabled()) {
-    return res.status(503).json({ error: 'Sharing is not enabled' });
-  }
+  router.post('/', (req, res) => {
+    if (!runtime.sharingEnabled) {
+      return res.status(503).json({ error: 'Sharing is not enabled' });
+    }
 
-  const { result } = req.body;
+    const { result } = req.body;
 
-  if (!result || typeof result !== 'object') {
-    return res.status(400).json({ error: 'result object is required' });
-  }
+    if (!result || typeof result !== 'object') {
+      return res.status(400).json({ error: 'result object is required' });
+    }
 
-  const validationError = validateResult(result);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
+    const validationError = validateResult(result);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
 
-  const id = saveReport(result);
-  void trackReportCreated(result, { reportId: id });
-  const url = `/_/report/${id}`;
+    const id = saveReport(result);
+    void trackReportCreated(result, { reportId: id });
+    const url = `/_/report/${id}`;
 
-  return res.status(201).json({ id, url });
-});
+    return res.status(201).json({ id, url });
+  });
 
-router.get('/:id', (req, res) => {
-  if (!isSharingEnabled()) {
-    return res.status(503).json({ error: 'Sharing is not enabled' });
-  }
+  router.get('/:id', (req, res) => {
+    if (!runtime.sharingEnabled) {
+      return res.status(503).json({ error: 'Sharing is not enabled' });
+    }
 
-  const { id } = req.params;
+    const { id } = req.params;
 
-  if (!UUID_RE.test(id)) {
-    return res.status(400).json({ error: 'Invalid report ID format' });
-  }
+    if (!UUID_RE.test(id)) {
+      return res.status(400).json({ error: 'Invalid report ID format' });
+    }
 
-  const result = getReport(id);
-  if (!result) {
-    return res.status(404).json({ error: 'Report not found or expired' });
-  }
+    const result = getReport(id);
+    if (!result) {
+      return res.status(404).json({ error: 'Report not found or expired' });
+    }
 
-  void trackSharedReportViewed(result, { reportId: id });
+    void trackSharedReportViewed(result, { reportId: id });
 
-  return res.json(result);
-});
+    return res.json(result);
+  });
 
-export default router;
+  return router;
+}
+
+export default createReportRouter;

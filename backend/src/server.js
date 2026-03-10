@@ -5,9 +5,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import scanRouter from './routes/scan.js';
-import reportRouter from './routes/report.js';
-import configRouter from './routes/config.js';
+import { createScanRouter } from './routes/scan.js';
+import { createReportRouter } from './routes/report.js';
+import { createConfigRouter } from './routes/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
@@ -46,62 +46,89 @@ function resolveFrontendPath(
   return null;
 }
 
-// Validate configuration at startup
-try {
+export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir = __dirname } = {}) {
   const config = loadConfig();
+
+  return {
+    config,
+    env,
+    cwd,
+    baseDir,
+    frontendPath: resolveFrontendPath(env.FRONTEND_PATH, { cwd, baseDir }),
+    get githubToken() {
+      return env.GH_TOKEN_FOR_SCAN || '';
+    },
+    get githubTokenProvided() {
+      return !!env.GH_TOKEN_FOR_SCAN;
+    },
+    get sharingEnabled() {
+      return env.ENABLE_SHARING === 'true';
+    },
+    get appInsightsEnabled() {
+      return isAppInsightsEnabled();
+    },
+  };
+}
+
+export function createApp(runtime = createRuntime()) {
+  const app = express();
+
+  app.set('trust proxy', 1);
+  app.use(helmet());
+  app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter);
+
+  app.use('/api/config', express.json({ limit: '1kb' }), createConfigRouter(runtime));
+  app.use('/api/scan', express.json({ limit: '10kb' }), createScanRouter(runtime));
+  app.use('/api/report', express.json({ limit: '100kb' }), createReportRouter(runtime));
+
+  app.get('/health', (_req, res) =>
+    res.json({
+      status: 'ok',
+      githubTokenProvided: runtime.githubTokenProvided,
+      sharingEnabled: runtime.sharingEnabled,
+      appInsightsEnabled: runtime.appInsightsEnabled,
+    })
+  );
+
+  if (runtime.frontendPath) {
+    app.use(express.static(runtime.frontendPath));
+    app.get(/^(?!\/api(\/|$))/, (_req, res) =>
+      res.sendFile(join(runtime.frontendPath, 'index.html'))
+    );
+  } else if (runtime.env.NODE_ENV === 'production') {
+    console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
+  }
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
+
+  return app;
+}
+
+let runtime;
+try {
+  runtime = createRuntime();
   console.log(
-    `Config loaded: ${config.primitives.length} primitives, ${config.assistants.length} assistants`
+    `Config loaded: ${runtime.config.primitives.length} primitives, ${runtime.config.assistants.length} assistants`
   );
 } catch (err) {
   console.error(`Configuration error: ${err.message}`);
   process.exit(1);
 }
 
-if (!process.env.GH_TOKEN_FOR_SCAN) {
+if (!runtime.githubTokenProvided) {
   console.warn('Warning: GH_TOKEN_FOR_SCAN not set — using unauthenticated GitHub API (60 req/hour)');
 }
 
-const app = express();
+const app = createApp(runtime);
 const PORT = process.env.PORT || 3000;
-
-app.set('trust proxy', 1);
-app.use(helmet());
-app.use(cors({ origin: process.env.ALLOWED_ORIGIN || false }));
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
-app.use('/api/config', express.json({ limit: '1kb' }), configRouter);
-app.use('/api/scan', express.json({ limit: '10kb' }), scanRouter);
-// Report sharing payloads include full scan results, so allow a larger limit
-app.use('/api/report', express.json({ limit: '100kb' }), reportRouter);
-
-app.get('/health', (_req, res) =>
-  res.json({
-    status: 'ok',
-    githubTokenProvided: !!process.env.GH_TOKEN_FOR_SCAN,
-    sharingEnabled: process.env.ENABLE_SHARING === 'true',
-    appInsightsEnabled: isAppInsightsEnabled(),
-  })
-);
-
-const frontendPath = resolveFrontendPath();
-if (frontendPath) {
-  app.use(express.static(frontendPath));
-  app.get(/^(?!\/api(\/|$))/, (_req, res) =>
-    res.sendFile(join(frontendPath, 'index.html'))
-  );
-} else if (process.env.NODE_ENV === 'production') {
-  console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
-}
-
-// Error handling
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 let server;
 if (process.env.NODE_ENV !== 'test') {
@@ -116,11 +143,11 @@ if (process.env.NODE_ENV !== 'test') {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  if (process.env.ENABLE_SHARING === 'true') {
+  if (runtime.sharingEnabled) {
     const cleanupInterval = setInterval(cleanupExpired, 60 * 60 * 1000);
     cleanupInterval.unref();
   }
 }
 
-export { app, server, resolveFrontendPath };
+export { app, runtime, server, resolveFrontendPath };
 export default app;
