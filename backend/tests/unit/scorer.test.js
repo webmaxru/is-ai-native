@@ -61,7 +61,7 @@ describe('scorer', () => {
     const assistantDefs = [
       { id: 'github-copilot', name: 'GitHub Copilot' },
       { id: 'claude-code', name: 'Claude Code' },
-      { id: 'openai-codex', name: 'OpenAI Codex CLI' },
+      { id: 'openai-codex', name: 'OpenAI Codex' },
     ];
 
     expect(calculatePerAssistantScores(primitiveResults, assistantDefs)).toEqual([

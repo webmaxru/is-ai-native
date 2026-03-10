@@ -22,6 +22,12 @@ function scoreColorClass(score) {
   return 'score-red';
 }
 
+const ASSISTANT_DOC_HINTS = {
+  'github-copilot': ['docs.github.com', 'code.visualstudio.com/docs/copilot', 'github.com/features/copilot'],
+  'claude-code': ['code.claude.com', 'docs.anthropic.com', 'anthropic.com'],
+  'openai-codex': ['developers.openai.com', 'openai.com', 'github.com/openai/codex'],
+};
+
 /** Convert a display string to terminal-style kebab-case (e.g. "Saved Prompts" → "saved-prompts"). */
 function toKebab(str) {
   return str.toLowerCase().replace(/\s+/g, '-');
@@ -37,6 +43,63 @@ function formatTimestamp(ts) {
   const hh = String(d.getUTCHours()).padStart(2, '0');
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
   return `${day} ${month} ${year} ${hh}:${mm} UTC`;
+}
+
+function getAssistantKey(assistantName) {
+  return toKebab(String(assistantName || ''));
+}
+
+function sanitizeHttpUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function selectPrimitiveDocLink(docLinks, assistantName) {
+  const safeLinks = (docLinks || []).map(sanitizeHttpUrl).filter(Boolean);
+  if (safeLinks.length === 0) {
+    return null;
+  }
+
+  const assistantKey = getAssistantKey(assistantName);
+  const hints = ASSISTANT_DOC_HINTS[assistantKey] || [];
+  const preferredLink = safeLinks.find((link) => hints.some((hint) => link.includes(hint)));
+
+  return preferredLink || safeLinks[0];
+}
+
+function primitivePopoverHtml(prim, assistantName) {
+  const docLink = selectPrimitiveDocLink(prim.doc_links, assistantName);
+  const assistantLabel = assistantName ? `${escapeHtml(assistantName)} documentation` : 'documentation';
+  const description = prim.description
+    ? `<p class="primitive-popover-text">${escapeHtml(prim.description)}</p>`
+    : '<p class="primitive-popover-text">Official documentation for this primitive.</p>';
+  const linkHtml = docLink
+    ? `<a class="primitive-popover-link" href="${escapeHtml(docLink)}" target="_blank" rel="noopener noreferrer">${assistantLabel} &rarr;</a>`
+    : '<span class="primitive-popover-link primitive-popover-link-disabled">documentation unavailable</span>';
+
+  return `<span class="primitive-popover" role="tooltip">${description}${linkHtml}</span>`;
+}
+
+function enrichPrimitive(prim, primitiveMetaByName) {
+  const meta = primitiveMetaByName.get(prim.name);
+  if (!meta) {
+    return prim;
+  }
+
+  return {
+    ...meta,
+    ...prim,
+    description: prim.description || meta.description,
+    doc_links: prim.doc_links || meta.doc_links,
+  };
 }
 
 /**
@@ -56,7 +119,7 @@ function progressBarHtml(score, colorClass) {
 /**
  * Render one primitive as a terminal log row.
  */
-function primitiveRow(prim) {
+function primitiveRow(prim, assistantName = '') {
   const found = prim.detected;
   const rowClass = found ? 'found' : 'absent';
   const icon = found ? '+' : '-';
@@ -77,36 +140,29 @@ function primitiveRow(prim) {
     fileHtml = '<span class="row-file">not found</span>';
   }
 
-  const descHtml = prim.description
-    ? `<div class="log-row absent" style="border:none;opacity:1;padding-top:0;">
-         <span class="row-icon" style="visibility:hidden">-</span>
-         <span class="row-desc">${escapeHtml(prim.description)}</span>
-       </div>`
-    : '';
-
-  const docLinksHtml = prim.doc_links?.length
-    ? `<div class="row-docs">${prim.doc_links
-        .map((link) => `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">docs &rarr;</a>`)
-        .join('')}</div>`
-    : '';
-
   return `
     <div class="log-row ${rowClass}">
       <span class="row-icon">${icon}</span>
       <span class="row-name">${name}</span>
-      <span class="row-cat">${cat}</span>
+      <span class="row-cat-wrap">
+        <button type="button" class="row-cat row-cat-trigger" aria-label="About ${name}">${cat}</button>
+        ${primitivePopoverHtml(prim, assistantName)}
+      </span>
       ${fileHtml}
-    </div>${descHtml}${docLinksHtml}`;
+    </div>`;
 }
 
 /**
  * Render one assistant as a collapsible terminal log section.
  */
-function assistantSection(assistant) {
+function assistantSection(assistant, primitiveMetaByName) {
   const colorClass = scoreColorClass(assistant.score);
   const slug = escapeHtml(toKebab(assistant.name));
   const rowsHtml = assistant.primitives?.length
-    ? assistant.primitives.map(primitiveRow).join('')
+    ? assistant.primitives
+        .map((primitive) => enrichPrimitive(primitive, primitiveMetaByName))
+        .map((primitive) => primitiveRow(primitive, assistant.name))
+        .join('')
     : '<p class="log-empty">no primitives data available</p>';
 
   return `
@@ -124,6 +180,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const el = document.getElementById('report');
   const vClass = verdictClass(result.verdict);
   const sColorClass = scoreColorClass(result.score);
+  const primitiveMetaByName = new Map((result.primitives || []).map((primitive) => [primitive.name, primitive]));
 
   // Update topbar breadcrumb with the repo name
   const topbarScope = document.getElementById('topbar-scope');
@@ -147,7 +204,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   // Per-assistant sections (preferred) or flat primitive list
   let sectionsHtml = '';
   if (result.per_assistant?.length) {
-    sectionsHtml = result.per_assistant.map((a) => assistantSection(a)).join('');
+    sectionsHtml = result.per_assistant.map((a) => assistantSection(a, primitiveMetaByName)).join('');
   } else if (totalPrims > 0) {
     sectionsHtml = `
       <div class="log-section">
@@ -155,7 +212,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
           <span class="lh-title">primitives</span>
           <span class="lh-score ${sColorClass}">${result.score}/100</span>
         </div>
-        ${result.primitives.map(primitiveRow).join('')}
+        ${result.primitives.map((primitive) => primitiveRow(primitive)).join('')}
       </div>`;
   } else {
     sectionsHtml = `
@@ -228,13 +285,9 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   // Set repo link href via DOM API to prevent javascript: scheme injection
   const repoLink = el.querySelector('#repo-link');
   if (repoLink) {
-    try {
-      const parsed = new URL(result.repo_url);
-      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-        repoLink.href = parsed.href;
-      }
-    } catch {
-      // Omit href if the URL is unparseable
+    const safeRepoUrl = sanitizeHttpUrl(result.repo_url);
+    if (safeRepoUrl) {
+      repoLink.href = safeRepoUrl;
     }
   }
 

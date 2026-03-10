@@ -492,7 +492,17 @@ kbd {
 
 .log-row.absent {
   border-left-color: var(--rule);
-  opacity: 0.55;
+}
+
+.log-row.absent .row-name,
+.log-row.absent .row-file,
+.log-row.absent .row-file-accordion,
+.log-row.absent .matched-file-item {
+  color: var(--muted);
+}
+
+.log-row.absent .row-file-accordion > summary::before {
+  color: var(--muted);
 }
 
 .row-icon {
@@ -510,6 +520,13 @@ kbd {
   flex-shrink: 0;
 }
 
+.row-cat-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .row-cat {
   font-size: 0.68rem;
   color: var(--muted);
@@ -517,6 +534,78 @@ kbd {
   padding: 0.05rem 0.35rem;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.row-cat-trigger {
+  background: transparent;
+  font-family: var(--font-mono);
+  cursor: help;
+}
+
+.row-cat-trigger:hover,
+.row-cat-wrap:focus-within .row-cat-trigger {
+  color: var(--ink);
+  border-color: var(--green);
+}
+
+.row-cat-trigger:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.primitive-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.45rem);
+  z-index: 20;
+  display: grid;
+  gap: 0.55rem;
+  width: min(28rem, calc(100vw - 5rem));
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--rule);
+  background: var(--summary-bg);
+  color: var(--ink);
+  box-shadow: 0 0.75rem 1.8rem rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.2rem);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+}
+
+:root[data-theme='dark'] .primitive-popover {
+  box-shadow: 0 0.9rem 2rem rgba(0, 0, 0, 0.35);
+}
+
+.row-cat-wrap:hover .primitive-popover,
+.row-cat-wrap:focus-within .primitive-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.primitive-popover-text {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.primitive-popover-link {
+  font-size: 0.72rem;
+  color: var(--green);
+  text-decoration: none;
+}
+
+.primitive-popover-link:hover {
+  text-decoration: underline;
+}
+
+.primitive-popover-link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.primitive-popover-link-disabled {
+  color: var(--muted);
 }
 
 .row-file {
@@ -723,6 +812,18 @@ kbd {
 
   .score-share-row .report-top-bar {
     flex-shrink: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .row-cat-wrap {
+    position: static;
+  }
+
+  .primitive-popover {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
   }
 }
 

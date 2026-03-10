@@ -2,7 +2,7 @@
 
 Scan any GitHub repository to assess how well it embraces AI-native development practices.
 
-The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex CLI**. It produces a per-assistant breakdown, an overall readiness score based on assistant-specific primitive coverage, and a verdict.
+The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex**. It produces a per-assistant breakdown, an overall readiness score based on assistant-specific primitive coverage, and a verdict.
 
 | Verdict | Score |
 | --- | --- |

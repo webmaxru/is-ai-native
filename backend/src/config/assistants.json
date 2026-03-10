@@ -11,15 +11,15 @@
       "id": "claude-code",
       "name": "Claude Code",
       "description": "Agentic coding tool by Anthropic for terminal-based AI-assisted development",
-      "website": "https://docs.anthropic.com/en/docs/claude-code",
-      "docLinks": ["https://docs.anthropic.com/en/docs/claude-code"]
+      "website": "https://code.claude.com/docs/en/overview",
+      "docLinks": ["https://code.claude.com/docs/en/overview"]
     },
     {
       "id": "openai-codex",
-      "name": "OpenAI Codex CLI",
+      "name": "OpenAI Codex",
       "description": "AI coding agent by OpenAI for terminal-based code generation and editing",
-      "website": "https://openai.com",
-      "docLinks": ["https://github.com/openai/codex"]
+      "website": "https://developers.openai.com/codex",
+      "docLinks": ["https://developers.openai.com/codex"]
     }
   ]
 }
