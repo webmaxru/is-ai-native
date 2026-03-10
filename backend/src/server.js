@@ -20,7 +20,7 @@ function resolveFrontendPath(frontendPathOverride = process.env.FRONTEND_PATH) {
   const projectRoot = resolve(__dirname, '../..');
   const candidates = frontendPathOverride
     ? [resolve(process.cwd(), frontendPathOverride), resolve(projectRoot, frontendPathOverride)]
-    : [join(__dirname, '../frontend')];
+    : [join(projectRoot, 'frontend')];
 
   for (const candidate of candidates) {
     const absolutePath = isAbsolute(candidate) ? candidate : resolve(process.cwd(), candidate);
