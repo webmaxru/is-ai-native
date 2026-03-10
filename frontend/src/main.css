@@ -478,46 +478,111 @@ kbd {
 /* ── Report: individual primitive rows ── */
 .log-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
-  padding: 0.28rem 0 0.28rem 1rem;
+  padding: 0.45rem 0.6rem 0.45rem 1rem;
   font-size: 0.82rem;
+}
+
+.primitive-entry {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.35rem;
   border-left: 2px solid transparent;
 }
 
-.log-row.found {
+.primitive-entry.found {
   border-left-color: var(--green);
   background: var(--green-bg);
 }
 
-.log-row.absent {
+.primitive-entry.absent {
   border-left-color: var(--rule);
 }
 
-.log-row.absent .row-name,
-.log-row.absent .row-file,
-.log-row.absent .row-file-accordion,
-.log-row.absent .matched-file-item {
+.primitive-entry.absent .row-name,
+.primitive-entry.absent .row-file,
+.primitive-entry.absent .row-file-accordion,
+.primitive-entry.absent .matched-file-item,
+.primitive-entry.absent .primitive-entry-meta {
   color: var(--muted);
 }
 
-.log-row.absent .row-file-accordion > summary::before {
+.primitive-entry.absent .row-file-accordion > summary::before {
   color: var(--muted);
+}
+
+.primitive-entry > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.primitive-entry > summary::-webkit-details-marker {
+  display: none;
+}
+
+.primitive-entry > summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
 }
 
 .row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
-  width: 12px;
+  width: 1.25rem;
+  min-height: 1.25rem;
+  line-height: 1;
   flex-shrink: 0;
 }
 
-.log-row.found .row-icon { color: var(--green); }
-.log-row.absent .row-icon { color: var(--muted); }
+.primitive-entry.found .row-icon { color: var(--green); }
+.primitive-entry.absent .row-icon { color: var(--muted); }
 
 .row-name {
   font-weight: 600;
-  min-width: 14rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.primitive-entry-meta-row {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.primitive-entry-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
   flex-shrink: 0;
+}
+
+.primitive-entry-chevron {
+  margin-left: 0.1rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+details.primitive-entry:not([open]) .primitive-entry-chevron {
+  transform: rotate(-90deg);
+}
+
+.primitive-entry-panel {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0 0.6rem 0.6rem calc(1rem + 1.25rem + 0.6rem);
+}
+
+.primitive-entry-files {
+  min-width: 0;
 }
 
 .row-cat-wrap {
@@ -611,10 +676,11 @@ kbd {
 .row-file {
   font-size: 0.75rem;
   color: var(--muted);
-  flex: 1;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .row-desc {
@@ -640,42 +706,17 @@ kbd {
 .row-docs a:hover { text-decoration: underline; }
 
 /* ── Report: matched-files accordion inside primitive rows ── */
-.row-file-accordion {
+.row-file-list {
   font-size: 0.75rem;
   color: var(--muted);
-  flex: 1;
-  overflow: hidden;
+  display: block;
   min-width: 0;
-}
-
-.row-file-accordion > summary {
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.row-file-accordion > summary::-webkit-details-marker {
-  display: none;
-}
-
-.row-file-accordion > summary::before {
-  content: '▼ ';
-  font-size: 0.6rem;
-  color: var(--muted);
-}
-
-.row-file-accordion:not([open]) > summary::before {
-  content: '▶ ';
 }
 
 .matched-file-item {
   padding: 0.1rem 0 0.1rem 1rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: 0.72rem;
   color: var(--muted);
 }
@@ -759,6 +800,7 @@ kbd {
 .snapshot-home-link:hover { opacity: 0.8; }
 
 /* ── Report: per-assistant score chips in summary ── */
+.summary.assistant.scores,
 .summary-assistant-scores {
   width: 100%;
   display: flex;
@@ -919,13 +961,49 @@ a:focus-visible {
   }
 
   .log-summary {
+    flex-direction: column;
     gap: 1.25rem;
   }
 
-  .row-name { min-width: 10rem; }
+  .summary-item {
+    width: 100%;
+  }
 
-  .row-file { display: none; }
-  .row-file-accordion { display: none; }
+  .summary.assistant.scores,
+  .summary-assistant-scores {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .as-chip {
+    display: block;
+    width: 100%;
+    white-space: normal;
+  }
+
+  .primitive-entry-summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .primitive-entry-meta-row {
+    width: 100%;
+    margin-left: calc(1.25rem + 0.6rem);
+    justify-content: flex-start;
+  }
+
+  .primitive-entry-meta {
+    white-space: normal;
+  }
+
+  .primitive-entry-panel {
+    padding-left: 1rem;
+  }
+
+  .row-file,
+  .row-file-list {
+    display: block;
+  }
 
   .log-footer {
     padding: 0.6rem 1rem;

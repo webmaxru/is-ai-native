@@ -102,6 +102,10 @@ function enrichPrimitive(prim, primitiveMetaByName) {
   };
 }
 
+function primitiveDisclosureOpenAttr() {
+  return window.matchMedia('(max-width: 620px)').matches ? '' : ' open';
+}
+
 /**
  * Generate HTML for a block-based progress bar for a 0–100 score.
  * TOTAL_BLOCKS discrete blocks: filled ones are solid, the rest are border-only (empty).
@@ -122,34 +126,43 @@ function progressBarHtml(score, colorClass) {
 function primitiveRow(prim, assistantName = '') {
   const found = prim.detected;
   const rowClass = found ? 'found' : 'absent';
-  const icon = found ? '+' : '-';
+  const icon = found ? '☑️' : '⬜';
   const name = escapeHtml(prim.name);
   const cat = escapeHtml((prim.category || '').toLowerCase());
+  const fileCount = prim.matched_files?.length ?? 0;
+  const fileSummary = fileCount ? `${fileCount} file${fileCount !== 1 ? 's' : ''} found` : 'not found';
+  const openAttr = primitiveDisclosureOpenAttr();
 
   let fileHtml;
   if (prim.matched_files?.length) {
     const fileItems = prim.matched_files
       .map((f) => `<div class="matched-file-item">${escapeHtml(f)}</div>`)
       .join('');
-    const count = prim.matched_files.length;
-    fileHtml = `<details class="row-file-accordion" open>
-        <summary>${count} file${count !== 1 ? 's' : ''} found</summary>
-        ${fileItems}
-      </details>`;
+    fileHtml = `<div class="row-file-list">${fileItems}</div>`;
   } else {
     fileHtml = '<span class="row-file">not found</span>';
   }
 
   return `
-    <div class="log-row ${rowClass}">
-      <span class="row-icon">${icon}</span>
-      <span class="row-name">${name}</span>
-      <span class="row-cat-wrap">
-        <button type="button" class="row-cat row-cat-trigger" aria-label="About ${name}">${cat}</button>
-        ${primitivePopoverHtml(prim, assistantName)}
-      </span>
-      ${fileHtml}
-    </div>`;
+    <details class="primitive-entry ${rowClass}"${openAttr}>
+      <summary class="log-row primitive-entry-summary">
+        <span class="row-icon">${icon}</span>
+        <span class="row-name">${name}</span>
+        <span class="primitive-entry-meta-row">
+          <span class="primitive-entry-chevron" aria-hidden="true">▼</span>
+          <span class="primitive-entry-meta">${escapeHtml(fileSummary)}</span>
+          <span class="row-cat-wrap">
+            <button type="button" class="row-cat row-cat-trigger" aria-label="About ${name}">${cat}</button>
+            ${primitivePopoverHtml(prim, assistantName)}
+          </span>
+        </span>
+      </summary>
+      <div class="primitive-entry-panel">
+        <div class="primitive-entry-files">
+          ${fileHtml}
+        </div>
+      </div>
+    </details>`;
 }
 
 /**
