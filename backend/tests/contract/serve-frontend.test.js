@@ -4,12 +4,16 @@ import { tmpdir } from 'node:os';
 
 // Must be set before importing server.js (module-level if-block reads this)
 const tmpDir = mkdtempSync(join(tmpdir(), 'is-ai-native-frontend-'));
-writeFileSync(join(tmpDir, 'index.html'), '<!DOCTYPE html><html><body>frontend</body></html>');
+writeFileSync(
+  join(tmpDir, 'index.html'),
+  '<!DOCTYPE html><html><head><title>__PAGE_TITLE__</title><meta name="robots" content="__PAGE_ROBOTS__"><link rel="canonical" href="__PAGE_CANONICAL__"></head><body>frontend</body></html>'
+);
 
 process.env.NODE_ENV = 'test';
 process.env.REPORTS_DIR = ':memory:';
 process.env.ENABLE_SHARING = 'false';
 process.env.FRONTEND_PATH = tmpDir;
+process.env.SITE_ORIGIN = 'https://example.com';
 
 let request;
 let app;
@@ -37,6 +41,8 @@ describe('frontend path configured', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
     expect(res.text).toContain('frontend');
+    expect(res.text).toContain('<title>Is AI Native | Audit GitHub Repositories for AI Coding Readiness</title>');
+    expect(res.text).toContain('content="noindex, nofollow, noarchive"');
   });
 
   it('GET /_/report/<uuid> (SPA route) serves the frontend index.html', async () => {
@@ -44,6 +50,26 @@ describe('frontend path configured', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
     expect(res.text).toContain('frontend');
+    expect(res.text).toContain('<title>Shared report | IsAINative</title>');
+    expect(res.text).toContain('content="noindex, nofollow, noarchive"');
+  });
+
+  it('GET /robots.txt serves crawl directives', async () => {
+    const res = await request(app).get('/robots.txt');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/plain/);
+    expect(res.text).toContain('Disallow: /');
+  });
+
+  it('GET /site.webmanifest serves web app metadata', async () => {
+    const res = await request(app).get('/site.webmanifest');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/application\/manifest\+json/);
+    expect(res.body).toMatchObject({
+      name: 'IsAINative',
+      short_name: 'IsAINative',
+      start_url: '/',
+    });
   });
 
   it('GET /api/unknown still returns JSON 404 (not index.html)', async () => {

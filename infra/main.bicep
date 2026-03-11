@@ -43,6 +43,9 @@ param secondaryCustomDomainName string = ''
 @description('Name of the existing managed certificate for the optional secondary custom domain.')
 param secondaryManagedCertName string = ''
 
+@description('Public site origin used for canonical URLs, sitemap entries, and social card URLs. Leave empty to omit a canonical origin.')
+param siteOrigin string = ''
+
 @description('Tags applied to every resource.')
 param tags object = {
   application: 'is-ai-native'
@@ -164,6 +167,10 @@ var baseEnv = [
   { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
 ]
 
+var siteOriginEnv = siteOrigin != '' ? [
+  { name: 'SITE_ORIGIN', value: siteOrigin }
+] : []
+
 var tokenEnv = githubToken != '' ? [
   { name: 'GH_TOKEN_FOR_SCAN', secretRef: 'gh-token-for-scan' }
 ] : []
@@ -172,7 +179,7 @@ var appInsightsEnv = enableAppInsights ? [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
 ] : []
 
-var appEnv = concat(baseEnv, tokenEnv, appInsightsEnv)
+var appEnv = concat(baseEnv, siteOriginEnv, tokenEnv, appInsightsEnv)
 
 // ── Secrets ───────────────────────────────────────────────────────
 var appSecrets = githubToken != '' ? [

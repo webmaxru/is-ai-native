@@ -177,6 +177,13 @@ npm run test:integration # integration tests only
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
 | `ALLOWED_ORIGIN` | `false` (CORS disabled) | Allowed CORS origin (e.g., `http://localhost:5173`) |
+| `SITE_ORIGIN` | unset | Public base URL used for canonical tags, sitemap entries, and social card URLs |
+| `SITE_NAME` | `IsAINative` | Product name used in structured data and web manifest |
+| `SITE_SHORT_NAME` | `SITE_NAME` | Short product label used in the web manifest |
+| `DEFAULT_PAGE_TITLE` | built-in default | Homepage title tag |
+| `DEFAULT_META_DESCRIPTION` | built-in default | Homepage meta description and social summary |
+| `TWITTER_HANDLE` | unset | Optional X/Twitter handle for social cards |
+| `ALLOW_SITE_INDEXING` | `true` in production, otherwise `false` | Controls whether the homepage is indexable and whether `robots.txt` allows crawling |
 
 Create a `.env` file in the project root for local overrides. The backend `npm` scripts load it directly, and Docker Compose uses it for variable substitution. The file is git-ignored:
 

@@ -3,45 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Is AI Native | Scan GitHub Repositories for AI-Native Readiness</title>
+  <title>__PAGE_TITLE__</title>
   <meta
     name="description"
-    content="IsAINative scans public GitHub repositories for instructions, prompts, custom agents, skills, agent hooks, and MCP server configuration to measure AI-native development readiness."
+    content="__PAGE_DESCRIPTION__"
   />
+  <meta name="robots" content="__PAGE_ROBOTS__" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="application-name" content="IsAINative" />
+  <meta name="apple-mobile-web-app-title" content="IsAINative" />
+  <link rel="canonical" href="__PAGE_CANONICAL__" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/site.webmanifest" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="IsAINative" />
+  <meta property="og:site_name" content="IsAINative" />
+  <meta property="og:title" content="__PAGE_TITLE__" />
   <meta
     property="og:description"
-    content="Scan GitHub repositories for AI-native development signals including instructions, prompts, agents, skills, agent hooks, and MCP server setup."
+    content="__PAGE_DESCRIPTION__"
   />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="IsAINative" />
+  <meta property="og:url" content="__PAGE_CANONICAL__" />
+  <meta property="og:image" content="__OG_IMAGE_URL__" />
+  <meta property="og:image:alt" content="Is AI Native social card" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="__PAGE_TITLE__" />
   <meta
     name="twitter:description"
-    content="Evaluate how AI-native a GitHub repository is by checking for instructions, prompts, agents, skills, agent hooks, and MCP server configuration."
+    content="__PAGE_DESCRIPTION__"
   />
+  <meta name="twitter:image" content="__OG_IMAGE_URL__" />
+  <meta name="twitter:site" content="__TWITTER_HANDLE__" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#1a1c1a" />
+  <script type="application/ld+json">__STRUCTURED_DATA__</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet" />
-  <script>
-    (() => {
-      const storageKey = 'is-ai-native-theme';
-      let mode = 'system';
-      try {
-        const saved = localStorage.getItem(storageKey);
-        if (saved === 'light' || saved === 'dark' || saved === 'system') mode = saved;
-      } catch { mode = 'system'; }
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const resolved = mode === 'system' ? (prefersDark ? 'dark' : 'light') : mode;
-      const root = document.documentElement;
-      root.dataset.themeMode = mode;
-      root.dataset.theme = resolved;
-      root.style.colorScheme = resolved;
-    })();
-  </script>
+  <script src="/src/theme-init.js"></script>
   <link rel="stylesheet" href="/src/main.css" />
 </head>
 <body class="landing-view">
@@ -79,15 +77,15 @@
     <div id="landing-msg" class="landing-msg">
       <div class="hint-row">
         <span class="hint-label">about</span>
-        <span class="hint-text">is-ai-native — checks GitHub repositories for AI-native development primitives</span>
+        <span class="hint-text">Audit any public GitHub repository for AI coding readiness across Copilot, Claude Code, and Codex.</span>
       </div>
       <div class="hint-row hint-dim">
         <span class="hint-label">&gt;</span>
-        <span class="hint-text">instruction files · saved prompts · custom agents · skills · agent hooks · MCP servers</span>
+        <span class="hint-text">Signals checked: instruction files · saved prompts · custom agents · skills · agent hooks · MCP servers</span>
       </div>
       <div class="hint-row hint-dim">
         <span class="hint-label">&gt;</span>
-        <span class="hint-text">coverage: GitHub Copilot · Claude Code · OpenAI Codex</span>
+        <span class="hint-text">Use it to benchmark repos, review adoption readiness, and spot missing AI workflow primitives.</span>
       </div>
       <div class="hint-row hint-muted">
         <span class="hint-label">&gt;</span>
@@ -105,7 +103,7 @@
     <div id="error-banner" class="banner banner-error hidden" role="alert"></div>
 
     <div id="snapshot-banner" class="banner banner-info hidden">
-      &#x1F4F8; This is a shared snapshot (see the date below) — results may differ from a fresh scan.
+      &#x1F4F8; This is a public shared snapshot (see the date below) — results may differ from a fresh scan.
       <a href="/" class="snapshot-home-link">Get a report for your own repo &rarr;</a>
     </div>
 

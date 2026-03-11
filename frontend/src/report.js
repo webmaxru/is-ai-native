@@ -106,6 +106,16 @@ function primitiveDisclosureOpenAttr() {
   return window.matchMedia('(max-width: 620px)').matches ? '' : ' open';
 }
 
+function shareButtonHtml() {
+  return `
+    <span class="share-disclosure-wrap">
+      <button type="button" class="share-btn" data-share-report aria-describedby="share-disclosure-popover">share report</button>
+      <span id="share-disclosure-popover" class="share-disclosure-popover" role="tooltip">
+        Shared report links are public and can be opened by anyone with the URL. Do not share private repository information here.
+      </span>
+    </span>`;
+}
+
 /**
  * Generate HTML for a block-based progress bar for a 0–100 score.
  * TOTAL_BLOCKS discrete blocks: filled ones are solid, the rest are border-only (empty).
@@ -238,9 +248,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
       </div>`;
   }
 
-  const shareButtonHtml = sharingEnabled
-    ? '<button type="button" class="share-btn" data-share-report>share report</button>'
-    : '';
+  const shareControlsHtml = sharingEnabled ? shareButtonHtml() : '';
 
   // Per-assistant score chips for summary (link to each section)
   const assistantChipsHtml =
@@ -281,7 +289,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
         ${barHtml}
       </div>
-      ${shareButtonHtml ? `<div class="report-top-bar">${shareButtonHtml}</div>` : ''}
+      ${shareControlsHtml ? `<div class="report-top-bar">${shareControlsHtml}</div>` : ''}
     </div>
 
     ${sectionsHtml}
@@ -291,7 +299,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <a id="repo-link" target="_blank" rel="noopener noreferrer">${escapeHtml(result.repo_name)}</a>
         ${result.description ? '&mdash; ' + escapeHtml(result.description) : ''}
       </span>
-      ${shareButtonHtml}
+      ${shareControlsHtml}
     </div>
   `;
 

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { join, dirname, isAbsolute, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -12,6 +12,16 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
 import { isAppInsightsEnabled } from './services/app-insights.js';
+import {
+  buildPageMetadata,
+  createSiteMetadata,
+  getFaviconSvg,
+  getRobotsTxt,
+  getSitemapXml,
+  getSocialCardSvg,
+  getWebManifest,
+  renderIndexHtml,
+} from './services/site-metadata.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,15 +56,30 @@ function resolveFrontendPath(
   return null;
 }
 
+function loadFrontendTemplate(frontendPath) {
+  if (!frontendPath) {
+    return null;
+  }
+
+  try {
+    return readFileSync(join(frontendPath, 'index.html'), 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
 export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir = __dirname } = {}) {
   const config = loadConfig();
+  const frontendPath = resolveFrontendPath(env.FRONTEND_PATH, { cwd, baseDir });
 
   return {
     config,
     env,
     cwd,
     baseDir,
-    frontendPath: resolveFrontendPath(env.FRONTEND_PATH, { cwd, baseDir }),
+    frontendPath,
+    frontendTemplate: loadFrontendTemplate(frontendPath),
+    siteMetadata: createSiteMetadata(env),
     get githubToken() {
       return env.GH_TOKEN_FOR_SCAN || '';
     },
@@ -97,11 +122,36 @@ export function createApp(runtime = createRuntime()) {
     })
   );
 
-  if (runtime.frontendPath) {
-    app.use(express.static(runtime.frontendPath));
-    app.get(/^(?!\/api(\/|$))/, (_req, res) =>
-      res.sendFile(join(runtime.frontendPath, 'index.html'))
-    );
+  app.get('/robots.txt', (_req, res) => {
+    res.type('text/plain').send(getRobotsTxt(runtime));
+  });
+
+  app.get('/sitemap.xml', (_req, res) => {
+    res.type('application/xml').send(getSitemapXml(runtime));
+  });
+
+  app.get('/site.webmanifest', (_req, res) => {
+    res.type('application/manifest+json').send(getWebManifest(runtime));
+  });
+
+  app.get('/favicon.svg', (_req, res) => {
+    res.type('image/svg+xml').send(getFaviconSvg(runtime));
+  });
+
+  app.get('/social-card.svg', (_req, res) => {
+    res.type('image/svg+xml').send(getSocialCardSvg(runtime));
+  });
+
+  app.get('/favicon.ico', (_req, res) => {
+    res.redirect(302, '/favicon.svg');
+  });
+
+  if (runtime.frontendPath && runtime.frontendTemplate) {
+    app.use(express.static(runtime.frontendPath, { index: false }));
+    app.get(/^(?!\/api(\/|$))/, (req, res) => {
+      const pageMetadata = buildPageMetadata(runtime, req.path);
+      res.type('html').send(renderIndexHtml(runtime.frontendTemplate, pageMetadata));
+    });
   } else if (runtime.env.NODE_ENV === 'production') {
     console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
   }

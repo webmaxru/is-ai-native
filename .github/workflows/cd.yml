@@ -141,6 +141,7 @@ jobs:
             containerImage=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.version }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
             enableSharing=true
+            siteOrigin=${{ secrets.SITE_ORIGIN }}
             customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
             managedCertName=${{ secrets.MANAGED_CERT_NAME }}
             secondaryCustomDomainName=${{ secrets.SECONDARY_CUSTOM_DOMAIN_NAME }}
