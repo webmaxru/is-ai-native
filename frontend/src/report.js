@@ -106,11 +106,19 @@ function primitiveDisclosureOpenAttr() {
   return window.matchMedia('(max-width: 620px)').matches ? '' : ' open';
 }
 
-function shareButtonHtml() {
+function setPageHeading(text) {
+  const heading = document.getElementById('page-heading');
+  if (heading) {
+    heading.textContent = text;
+  }
+}
+
+function shareButtonHtml(idSuffix) {
+  const disclosureId = `share-disclosure-popover-${idSuffix}`;
   return `
     <span class="share-disclosure-wrap">
-      <button type="button" class="share-btn" data-share-report aria-describedby="share-disclosure-popover">share report</button>
-      <span id="share-disclosure-popover" class="share-disclosure-popover" role="tooltip">
+      <button type="button" class="share-btn" data-share-report aria-describedby="${disclosureId}">share report</button>
+      <span id="${disclosureId}" class="share-disclosure-popover" role="tooltip">
         Shared report links are public and can be opened by anyone with the URL. Do not share private repository information here.
       </span>
     </span>`;
@@ -204,6 +212,11 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const vClass = verdictClass(result.verdict);
   const sColorClass = scoreColorClass(result.score);
   const primitiveMetaByName = new Map((result.primitives || []).map((primitive) => [primitive.name, primitive]));
+  const pageHeading = result.repo_name
+    ? `AI coding readiness report for ${result.repo_name}`
+    : 'AI coding readiness report';
+
+  setPageHeading(pageHeading);
 
   // Update topbar breadcrumb with the repo name
   const topbarScope = document.getElementById('topbar-scope');
@@ -248,7 +261,8 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
       </div>`;
   }
 
-  const shareControlsHtml = sharingEnabled ? shareButtonHtml() : '';
+  const topShareControlsHtml = sharingEnabled ? shareButtonHtml('top') : '';
+  const footerShareControlsHtml = sharingEnabled ? shareButtonHtml('footer') : '';
 
   // Per-assistant score chips for summary (link to each section)
   const assistantChipsHtml =
@@ -289,7 +303,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
         ${barHtml}
       </div>
-      ${shareControlsHtml ? `<div class="report-top-bar">${shareControlsHtml}</div>` : ''}
+      ${topShareControlsHtml ? `<div class="report-top-bar">${topShareControlsHtml}</div>` : ''}
     </div>
 
     ${sectionsHtml}
@@ -299,7 +313,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <a id="repo-link" target="_blank" rel="noopener noreferrer">${escapeHtml(result.repo_name)}</a>
         ${result.description ? '&mdash; ' + escapeHtml(result.description) : ''}
       </span>
-      ${shareControlsHtml}
+      ${footerShareControlsHtml}
     </div>
   `;
 
