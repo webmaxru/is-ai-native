@@ -1,5 +1,6 @@
 import { scanRepo, fetchSharedReport, fetchConfig } from './api.js';
 import { renderReport } from './report.js';
+import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
@@ -9,6 +10,7 @@ const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 // GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
 // GitHub repo: alphanumeric, hyphens, dots, underscores, 1-100 chars
 const REPO_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?\/[a-zA-Z0-9._-]{1,100}$/;
+const ANALYTICS_CONSENT_KEY = 'is-ai-native-analytics-consent';
 
 const PROGRESS_STAGES = [
   { label: 'Fetching file tree…', percent: 20 },
@@ -18,6 +20,76 @@ const PROGRESS_STAGES = [
 
 let toastTimer = null;
 let progressTimer = null;
+let telemetryConfig = null;
+let hasScanStarted = false;
+let resizeTimer = null;
+
+function getAnalyticsConsent() {
+  try {
+    const value = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+    return value === 'granted' || value === 'denied' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function setAnalyticsConsent(value) {
+  try {
+    if (value === null) {
+      localStorage.removeItem(ANALYTICS_CONSENT_KEY);
+    } else {
+      localStorage.setItem(ANALYTICS_CONSENT_KEY, value);
+    }
+  } catch {
+    // Ignore storage failures and keep in-memory behavior.
+  }
+}
+
+function renderAnalyticsConsentControl() {
+  const el = document.getElementById('analytics-consent');
+  if (!el) {
+    return;
+  }
+
+  if (!telemetryConfig?.appInsightsConnectionString) {
+    el.classList.remove('hidden');
+    el.textContent = 'analytics: unavailable';
+    return;
+  }
+
+  const consent = getAnalyticsConsent();
+  el.classList.remove('hidden');
+
+  if (consent === 'denied') {
+    el.innerHTML = 'analytics: off <button type="button" class="footer-consent-action" data-analytics-action="allow">enable</button>';
+  } else {
+    el.innerHTML = 'analytics: on <button type="button" class="footer-consent-action" data-analytics-action="deny">disable</button>';
+  }
+
+  const actionBtn = el.querySelector('[data-analytics-action]');
+  if (!actionBtn) {
+    return;
+  }
+
+  actionBtn.addEventListener('click', () => {
+    const action = actionBtn.getAttribute('data-analytics-action');
+
+    if (action === 'allow') {
+      setAnalyticsConsent('granted');
+      if (telemetryConfig) {
+        initTelemetry(telemetryConfig);
+        trackUiEvent('analytics_consent_updated', { consent: 'granted' });
+      }
+    } else {
+      setAnalyticsConsent('denied');
+      trackUiEvent('analytics_consent_updated', { consent: 'denied' });
+      disableTelemetry();
+      clearTelemetryIdentity();
+    }
+
+    renderAnalyticsConsentControl();
+  });
+}
 
 function getSavedThemeMode() {
   try {
@@ -124,8 +196,59 @@ function syncViewState() {
   const report = document.getElementById('report');
   const isShowingReport = report && !report.classList.contains('hidden');
 
-  body.classList.toggle('landing-view', !isShowingReport);
+  body.classList.toggle('landing-view', !isShowingReport && !hasScanStarted);
   body.classList.toggle('results-view', isShowingReport);
+}
+
+function applyCenteredLanding() {
+    if (hasScanStarted) return;
+    const topbar = document.querySelector('.term-topbar');
+    const scanForm = document.getElementById('scan-form');
+    const logBody = document.getElementById('log-body');
+    const footer = document.querySelector('.log-footer');
+    const landingMsg = document.getElementById('landing-msg');
+    if (!topbar || !scanForm || !logBody || !footer || !landingMsg) return;
+
+    // Reset inline transforms before measuring so we get natural positions
+    scanForm.style.transform = '';
+    logBody.style.transform = '';
+
+    const topbarH = topbar.offsetHeight;
+    const footerH = footer.offsetHeight;
+    const scanFormH = scanForm.offsetHeight;
+    const logBodyPT = parseFloat(getComputedStyle(logBody).paddingTop) || 24;
+    const landingMsgH = landingMsg.offsetHeight;
+    const availableH = window.innerHeight - topbarH - footerH;
+    const contentH = scanFormH + logBodyPT + landingMsgH;
+    const delta = Math.max(0, (availableH - contentH) / 2);
+
+    // Instantly reposition without transition
+    scanForm.style.transition = 'none';
+    logBody.style.transition = 'none';
+    scanForm.style.transform = `translateY(${delta}px)`;
+    logBody.style.transform = `translateY(${delta}px)`;
+}
+
+function animateScanStart() {
+    const scanForm = document.getElementById('scan-form');
+    const logBody = document.getElementById('log-body');
+    if (!scanForm || !logBody) return;
+
+    // Force a style flush so the browser knows the start position
+    scanForm.getBoundingClientRect();
+
+    const EASING = 'transform 0.55s cubic-bezier(0, 0, 0.2, 1)';
+    scanForm.style.transition = EASING;
+    logBody.style.transition = EASING;
+    scanForm.style.transform = 'translateY(0)';
+    logBody.style.transform = 'translateY(0)';
+
+    setTimeout(() => {
+      scanForm.style.transition = '';
+      scanForm.style.transform = '';
+      logBody.style.transition = '';
+      logBody.style.transform = '';
+    }, 620);
 }
 
 export function showToast(message) {
@@ -209,13 +332,26 @@ async function loadSharedReport(id, sharingEnabled) {
     const result = await fetchSharedReport(id);
     renderReport(result, { sharingEnabled: false });
     syncViewState();
+    trackUiEvent('shared_report_loaded_client', {
+      report_id: id,
+      repo_name: result.repo_name,
+    });
   } catch (err) {
     showError(`Could not load shared report: ${err.message}`);
+    trackUiEvent('shared_report_load_failed_client', {
+      report_id: id,
+      error_name: err.name,
+      reason: err.message,
+    });
   }
 }
 
 async function handleScan(repoUrl, sharingEnabled) {
   hideError();
+  if (!hasScanStarted) {
+    hasScanStarted = true;
+    animateScanStart();
+  }
   setLoading(true);
   showProgress();
   document.getElementById('report').classList.add('hidden');
@@ -226,14 +362,32 @@ async function handleScan(repoUrl, sharingEnabled) {
 
   const controller = new AbortController();
   try {
+    trackUiEvent('scan_requested_client', {
+      repo_reference: repoUrl,
+    });
     const result = await scanRepo(repoUrl, controller.signal);
     hideProgress();
     renderReport(result, { sharingEnabled });
     syncViewState();
+    trackUiEvent(
+      'scan_succeeded_client',
+      {
+        repo_name: result.repo_name,
+        verdict: result.verdict,
+      },
+      {
+        score: Number(result.score),
+      }
+    );
   } catch (err) {
     hideProgress();
     if (err.name !== 'AbortError') {
       showError(err.message);
+      trackUiEvent('scan_failed_client', {
+        repo_reference: repoUrl,
+        error_name: err.name,
+        reason: err.message,
+      });
     }
   } finally {
     setLoading(false);
@@ -243,13 +397,29 @@ async function handleScan(repoUrl, sharingEnabled) {
 document.addEventListener('DOMContentLoaded', async () => {
   initThemeSwitcher();
   syncViewState();
+  // Apply centering on landing page only (not for auto-scan URLs or shared reports)
+  const isAutoScanPage = !!(
+    getRepoFromPath(window.location.pathname) ||
+    new URLSearchParams(window.location.search).get('repo') ||
+    window.location.pathname.match(/^\/_\/report\/[^/]+$/)
+  );
+  if (!isAutoScanPage) applyCenteredLanding();
+
   let sharingEnabled = false;
   try {
     const config = await fetchConfig();
     sharingEnabled = config.sharingEnabled === true;
+    telemetryConfig = config;
   } catch {
     // If config fetch fails, treat sharing as disabled
+    telemetryConfig = null;
   }
+
+  if (telemetryConfig?.appInsightsConnectionString && getAnalyticsConsent() !== 'denied') {
+    initTelemetry(telemetryConfig);
+  }
+
+  renderAnalyticsConsentControl();
 
   // Check if this is a shared report URL: /_/report/<uuid>
   const match = window.location.pathname.match(/^\/_\/report\/([^/]+)$/);
@@ -293,5 +463,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // No auto-scan: focus the repo input for immediate typing
-  repoInput.focus();
+  // Apply centered layout after fonts are ready for accurate measurements
+  document.fonts.ready.then(() => applyCenteredLanding());
+  window.addEventListener('resize', () => {
+    if (hasScanStarted) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyCenteredLanding, 150);
+  });
+  repoInput.focus({ preventScroll: true });
 });

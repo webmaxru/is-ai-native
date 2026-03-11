@@ -4,7 +4,7 @@ export async function fetchConfig(signal) {
   const res = await fetch(`${API_BASE}/config`, { signal });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch config');
-  return data; // { sharingEnabled: bool }
+  return data; // { sharingEnabled: bool, appInsightsConnectionString: string | null }
 }
 
 export async function scanRepo(repoUrl, signal) {

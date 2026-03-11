@@ -43,7 +43,7 @@ describe('GET /api/config', () => {
   it('returns sharingEnabled: true when ENABLE_SHARING is true', async () => {
     const res = await request(app).get('/api/config');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ sharingEnabled: true });
+    expect(res.body).toMatchObject({ sharingEnabled: true });
   });
 });
 
@@ -157,6 +157,6 @@ describe('/api/report when sharing disabled', () => {
   it('GET /api/config returns sharingEnabled: false', async () => {
     const res = await request(app).get('/api/config');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ sharingEnabled: false });
+    expect(res.body).toMatchObject({ sharingEnabled: false });
   });
 });

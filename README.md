@@ -174,6 +174,7 @@ npm run test:integration # integration tests only
 | `GH_TOKEN_FOR_SCAN` | — | GitHub PAT to increase API rate limits for scanning |
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report/view telemetry for Azure Workbook dashboards |
+| `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Optional connection string exposed to the SPA via `/api/config` so frontend page views, sessions, and UI events are tracked in Application Insights |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
 | `ALLOWED_ORIGIN` | `false` (CORS disabled) | Allowed CORS origin (e.g., `http://localhost:5173`) |

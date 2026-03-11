@@ -1,5 +1,6 @@
 import { shareReport } from './api.js';
 import { showToast } from './app.js';
+import { trackUiEvent } from './telemetry.js';
 
 export function escapeHtml(str) {
   return String(str)
@@ -369,6 +370,10 @@ function addShareButton(result) {
     await navigator.clipboard.writeText(url);
     showToast('permalink copied to clipboard');
     setButtonState({ disabled: false, text: 'copied!' });
+    trackUiEvent('report_shared_client', {
+      repo_name: result.repo_name,
+      method: 'clipboard',
+    });
   };
 
   const shareWithNativeApi = async (url) => {
@@ -382,12 +387,19 @@ function addShareButton(result) {
     await navigator.share(shareData);
     showToast('report link ready to share');
     setButtonState({ disabled: false, text: 'shared' });
+    trackUiEvent('report_shared_client', {
+      repo_name: result.repo_name,
+      method: 'native_share',
+    });
     return true;
   };
 
   buttons.forEach((button) => {
     button.addEventListener('click', async () => {
       setButtonState({ disabled: true, text: 'sharing...' });
+      trackUiEvent('report_share_requested_client', {
+        repo_name: result.repo_name,
+      });
       try {
         const url = await resolveShareUrl();
         const shared = await shareWithNativeApi(url);
@@ -400,6 +412,11 @@ function addShareButton(result) {
           return;
         }
         showToast(`error: ${err.message}`);
+        trackUiEvent('report_share_failed_client', {
+          repo_name: result.repo_name,
+          error_name: err.name,
+          reason: err.message,
+        });
         resetButtons();
       }
     });

@@ -92,6 +92,9 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     get appInsightsEnabled() {
       return isAppInsightsEnabled();
     },
+    get appInsightsWebConnectionString() {
+      return env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING || env.APPLICATIONINSIGHTS_CONNECTION_STRING || '';
+    },
   };
 }
 
