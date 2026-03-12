@@ -10,6 +10,44 @@ const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 // GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
 // GitHub repo: alphanumeric, hyphens, dots, underscores, 1-100 chars
 const REPO_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?\/[a-zA-Z0-9._-]{1,100}$/;
+
+/**
+ * Parse GitHub URL or short form (owner/repo) into owner/repo format.
+ * Handles: https://github.com/owner/repo, http://github.com/owner/repo, owner/repo
+ * @param {string} input - Raw user input
+ * @returns {string|null} Normalized owner/repo string or null if invalid
+ */
+function parseGitHubReference(input) {
+  if (!input || typeof input !== 'string') return null;
+  
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // Already in short form owner/repo
+  if (REPO_RE.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Try to parse as URL
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const url = new URL(trimmed);
+      if (url.hostname !== 'github.com') return null;
+      
+      const match = url.pathname.match(/^\/([^/]+)\/([^/\s]+)/);
+      if (!match) return null;
+      
+      const owner = match[1];
+      const repo = match[2].replace(/\.git$/, '');
+      
+      return `${owner}/${repo}`;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
 const ANALYTICS_CONSENT_KEY = 'is-ai-native-analytics-consent';
 
 const PROGRESS_STAGES = [
@@ -174,8 +212,8 @@ function initThemeSwitcher() {
 }
 
 function normalizeRepoReference(value) {
-  const sanitized = value.trim();
-  return REPO_RE.test(sanitized) ? sanitized : null;
+  const parsed = parseGitHubReference(value);
+  return parsed;
 }
 
 function getRepoFromPath(pathname) {

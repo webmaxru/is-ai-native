@@ -56,20 +56,22 @@
   </header>
 
   <div id="scan-form" class="scan-line">
-    <span class="scan-prompt" aria-hidden="true">✨</span>
-    <form id="form" class="scan-form-inner">
-      <span class="scan-cmd" aria-hidden="true">github.com/</span>
-      <input
-        type="text"
-        id="repo-url"
-        placeholder="owner/repository"
-        required
-        autocomplete="on"
-        spellcheck="false"
-        aria-label="GitHub repository (owner/repository)"
-      />
-      <button type="submit" id="scan-btn">scan</button>
-    </form>
+    <div class="scan-line-content">
+      <span class="scan-prompt" aria-hidden="true">✨</span>
+      <form id="form" class="scan-form-inner">
+        <span class="scan-cmd" aria-hidden="true">github.com/</span>
+        <input
+          type="text"
+          id="repo-url"
+          placeholder="owner/repository or full URL"
+          required
+          autocomplete="on"
+          spellcheck="false"
+          aria-label="GitHub repository (owner/repository or full https://github.com/owner/repository URL)"
+        />
+        <button type="submit" id="scan-btn">scan</button>
+      </form>
+    </div>
   </div>
 
   <main id="log-body" class="log-body">
@@ -90,7 +92,7 @@
       </div>
       <div class="hint-row hint-muted">
         <span class="hint-label">&gt;</span>
-        <span class="hint-text">type <kbd>owner/repository</kbd> above and press <kbd>enter</kbd>, or navigate to <kbd>/owner/repository</kbd></span>
+        <span class="hint-text">type <kbd>owner/repository</kbd> or a full GitHub URL above and press <kbd>enter</kbd>, or navigate to <kbd>/owner/repository</kbd></span>
       </div>
     </div>
 

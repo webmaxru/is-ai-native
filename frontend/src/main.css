@@ -158,11 +158,12 @@ body {
   background: none;
   border: 1px solid var(--topbar-muted);
   color: var(--topbar-muted);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  padding: 0.15rem 0.45rem;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.1rem 0.35rem;
   cursor: pointer;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
+  line-height: 1;
 }
 .theme-toggle:hover {
   border-color: var(--topbar-accent);
@@ -172,19 +173,30 @@ body {
   outline: 2px solid var(--topbar-accent);
   outline-offset: 2px;
 }
-.theme-toggle::before { content: '[dark]'; }
-:root[data-theme='dark'] .theme-toggle::before { content: '[light]'; }
+.theme-toggle::before { content: '🌙'; }
+:root[data-theme='dark'] .theme-toggle::before { content: '☀️'; }
 
 /* ── Scan line ── */
 .scan-line {
   background: var(--scan-bg);
   color: var(--scan-text);
-  padding: 0.6rem 1.5rem;
+  padding: 0.6rem 0;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.scan-line-content {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 0.8rem;
-  flex-shrink: 0;
+  width: 100%;
+  padding: 0 1.5rem;
+}
+
+.landing-view .scan-line-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
 .scan-prompt {
@@ -197,7 +209,7 @@ body {
 .scan-form-inner {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.1rem;
   flex: 1;
   min-width: 0;
 }
@@ -206,7 +218,7 @@ body {
   color: var(--topbar-muted);
   white-space: nowrap;
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 1rem;
 }
 
 .scan-form-inner input {
@@ -216,7 +228,7 @@ body {
   border-bottom: 1px solid var(--scan-border);
   color: var(--scan-text);
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 1rem; /* ≥16px prevents iOS auto-zoom */
   padding: 0.1rem 0.25rem;
   outline: none;
   caret-color: var(--topbar-accent);
@@ -1045,7 +1057,11 @@ a:focus-visible {
   .topbar-scope { display: none; }
 
   .scan-line {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0;
+  }
+
+  .scan-line-content {
+    padding: 0 1rem;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
