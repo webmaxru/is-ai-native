@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -89,5 +90,55 @@ describe('resolveTrustProxyValue', () => {
     expect(resolveTrustProxyValue({ TRUST_PROXY: 'true' })).toBe(true);
     expect(resolveTrustProxyValue({ TRUST_PROXY: '2' })).toBe(2);
     expect(resolveTrustProxyValue({ TRUST_PROXY: 'loopback' })).toBe('loopback');
+  });
+});
+
+describe('createCleanupScheduler', () => {
+  it('does not start overlapping cleanup runs', async () => {
+    const { createCleanupScheduler } = await import('../../src/server.js');
+    const logger = { warn: jest.fn() };
+    let resolveCleanup;
+    const cleanup = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveCleanup = resolve;
+        })
+    );
+
+    const scheduler = createCleanupScheduler({ cleanup, intervalMs: 60_000, logger });
+
+    try {
+      const firstRun = scheduler.runCleanup();
+      const secondRun = scheduler.runCleanup();
+      await Promise.resolve();
+
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(secondRun).toBe(firstRun);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Skipping expired report cleanup because a previous run is still in progress'
+      );
+
+      resolveCleanup();
+      await firstRun;
+    } finally {
+      clearInterval(scheduler.interval);
+    }
+  });
+
+  it('swallows cleanup errors so the scheduler cannot crash the process', async () => {
+    const { createCleanupScheduler } = await import('../../src/server.js');
+    const logger = { warn: jest.fn() };
+    const scheduler = createCleanupScheduler({
+      cleanup: jest.fn().mockRejectedValue(new Error('share unavailable')),
+      intervalMs: 60_000,
+      logger,
+    });
+
+    try {
+      await expect(scheduler.runCleanup()).resolves.toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith('Expired report cleanup failed: share unavailable');
+    } finally {
+      clearInterval(scheduler.interval);
+    }
   });
 });

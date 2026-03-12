@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { saveReport, getReport, cleanupExpired, closeDb } from '../../src/services/storage.js';
@@ -60,7 +60,7 @@ describe('getReport', () => {
 });
 
 describe('cleanupExpired', () => {
-  it('removes expired reports and keeps active ones', () => {
+  it('removes expired reports and keeps active ones', async () => {
     const id1 = saveReport(sampleResult);
     const id2 = saveReport({ ...sampleResult, score: 10 });
 
@@ -68,16 +68,18 @@ describe('cleanupExpired', () => {
     const record = JSON.parse(readFileSync(reportPath, 'utf8'));
     record.expires_at = 0;
     writeFileSync(reportPath, JSON.stringify(record), 'utf8');
+    utimesSync(reportPath, new Date(0), new Date(0));
 
-    cleanupExpired();
+    await cleanupExpired();
     expect(getReport(id2)).not.toBeNull();
     expect(() => readFileSync(reportPath, 'utf8')).toThrow();
   });
 
-  it('uses in-memory storage when REPORTS_DIR is :memory:', () => {
+  it('uses in-memory storage when REPORTS_DIR is :memory:', async () => {
     process.env.REPORTS_DIR = ':memory:';
 
     const id = saveReport(sampleResult);
+    await cleanupExpired();
     expect(getReport(id)).toEqual(sampleResult);
   });
 });

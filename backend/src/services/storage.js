@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { readFile, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
@@ -66,6 +67,15 @@ function deleteRecord(id) {
   }
 }
 
+async function readRecordAsync(reportPath) {
+  const contents = await readFile(reportPath, 'utf8');
+  return JSON.parse(contents);
+}
+
+async function deleteRecordAsync(reportPath) {
+  await rm(reportPath, { force: true });
+}
+
 export function saveReport(scanResult) {
   const id = randomUUID();
   const now = Date.now();
@@ -104,7 +114,7 @@ export function getReport(id) {
   return record.result;
 }
 
-export function cleanupExpired() {
+export async function cleanupExpired() {
   const now = Date.now();
 
   if (isMemoryStorage()) {
@@ -117,15 +127,29 @@ export function cleanupExpired() {
   }
 
   const reportsDir = ensureReportsDir();
-  for (const entry of readdirSync(reportsDir, { withFileTypes: true })) {
+  for (const entry of await readdir(reportsDir, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.json')) {
       continue;
     }
 
-    const id = entry.name.slice(0, -5);
-    const record = readRecord(id);
-    if (record && record.expires_at <= now) {
-      deleteRecord(id);
+    const reportPath = join(reportsDir, entry.name);
+
+    try {
+      const reportStats = await stat(reportPath);
+
+      // Most reports are still active; skip reopening files whose last write is newer than the TTL window.
+      if (Number.isFinite(reportStats.mtimeMs) && reportStats.mtimeMs + TTL_MS > now) {
+        continue;
+      }
+
+      const record = await readRecordAsync(reportPath);
+      if (record?.expires_at <= now) {
+        await deleteRecordAsync(reportPath);
+      }
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw err;
+      }
     }
   }
 }

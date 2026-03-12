@@ -91,6 +91,48 @@ function resolveTrustProxyValue(env = process.env) {
   return configured;
 }
 
+export function createCleanupScheduler({
+  cleanup = cleanupExpired,
+  intervalMs = 60 * 60 * 1000,
+  logger = console,
+} = {}) {
+  let activeCleanup = null;
+
+  const runCleanup = () => {
+    if (activeCleanup) {
+      logger.warn('Skipping expired report cleanup because a previous run is still in progress');
+      return activeCleanup;
+    }
+
+    const startedAt = Date.now();
+    activeCleanup = Promise.resolve()
+      .then(() => cleanup())
+      .then((result) => {
+        const durationMs = Date.now() - startedAt;
+        if (durationMs >= 5_000) {
+          logger.warn(`Expired report cleanup took ${durationMs}ms`);
+        }
+        return result;
+      })
+      .catch((err) => {
+        logger.warn(`Expired report cleanup failed: ${err.message}`);
+        return null;
+      })
+      .finally(() => {
+        activeCleanup = null;
+      });
+
+    return activeCleanup;
+  };
+
+  const interval = setInterval(() => {
+    void runCleanup();
+  }, intervalMs);
+  interval.unref?.();
+
+  return { interval, runCleanup };
+}
+
 export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir = __dirname } = {}) {
   const config = loadConfig();
   const frontendPath = resolveFrontendPath(env.FRONTEND_PATH, { cwd, baseDir });
@@ -208,6 +250,7 @@ const app = createApp(runtime);
 const PORT = process.env.PORT || 3000;
 
 let server;
+let cleanupScheduler;
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
@@ -221,10 +264,9 @@ if (process.env.NODE_ENV !== 'test') {
   process.on('SIGINT', shutdown);
 
   if (runtime.sharingEnabled) {
-    const cleanupInterval = setInterval(cleanupExpired, 60 * 60 * 1000);
-    cleanupInterval.unref();
+    cleanupScheduler = createCleanupScheduler();
   }
 }
 
-export { app, runtime, server, resolveFrontendPath, resolveTrustProxyValue };
+export { app, runtime, server, cleanupScheduler, resolveFrontendPath, resolveTrustProxyValue };
 export default app;
