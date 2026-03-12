@@ -2,6 +2,8 @@
 
 The CLI package provides a source-based terminal interface for the shared `@is-ai-native/core` scan engine.
 
+For Azure-hosted web deployments, the shared backend now reports the active Container Apps startup mode via `/api/config` and `/health`. Use the root deployment docs when you need to keep one replica warm instead of scaling to zero.
+
 ## Status
 
 - Package name: `@is-ai-native/cli`

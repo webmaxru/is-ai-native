@@ -305,6 +305,8 @@ Client-surface coverage is split this way:
 | `ENABLE_SHARING` | `false` | Enable the report-sharing feature for GitHub repository scan results |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Optional Azure Application Insights connection string used to emit scan/report/view telemetry for Azure Workbook dashboards |
 | `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Optional connection string exposed to the SPA via `/api/config` so frontend page views, sessions, and UI events are tracked in Application Insights |
+| `CONTAINER_STARTUP_STRATEGY` | `scale-to-zero` | Deployment metadata exposed by the backend to describe whether Azure Container Apps is allowed to scale to zero or keeps one warm replica |
+| `CONTAINER_MIN_REPLICAS` | `0` | Deployment metadata exposed by the backend to report the configured minimum replica count |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
 | `TRUST_PROXY` | `1` in production, otherwise `false` | Express proxy trust setting used for client IP and rate-limit handling. Set this explicitly when deploying behind a non-default proxy chain. |
@@ -346,6 +348,7 @@ Optional features in the Bicep template:
 - **ACR integration** — Pass `acrName` to pull images from Azure Container Registry using admin credentials stored as secrets.
 - **Custom domain + managed TLS** — Pass `customDomainName` and `managedCertName` to bind a custom domain with a Let's Encrypt certificate.
 - **Secondary custom domain + managed TLS** — Pass `secondaryCustomDomainName` and `secondaryManagedCertName` to keep a second hostname bound during migrations or gradual cutovers.
+- **Startup strategy toggle** — Pass `containerStartupStrategy=keep-warm` to keep one replica ready and avoid scale-to-zero cold starts. The default `scale-to-zero` setting minimizes cost.
 
 Default parameter values live in [`infra/main.bicepparam`](infra/main.bicepparam) for quick manual deployments. The CD workflow passes all parameters inline (`.bicepparam` files cannot be mixed with additional CLI overrides).
 
@@ -392,6 +395,7 @@ If you prefer to deploy manually:
      --template-file infra/main.bicep \
      --parameters namePrefix=is-ai-native \
                   enableSharing=true \
+                   containerStartupStrategy=keep-warm \
                   containerImage=ghcr.io/<owner>/is-ai-native:latest \
                   githubToken=<optional-pat>
    ```

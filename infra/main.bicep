@@ -28,6 +28,13 @@ param enableSharing bool = false
 @description('Enable Azure Application Insights telemetry for scan/report monitoring.')
 param enableAppInsights bool = true
 
+@description('Container startup strategy. Use scale-to-zero for lowest cost, or keep-warm to keep one replica ready and reduce cold starts.')
+@allowed([
+  'scale-to-zero'
+  'keep-warm'
+])
+param containerStartupStrategy string = 'scale-to-zero'
+
 @description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
 param acrName string = ''
 
@@ -165,6 +172,8 @@ var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
   { name: 'PORT', value: '3000' }
   { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
+  { name: 'CONTAINER_STARTUP_STRATEGY', value: containerStartupStrategy }
+  { name: 'CONTAINER_MIN_REPLICAS', value: containerStartupStrategy == 'keep-warm' ? '1' : '0' }
 ]
 
 var siteOriginEnv = siteOrigin != '' ? [
@@ -285,8 +294,8 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       volumes: appVolumes
       scale: {
-        // Scale to zero when idle — key cost saving for Consumption plan
-        minReplicas: 0
+        // Keep one replica warm when requested to reduce cold-start latency.
+        minReplicas: containerStartupStrategy == 'keep-warm' ? 1 : 0
         maxReplicas: 3
         rules: [
           {

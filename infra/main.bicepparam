@@ -13,6 +13,9 @@ param enableSharing = true
 // Application Insights is enabled by default for scan/report telemetry and Azure Workbook monitoring.
 param enableAppInsights = true
 
+// Use 'keep-warm' to keep one replica ready and avoid scale-to-zero cold starts.
+param containerStartupStrategy = 'scale-to-zero'
+
 param tags = {
   application: 'is-ai-native'
   managedBy: 'bicep'

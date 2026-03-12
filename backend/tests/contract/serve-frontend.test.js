@@ -14,6 +14,8 @@ process.env.REPORTS_DIR = ':memory:';
 process.env.ENABLE_SHARING = 'false';
 process.env.FRONTEND_PATH = tmpDir;
 process.env.SITE_ORIGIN = 'https://example.com';
+process.env.CONTAINER_STARTUP_STRATEGY = 'keep-warm';
+process.env.CONTAINER_MIN_REPLICAS = '1';
 
 let request;
 let app;
@@ -82,6 +84,19 @@ describe('frontend path configured', () => {
   it('GET /health still returns JSON status', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ status: 'ok' });
+    expect(res.body).toMatchObject({
+      status: 'ok',
+      containerStartupStrategy: 'keep-warm',
+      containerMinReplicas: 1,
+    });
+  });
+
+  it('GET /api/config returns startup strategy metadata', async () => {
+    const res = await request(app).get('/api/config');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      containerStartupStrategy: 'keep-warm',
+      containerMinReplicas: 1,
+    });
   });
 });

@@ -41,6 +41,15 @@ describe('GET /health', () => {
       const res = await request(app).get('/health');
       expect(res.body.appInsightsEnabled).toBe(false);
     });
+
+    it('defaults container startup strategy to scale-to-zero', async () => {
+      delete process.env.CONTAINER_STARTUP_STRATEGY;
+      delete process.env.CONTAINER_MIN_REPLICAS;
+
+      const res = await request(app).get('/health');
+      expect(res.body.containerStartupStrategy).toBe('scale-to-zero');
+      expect(res.body.containerMinReplicas).toBe(0);
+    });
   });
 
   describe('when GH_TOKEN_FOR_SCAN is set and sharing is enabled', () => {
@@ -53,6 +62,8 @@ describe('GET /health', () => {
     afterEach(() => {
       delete process.env.GH_TOKEN_FOR_SCAN;
       delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
+      delete process.env.CONTAINER_STARTUP_STRATEGY;
+      delete process.env.CONTAINER_MIN_REPLICAS;
       process.env.ENABLE_SHARING = 'false';
     });
 
@@ -69,6 +80,15 @@ describe('GET /health', () => {
     it('reports appInsightsEnabled as true', async () => {
       const res = await request(app).get('/health');
       expect(res.body.appInsightsEnabled).toBe(true);
+    });
+
+    it('reports keep-warm startup strategy when configured', async () => {
+      process.env.CONTAINER_STARTUP_STRATEGY = 'keep-warm';
+      process.env.CONTAINER_MIN_REPLICAS = '1';
+
+      const res = await request(app).get('/health');
+      expect(res.body.containerStartupStrategy).toBe('keep-warm');
+      expect(res.body.containerMinReplicas).toBe(1);
     });
   });
 });

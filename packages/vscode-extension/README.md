@@ -2,6 +2,8 @@
 
 Scans the current workspace or a GitHub repository using the shared `@is-ai-native/core` package, renders a readiness report in a VS Code webview, and lets you open matched local workspace files directly from the results.
 
+The hosted web application can now be deployed with either the default scale-to-zero Container Apps strategy or a keep-warm mode that pins one replica for faster startup. That deployment option is documented in the repository root README.
+
 ## Status
 
 - Package name: `@is-ai-native/vscode-extension`

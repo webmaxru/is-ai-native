@@ -91,6 +91,19 @@ function resolveTrustProxyValue(env = process.env) {
   return configured;
 }
 
+function resolveContainerStartupStrategy(env = process.env) {
+  return env.CONTAINER_STARTUP_STRATEGY === 'keep-warm' ? 'keep-warm' : 'scale-to-zero';
+}
+
+function resolveContainerMinReplicas(env = process.env) {
+  const parsed = Number.parseInt(env.CONTAINER_MIN_REPLICAS ?? '', 10);
+  if (Number.isInteger(parsed) && parsed >= 0) {
+    return parsed;
+  }
+
+  return resolveContainerStartupStrategy(env) === 'keep-warm' ? 1 : 0;
+}
+
 export function createCleanupScheduler({
   cleanup = cleanupExpired,
   intervalMs = 60 * 60 * 1000,
@@ -161,6 +174,12 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     get appInsightsWebConnectionString() {
       return env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING || env.APPLICATIONINSIGHTS_CONNECTION_STRING || '';
     },
+    get containerStartupStrategy() {
+      return resolveContainerStartupStrategy(env);
+    },
+    get containerMinReplicas() {
+      return resolveContainerMinReplicas(env);
+    },
   };
 }
 
@@ -188,6 +207,8 @@ export function createApp(runtime = createRuntime()) {
       githubTokenProvided: runtime.githubTokenProvided,
       sharingEnabled: runtime.sharingEnabled,
       appInsightsEnabled: runtime.appInsightsEnabled,
+      containerStartupStrategy: runtime.containerStartupStrategy,
+      containerMinReplicas: runtime.containerMinReplicas,
     })
   );
 
@@ -268,5 +289,14 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
-export { app, runtime, server, cleanupScheduler, resolveFrontendPath, resolveTrustProxyValue };
+export {
+  app,
+  runtime,
+  server,
+  cleanupScheduler,
+  resolveContainerMinReplicas,
+  resolveContainerStartupStrategy,
+  resolveFrontendPath,
+  resolveTrustProxyValue,
+};
 export default app;
