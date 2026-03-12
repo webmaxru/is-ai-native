@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: is-ai-native-production
+  cancel-in-progress: true
+
 # Required for OIDC-based Azure login (no long-lived credentials)
 permissions:
   id-token: write   # Exchange OIDC token for Azure access token
@@ -29,6 +33,7 @@ jobs:
       image: ${{ steps.meta.outputs.tags }}
       version: ${{ steps.meta.outputs.version }}
       digest: ${{ steps.build.outputs.digest }}
+      immutable_image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
     steps:
       - uses: actions/checkout@v4
@@ -140,7 +145,7 @@ jobs:
           # Keep one idle replica warm for faster startup. Change this back to
           # containerStartupStrategy=scale-to-zero to restore zero idle cost.
           parameters: >
-            containerImage=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.version }}
+            containerImage=${{ needs.build-push.outputs.immutable_image }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
             enableSharing=true
             containerStartupStrategy=keep-warm
@@ -153,3 +158,135 @@ jobs:
 
       - name: Print application URL
         run: echo "✅ Deployed to ${{ steps.bicep.outputs.appUrl }}"
+
+      - name: Install Azure Container Apps CLI extension
+        run: |
+          az extension add --name containerapp --upgrade --allow-preview true
+
+      - name: Wait for latest revision to become healthy
+        id: revision-health
+        shell: bash
+        env:
+          CONTAINER_APP_NAME: ${{ steps.bicep.outputs.containerAppName }}
+        run: |
+          set -euo pipefail
+
+          latest_revision=""
+          for attempt in {1..30}; do
+            latest_revision=$(az containerapp revision list \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --query "sort_by(@, &properties.createdTime)[-1].name" \
+              -o tsv)
+
+            if [[ -n "$latest_revision" ]]; then
+              echo "Latest revision: $latest_revision"
+              echo "latest_revision=$latest_revision" >> "$GITHUB_OUTPUT"
+              break
+            fi
+
+            sleep 10
+          done
+
+          if [[ -z "$latest_revision" ]]; then
+            echo "No revision found after deployment"
+            exit 1
+          fi
+
+          for attempt in {1..36}; do
+            provisioning_state=$(az containerapp revision show \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "$latest_revision" \
+              --query "properties.provisioningState" \
+              -o tsv)
+
+            running_state=$(az containerapp revision show \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "$latest_revision" \
+              --query "properties.runningState" \
+              -o tsv)
+
+            active=$(az containerapp revision show \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "$latest_revision" \
+              --query "properties.active" \
+              -o tsv)
+
+            replicas=$(az containerapp revision show \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "$latest_revision" \
+              --query "properties.replicas" \
+              -o tsv)
+
+            echo "Attempt $attempt: provisioning=$provisioning_state running=$running_state active=$active replicas=${replicas:-0}"
+
+            if [[ "$provisioning_state" == "Provisioned" && "$running_state" == "Running" && "$active" == "true" && "${replicas:-0}" != "0" ]]; then
+              exit 0
+            fi
+
+            if [[ "$provisioning_state" == "Provisioning failed" || "$running_state" == "Failed" || "$running_state" == "Degraded" || "$running_state" == "Activation failed" ]]; then
+              echo "Revision entered unhealthy state"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "Revision did not become healthy in time"
+          exit 1
+
+      - name: Smoke test deployed endpoints
+        shell: bash
+        env:
+          APP_URL: ${{ steps.bicep.outputs.appUrl }}
+        run: |
+          set -euo pipefail
+
+          echo "Health check: $APP_URL/health"
+          curl --fail --show-error --silent \
+            --retry 12 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            "$APP_URL/health"
+
+          echo "Homepage check: $APP_URL/"
+          curl --fail --show-error --silent \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            "$APP_URL/" > /tmp/homepage.html
+
+          grep -q "github.com/" /tmp/homepage.html
+
+      - name: Dump Azure diagnostics on failed deployment validation
+        if: failure()
+        shell: bash
+        env:
+          CONTAINER_APP_NAME: ${{ steps.bicep.outputs.containerAppName }}
+        run: |
+          set +e
+
+          echo "Container app summary"
+          az containerapp show \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --output jsonc
+
+          echo "Revision summary"
+          az containerapp revision list \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --output table
+
+          if [[ -n "${{ steps.revision-health.outputs.latest_revision }}" ]]; then
+            echo "Replica summary"
+            az containerapp replica list \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --revision "${{ steps.revision-health.outputs.latest_revision }}" \
+              --output table
+          fi

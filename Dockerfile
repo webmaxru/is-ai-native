@@ -4,27 +4,35 @@ FROM node:24-alpine AS deps
 
 WORKDIR /app
 
-# Install backend dependencies (production only)
-COPY backend/package*.json ./
-RUN npm ci --omit=dev
+# Install backend production dependencies, including the linked workspace core package.
+COPY backend/package.json ./backend/package.json
+COPY backend/package-lock.json ./backend/package-lock.json
+COPY packages/core/package.json ./packages/core/package.json
+COPY packages/core/src ./packages/core/src
+COPY packages/core/config ./packages/core/config
+RUN npm ci --omit=dev --prefix ./backend
+RUN cd ./packages/core && npm install --omit=dev
 
 # ── Runtime image ──────────────────────────────────────────────────
 FROM node:24-alpine
 
-WORKDIR /app
+WORKDIR /app/backend
 
 # Copy package.json so Node recognises the directory as ESM ("type": "module")
 COPY backend/package.json ./package.json
 
-# Copy backend node_modules from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy backend node_modules from deps stage together with the linked workspace package target.
+COPY --from=deps /app/backend/node_modules ./node_modules
+COPY --from=deps /app/packages ../packages
 
 # Copy backend source
 COPY backend/src ./src
 
 # Copy runtime frontend assets so Express can serve them in the single-container image
-COPY frontend/index.html ./frontend/index.html
-COPY frontend/src ./frontend/src
+COPY frontend/index.html ../frontend/index.html
+COPY frontend/src ../frontend/src
+
+ENV REPORTS_DIR=/app/data/reports
 
 # Update base packages and remove package-manager tooling not needed at runtime
 RUN apk upgrade --no-cache \

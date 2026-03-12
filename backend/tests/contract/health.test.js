@@ -90,5 +90,13 @@ describe('GET /health', () => {
       expect(res.body.containerStartupStrategy).toBe('keep-warm');
       expect(res.body.containerMinReplicas).toBe(1);
     });
+
+    it('does not rate limit health probes', async () => {
+      const responses = await Promise.all(
+        Array.from({ length: 110 }, () => request(app).get('/health'))
+      );
+
+      expect(responses.every((response) => response.status === 200)).toBe(true);
+    });
   });
 });
