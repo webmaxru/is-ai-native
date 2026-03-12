@@ -26,6 +26,8 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 - [Prerequisites](#prerequisites)
 - [Local Development](#local-development)
   - [Backend Only](#backend-only)
+  - [CLI](#cli)
+  - [VS Code Extension](#vs-code-extension)
   - [Full Stack with Docker Compose](#full-stack-with-docker-compose)
   - [Single Container](#single-container)
 - [Testing](#testing)
@@ -63,7 +65,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
 - **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score from detected assistant-specific primitive matches.
 - **Shared Core** — `packages/core` contains the reusable config loading, repository scanning, scoring, GitHub tree access, and orchestration APIs used by all clients.
-- **CLI** — `packages/cli` provides local-path and GitHub-target scanning from the terminal on top of the shared core.
+- **CLI** — `packages/cli` provides the terminal / GitHub CLI surface for local-path and GitHub-target scanning on top of the shared core.
 - **VS Code Extension** — `packages/vscode-extension` provides workspace and GitHub scanning commands plus a results webview on top of the shared core.
 - **Storage** — Optional file-backed storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
 - **Serving model** — Express serves both the SPA and the API in local single-container runs and in Azure Container Apps.
@@ -117,6 +119,113 @@ npm run dev:full
 Open **http://localhost:3000** in your browser.
 
 This mode serves the SPA directly from the local `frontend/` directory and keeps the backend API on the same origin, so no extra frontend dev server or CORS setup is required.
+
+### CLI
+
+The repository includes a source-based terminal client in [packages/cli/README.md](packages/cli/README.md). This is the current CLI surface for the project and the closest equivalent to a GitHub CLI workflow today.
+
+Current status:
+
+- The package is private and lives inside the workspace.
+- It is not published to npm.
+- It is not yet packaged as a native `gh` extension.
+- It uses the same shared scan engine and configuration as the web app and VS Code extension.
+
+Run it directly from source from the repository root:
+
+```powershell
+npm install
+node packages/cli/bin/cli.js --help
+```
+
+If you want a shell command during local development, link the package from the workspace root:
+
+```powershell
+npm install
+npm link --workspace packages/cli
+is-ai-native --help
+```
+
+Supported command:
+
+```powershell
+is-ai-native scan <target> [--output json|human|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
+```
+
+Examples:
+
+```powershell
+is-ai-native scan . --output human
+is-ai-native scan microsoft/vscode --output summary
+is-ai-native scan https://github.com/microsoft/vscode --branch main --output json
+is-ai-native scan . --output summary --fail-below 60
+```
+
+CLI output modes:
+
+- `json`: full machine-readable scan result
+- `human`: readable console report with score, verdict, assistant scores, and primitive matches
+- `csv`: one row per primitive for spreadsheet or pipeline usage
+- `summary`: one-line status output for scripts and CI
+
+CLI exit codes:
+
+- `0`: scan succeeded and any `--fail-below` threshold was met
+- `1`: usage error or runtime failure
+- `2`: scan succeeded, but the resulting score was below `--fail-below`
+
+For GitHub repository scans, the CLI resolves tokens in this order:
+
+- `--token`
+- `GITHUB_TOKEN`
+- `GH_TOKEN_FOR_SCAN`
+
+### VS Code Extension
+
+The repository includes a private source-based extension in [packages/vscode-extension/README.md](packages/vscode-extension/README.md). It reuses the same shared scan core as the web app and CLI package.
+
+Current status:
+
+- The extension package is private and is not yet published to the VS Code Marketplace.
+- The bundle entry point is `packages/vscode-extension/dist/extension.js`.
+- The extension bundle must stay ESM because the shared core uses `import.meta.url` to load bundled configuration.
+
+Build and test it from the repository root:
+
+```powershell
+npm install
+npm run build:vscode-extension
+npm run test:vscode-extension
+```
+
+Run it from source in VS Code:
+
+1. Open the repository in VS Code or VS Code Insiders.
+2. Run `npm install` from the repository root.
+3. Run `npm run build:vscode-extension`.
+4. Start an Extension Development Host from the Run and Debug view.
+
+The extension currently contributes these commands:
+
+- `Is AI-Native: Scan Workspace`
+- `Is AI-Native: Scan GitHub Repository`
+- `Is AI-Native: Open Last Results`
+
+Extension features:
+
+- Scans the currently opened workspace folder without sending local source files through the web application.
+- Scans GitHub repositories directly using the shared core.
+- Opens a results webview with overall score, verdict, assistant breakdown, and primitive-level matches.
+- Lets you click matched local workspace files in the results view to open them directly in the editor.
+
+Extension setting:
+
+- `isAiNative.githubToken`: optional GitHub token used for remote repository scans from inside the extension
+
+Current limitations:
+
+- File-opening actions are only available for local workspace scans, not remote GitHub scans.
+- The extension is currently command-driven with a results webview. It does not yet provide a dedicated sidebar view, tree view, or marketplace packaging flow.
 
 ### Full Stack with Docker Compose
 
@@ -177,6 +286,12 @@ npm run test:cli
 npm run test:vscode-extension
 npm run build:vscode-extension
 ```
+
+Client-surface coverage is split this way:
+
+- `npm run test:cli` validates terminal CLI behavior and output formatting
+- `npm run test:vscode-extension` validates extension-side helpers and rendering logic
+- `npm run build:vscode-extension` validates the extension bundle that VS Code loads
 
 ---
 
@@ -470,6 +585,8 @@ Scan a GitHub repository.
 
 `branch` is optional. The response includes the scan result plus metadata such as the scanned branch, source, and `paths_scanned`.
 
+The web app, CLI package, and VS Code extension all consume this shared result shape, so fields such as `score`, `verdict`, `branch`, `paths_scanned`, `primitives`, and `per_assistant` stay aligned across clients.
+
 ### `GET /api/config`
 
 Returns server configuration flags.
@@ -537,9 +654,11 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 │   │   └── tests/             # Direct shared-core tests
 │   ├── cli/
 │   │   ├── bin/               # `is-ai-native` executable entrypoint
+│   │   ├── README.md          # CLI usage and source-based workflow
 │   │   ├── src/               # CLI scan adapters and formatters
 │   │   └── tests/             # CLI package tests
 │   └── vscode-extension/
+│       ├── README.md          # Extension workflow and command reference
 │       ├── src/               # Extension activation, workspace adapter, webview
 │       ├── tests/             # Extension unit tests
 │       └── dist/              # Bundled extension output
