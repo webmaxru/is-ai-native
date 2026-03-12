@@ -68,6 +68,29 @@ function loadFrontendTemplate(frontendPath) {
   }
 }
 
+function resolveTrustProxyValue(env = process.env) {
+  const configured = env.TRUST_PROXY;
+
+  if (configured == null || configured === '') {
+    return env.NODE_ENV === 'production' ? 1 : false;
+  }
+
+  const normalized = String(configured).trim().toLowerCase();
+  if (normalized === 'true') {
+    return true;
+  }
+  if (normalized === 'false') {
+    return false;
+  }
+
+  const numeric = Number.parseInt(normalized, 10);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+
+  return configured;
+}
+
 export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir = __dirname } = {}) {
   const config = loadConfig();
   const frontendPath = resolveFrontendPath(env.FRONTEND_PATH, { cwd, baseDir });
@@ -77,6 +100,7 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     env,
     cwd,
     baseDir,
+    trustProxy: resolveTrustProxyValue(env),
     frontendPath,
     frontendTemplate: loadFrontendTemplate(frontendPath),
     siteMetadata: createSiteMetadata(env),
@@ -101,7 +125,7 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
 export function createApp(runtime = createRuntime()) {
   const app = express();
 
-  app.set('trust proxy', 1);
+  app.set('trust proxy', runtime.trustProxy);
   app.use(helmet());
   app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
   const limiter = rateLimit({
@@ -202,5 +226,5 @@ if (process.env.NODE_ENV !== 'test') {
   }
 }
 
-export { app, runtime, server, resolveFrontendPath };
+export { app, runtime, server, resolveFrontendPath, resolveTrustProxyValue };
 export default app;

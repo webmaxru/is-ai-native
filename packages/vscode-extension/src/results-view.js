@@ -7,6 +7,23 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function sanitizeHttpUrl(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function renderMetaRow(label, value) {
   if (value == null || value === '') {
     return '';
@@ -57,6 +74,7 @@ function renderAssistant(assistant) {
 export function renderResultsHtml(result, { canOpenFiles = false, nonce } = {}) {
   const title = result.repo_name || result.repo_path || 'Is AI-Native Report';
   const scriptNonce = escapeHtml(nonce || '');
+  const safeRepoUrl = sanitizeHttpUrl(result.repo_url);
 
   return `<!DOCTYPE html>
   <html lang="en">
@@ -105,7 +123,7 @@ export function renderResultsHtml(result, { canOpenFiles = false, nonce } = {}) 
       <section class="hero">
         <div>
           <h1>${escapeHtml(title)}</h1>
-          ${result.repo_url ? `<p><a href="${escapeHtml(result.repo_url)}">Open repository</a></p>` : ''}
+          ${safeRepoUrl ? `<p><a href="${escapeHtml(safeRepoUrl)}">Open repository</a></p>` : ''}
         </div>
         <div class="meta-grid">
           ${renderMetaRow('Scanned', result.scanned_at)}

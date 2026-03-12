@@ -34,3 +34,9 @@ test('renderResultsHtml renders open-file buttons for local scans', () => {
   const html = renderResultsHtml(sampleResult, { canOpenFiles: true, nonce: 'abc123' });
   assert.match(html, /data-open-file="\.github\/copilot-instructions\.md"/);
 });
+
+test('renderResultsHtml omits unsafe repository links', () => {
+  const html = renderResultsHtml({ ...sampleResult, repo_url: 'javascript:alert(1)' }, { nonce: 'abc123' });
+  assert.doesNotMatch(html, /href="javascript:alert\(1\)"/);
+  assert.doesNotMatch(html, /Open repository/);
+});

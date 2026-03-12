@@ -69,3 +69,25 @@ describe('resolveFrontendPath', () => {
     }
   });
 });
+
+describe('resolveTrustProxyValue', () => {
+  it('defaults to false outside production', async () => {
+    const { resolveTrustProxyValue } = await import('../../src/server.js');
+
+    expect(resolveTrustProxyValue({ NODE_ENV: 'development' })).toBe(false);
+  });
+
+  it('defaults to a single trusted proxy in production', async () => {
+    const { resolveTrustProxyValue } = await import('../../src/server.js');
+
+    expect(resolveTrustProxyValue({ NODE_ENV: 'production' })).toBe(1);
+  });
+
+  it('honors explicit TRUST_PROXY values', async () => {
+    const { resolveTrustProxyValue } = await import('../../src/server.js');
+
+    expect(resolveTrustProxyValue({ TRUST_PROXY: 'true' })).toBe(true);
+    expect(resolveTrustProxyValue({ TRUST_PROXY: '2' })).toBe(2);
+    expect(resolveTrustProxyValue({ TRUST_PROXY: 'loopback' })).toBe('loopback');
+  });
+});

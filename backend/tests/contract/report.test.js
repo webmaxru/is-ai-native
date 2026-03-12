@@ -30,6 +30,7 @@ afterEach(() => {
 });
 
 const sampleResult = {
+  source: 'github',
   repo_url: 'https://github.com/owner/repo',
   repo_name: 'owner/repo',
   score: 75,
@@ -81,6 +82,37 @@ describe('POST /api/report (sharing enabled)', () => {
       });
     expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
+  });
+
+  it('returns 400 when attempting to share a local filesystem scan', async () => {
+    const res = await request(app)
+      .post('/api/report')
+      .send({
+        result: {
+          ...sampleResult,
+          repo_path: 'C:/private/repo',
+          source: 'local',
+        },
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/GitHub repository scans/);
+  });
+
+  it('strips unknown fields before storing a shared report', async () => {
+    const postRes = await request(app)
+      .post('/api/report')
+      .send({
+        result: {
+          ...sampleResult,
+          extra_secret: 'do-not-store',
+        },
+      });
+
+    const getRes = await request(app).get(`/api/report/${postRes.body.id}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body).not.toHaveProperty('extra_secret');
   });
 });
 
