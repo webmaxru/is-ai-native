@@ -137,10 +137,13 @@ jobs:
           template: infra/main.bicep
           # NOTE: .bicepparam files cannot be mixed with inline overrides.
           # All runtime parameters are passed inline; static defaults come from main.bicep.
+          # Keep one idle replica warm for faster startup. Change this back to
+          # containerStartupStrategy=scale-to-zero to restore zero idle cost.
           parameters: >
             containerImage=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.version }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
             enableSharing=true
+            containerStartupStrategy=keep-warm
             siteOrigin=${{ secrets.SITE_ORIGIN }}
             customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
             managedCertName=${{ secrets.MANAGED_CERT_NAME }}
