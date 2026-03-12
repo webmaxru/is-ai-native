@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { parseRepoUrl } from '../utils/url-parser.js';
-import { fetchRepoTree } from '../services/github.js';
-import { scanPrimitives } from '../services/scanner.js';
-import { calculateOverallScore, calculatePerAssistantScores, getVerdict } from '../services/scorer.js';
+import { Profiles, scanRepository } from '@is-ai-native/core';
 import { trackScanCompleted, trackScanFailed } from '../services/app-insights.js';
 
 export function createScanRouter(runtime) {
@@ -38,27 +36,20 @@ export function createScanRouter(runtime) {
     }
 
     try {
-      const { paths, repoData } = await fetchRepoTree(parsed.owner, parsed.repo, {
-        token: runtime.githubToken,
-        branch: branch || undefined,
-      });
-
-      const primitiveResults = scanPrimitives(paths, runtime.config.primitives);
-      const overallScore = calculateOverallScore(primitiveResults);
-      const perAssistant = calculatePerAssistantScores(primitiveResults, runtime.config.assistants);
-      const verdict = getVerdict(overallScore);
-
-      const result = {
-        repo_url: parsed.url,
-        repo_name: `${parsed.owner}/${parsed.repo}`,
-        description: repoData.description || null,
-        stars: repoData.stargazers_count,
-        score: overallScore,
-        verdict,
-        scanned_at: new Date().toISOString(),
-        primitives: primitiveResults,
-        per_assistant: perAssistant,
+      const configSource = {
+        loadConfig() {
+          return runtime.config;
+        },
       };
+      const result = await scanRepository(
+        Profiles.github({
+          owner: parsed.owner,
+          repo: parsed.repo,
+          token: runtime.githubToken,
+          branch: branch || undefined,
+          configSource,
+        })
+      );
 
       void trackScanCompleted(result, { durationMs: Date.now() - startedAt });
 

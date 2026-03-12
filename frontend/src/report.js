@@ -46,6 +46,14 @@ function formatTimestamp(ts) {
   return `${day} ${month} ${year} ${hh}:${mm} UTC`;
 }
 
+function formatPathsScanned(count) {
+  if (!Number.isFinite(count)) {
+    return null;
+  }
+
+  return `${count.toLocaleString()} path${count === 1 ? '' : 's'}`;
+}
+
 function getAssistantKey(assistantName) {
   return toKebab(String(assistantName || ''));
 }
@@ -264,6 +272,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
   const topShareControlsHtml = sharingEnabled ? shareButtonHtml('top') : '';
   const footerShareControlsHtml = sharingEnabled ? shareButtonHtml('footer') : '';
+  const pathsScanned = formatPathsScanned(result.paths_scanned);
 
   // Per-assistant score chips for summary (link to each section)
   const assistantChipsHtml =
@@ -296,6 +305,16 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
         <div class="si-label">scanned at</div>
         <div class="si-value si-small">${scanTs}</div>
       </div>
+      ${result.branch ? `
+      <div class="summary-item">
+        <div class="si-label">branch</div>
+        <div class="si-value si-small">${escapeHtml(result.branch)}</div>
+      </div>` : ''}
+      ${pathsScanned ? `
+      <div class="summary-item">
+        <div class="si-label">paths scanned</div>
+        <div class="si-value si-small">${escapeHtml(pathsScanned)}</div>
+      </div>` : ''}
       ${assistantChipsHtml ? `<div class="summary assistant scores">${assistantChipsHtml}</div>` : ''}
     </div>
 

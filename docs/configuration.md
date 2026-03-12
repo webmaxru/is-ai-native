@@ -7,8 +7,8 @@ its JSON configuration files. No code changes are required.
 
 | File | Purpose |
 |------|---------|
-| `backend/src/config/primitives.json` | Defines AI-native primitives, categories, detection patterns, and documentation links |
-| `backend/src/config/assistants.json` | Defines supported AI assistants with metadata |
+| `packages/core/config/primitives.json` | Defines AI-native primitives, categories, detection patterns, and documentation links |
+| `packages/core/config/assistants.json` | Defines supported AI assistants with metadata |
 
 Both files are validated at server startup. If validation fails, the server will not start and will
 print a clear error message indicating which field is missing or invalid.
@@ -104,12 +104,12 @@ Patterns use [minimatch](https://github.com/isaacs/minimatch) syntax with `dot: 
 
 This section maps the six currently evaluated primitives to the exact repository-scoped resources documented by each assistant vendor as of 2026-03-10.
 
-Use this section when updating `backend/src/config/primitives.json` so the scanner follows vendor-documented file locations instead of relying on guessed globs.
+Use this section when updating `packages/core/config/primitives.json` so the scanner follows vendor-documented file locations instead of relying on guessed globs.
 
 Important interpretation rules:
 
 - The scanner only sees repository contents, so user-only and machine-local files are listed for context but should not be counted as repository evidence.
-- "Current scanner patterns" are the globs in `backend/src/config/primitives.json` today.
+- "Current scanner patterns" are the globs in `packages/core/config/primitives.json` today.
 - "Official repo-scoped resources" are the closest documented equivalents for the primitive, even when the current scanner does not yet evaluate them.
 
 ### Instruction Files
@@ -201,13 +201,13 @@ When you revisit the URLs above, check these questions before changing the scann
 - Is the current scanner missing a documented repository-scoped resource that should count toward the existing primitive?
 - Is a feature only user-scoped or machine-scoped, meaning it should stay out of a GitHub repository tree scan?
 
-If the answer is yes to any of those questions, update `backend/src/config/primitives.json`, then update this document to keep the matrix aligned.
+If the answer is yes to any of those questions, update `packages/core/config/primitives.json`, then update this document to keep the matrix aligned.
 
 ---
 
 ## Adding a New Primitive
 
-1. Open `backend/src/config/primitives.json`.
+1. Open `packages/core/config/primitives.json`.
 2. Add a new entry to the `primitives` array:
 
    ```json
@@ -241,7 +241,7 @@ If the answer is yes to any of those questions, update `backend/src/config/primi
 
 ## Adding a New AI Assistant
 
-1. Open `backend/src/config/assistants.json`.
+1. Open `packages/core/config/assistants.json`.
 2. Add a new entry to the `assistants` array:
 
    ```json
@@ -254,7 +254,7 @@ If the answer is yes to any of those questions, update `backend/src/config/primi
    }
    ```
 
-3. Update `backend/src/config/primitives.json` to add patterns for the new assistant
+3. Update `packages/core/config/primitives.json` to add patterns for the new assistant
    under relevant primitives:
 
    ```json

@@ -1,0 +1,16 @@
+{
+  "name": "is-ai-native-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "test:backend": "npm --workspace backend test",
+    "test:cli": "node --test packages/cli/tests/*.test.js",
+    "test:core": "node --test packages/core/tests/*.test.js",
+    "build:vscode-extension": "npm --workspace packages/vscode-extension run build",
+    "test:vscode-extension": "node --test packages/vscode-extension/tests/*.test.js"
+  }
+}

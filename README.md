@@ -62,6 +62,9 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
 - **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score from detected assistant-specific primitive matches.
+- **Shared Core** — `packages/core` contains the reusable config loading, repository scanning, scoring, GitHub tree access, and orchestration APIs used by all clients.
+- **CLI** — `packages/cli` provides local-path and GitHub-target scanning from the terminal on top of the shared core.
+- **VS Code Extension** — `packages/vscode-extension` provides workspace and GitHub scanning commands plus a results webview on top of the shared core.
 - **Storage** — Optional file-backed storage for the report-sharing feature (enabled by default in production). Shared reports expire after 90 days.
 - **Serving model** — Express serves both the SPA and the API in local single-container runs and in Azure Container Apps.
 
@@ -83,6 +86,8 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ### Backend Only
 
 The quickest way to get started — run the Express API on its own:
+
+For workspace-based development, you can install shared dependencies once from the repository root with `npm install` and then run package-specific scripts. The commands below still work when you prefer operating from the backend package directly.
 
 ```powershell
 cd backend
@@ -161,6 +166,16 @@ npm test                # run all tests
 npm run test:unit       # unit tests only
 npm run test:contract   # contract tests only
 npm run test:integration # integration tests only
+```
+
+The shared scan engine also has direct package-level tests:
+
+```powershell
+npm install
+npm run test:core
+npm run test:cli
+npm run test:vscode-extension
+npm run build:vscode-extension
 ```
 
 ---
@@ -450,10 +465,10 @@ Scan a GitHub repository.
 **Request body:**
 
 ```json
-{ "repo_url": "https://github.com/owner/repo" }
+{ "repo_url": "https://github.com/owner/repo", "branch": "main" }
 ```
 
-**Response:** Scan result with score, verdict, detected assistants, and primitives.
+`branch` is optional. The response includes the scan result plus metadata such as the scanned branch, source, and `paths_scanned`.
 
 ### `GET /api/config`
 
@@ -497,9 +512,6 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 ├── backend/
 │   ├── src/
 │   │   ├── server.js          # Express app entry point
-│   │   ├── config/
-│   │   │   ├── primitives.json # AI-native primitive definitions & patterns
-│   │   │   └── assistants.json # Supported AI assistant metadata
 │   │   ├── routes/
 │   │   │   ├── scan.js        # POST /api/scan
 │   │   │   ├── report.js      # GET/POST /api/report
@@ -518,6 +530,19 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 │   │   ├── report.js          # Report rendering
 │   │   └── main.css           # Styles
 │   └── tests/                 # Frontend unit tests
+├── packages/
+│   ├── core/
+│   │   ├── config/            # Canonical assistant + primitive definitions
+│   │   ├── src/               # Shared scanning, config, and orchestration logic
+│   │   └── tests/             # Direct shared-core tests
+│   ├── cli/
+│   │   ├── bin/               # `is-ai-native` executable entrypoint
+│   │   ├── src/               # CLI scan adapters and formatters
+│   │   └── tests/             # CLI package tests
+│   └── vscode-extension/
+│       ├── src/               # Extension activation, workspace adapter, webview
+│       ├── tests/             # Extension unit tests
+│       └── dist/              # Bundled extension output
 ├── infra/
 │   ├── main.bicep             # Azure Container Apps IaC (all resources)
 │   └── main.bicepparam        # Default deployment parameters

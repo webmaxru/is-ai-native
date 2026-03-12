@@ -1,0 +1,50 @@
+{
+  "name": "@is-ai-native/vscode-extension",
+  "version": "0.1.0",
+  "description": "VS Code extension for AI-native repository scanning",
+  "private": true,
+  "type": "module",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "is-ai-native.scanWorkspace",
+        "title": "Is AI-Native: Scan Workspace"
+      },
+      {
+        "command": "is-ai-native.scanGitHub",
+        "title": "Is AI-Native: Scan GitHub Repository"
+      },
+      {
+        "command": "is-ai-native.openResults",
+        "title": "Is AI-Native: Open Last Results"
+      }
+    ],
+    "configuration": {
+      "title": "Is AI-Native",
+      "properties": {
+        "isAiNative.githubToken": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Optional GitHub token used when scanning remote repositories from the extension."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@is-ai-native/core": "file:../core"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

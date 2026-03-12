@@ -1,0 +1,19 @@
+{
+  "name": "@is-ai-native/core",
+  "version": "0.1.0",
+  "description": "Shared scanning core for is-ai-native clients",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "config",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "minimatch": "^10.2.4"
+  }
+}
