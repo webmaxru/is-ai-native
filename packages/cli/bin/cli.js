@@ -3,6 +3,8 @@ import { access } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { formatResult, scanGitHubTarget, scanLocalTarget } from '../src/index.js';
 
+const CLI_VERSION = '0.1.1';
+
 const HELP_TEXT = `is-ai-native CLI
 
 Usage:
@@ -49,7 +51,7 @@ async function main() {
   }
 
   if (values.version) {
-    process.stdout.write('@is-ai-native/cli 0.1.0\n');
+    process.stdout.write(`@is-ai-native/cli ${CLI_VERSION}\n`);
     return;
   }
 

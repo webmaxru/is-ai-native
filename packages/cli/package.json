@@ -1,6 +1,6 @@
 {
   "name": "@is-ai-native/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI scanner for AI-native repository assessment",
   "private": true,
   "type": "module",

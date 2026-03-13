@@ -10,7 +10,7 @@ gh extension install webmaxru/gh-is-ai-native
 
 On Windows, GitHub CLI runs script-based extensions through `sh.exe`. Install Git for Windows if `gh` reports that `sh.exe` is missing.
 
-This extension also requires Node.js 24 or newer because the generated launcher executes a bundled Node runtime entrypoint.
+This extension requires Node.js 22 or newer because the generated launcher executes a bundled Node runtime entrypoint.
 
 ## Usage
 

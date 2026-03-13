@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, '..', '..', '..');
 const extensionName = 'gh-is-ai-native';
+const minimumSupportedNodeMajor = 22;
 const outputDir = process.env.GH_EXTENSION_OUTPUT_DIR
   ? resolve(process.env.GH_EXTENSION_OUTPUT_DIR)
   : resolve(workspaceRoot, 'artifacts', 'gh-extension', 'repo');
@@ -19,7 +20,7 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "node is required to run ${extensionName}. Install Node.js 24 or newer and try again." >&2
+  echo "node is required to run ${extensionName}. Install Node.js ${minimumSupportedNodeMajor} or newer and try again." >&2
   exit 1
 fi
 
@@ -36,17 +37,17 @@ async function main() {
     bundle: true,
     format: 'esm',
     platform: 'node',
-    target: 'node24',
+    target: `node${minimumSupportedNodeMajor}`,
     legalComments: 'none',
-    banner: {
-      js: '#!/usr/bin/env node',
-    },
   });
 
   await writeFile(launcherPath, launcher, 'utf8');
   await chmod(launcherPath, 0o755);
   await chmod(bundlePath, 0o755);
 
+  await cp(resolve(workspaceRoot, 'packages', 'core', 'config'), resolve(outputDir, 'config'), {
+    recursive: true,
+  });
   await cp(resolve(workspaceRoot, 'LICENSE'), resolve(outputDir, 'LICENSE'));
   await cp(
     resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'README.md'),

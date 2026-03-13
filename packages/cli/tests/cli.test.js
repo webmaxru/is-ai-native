@@ -75,3 +75,11 @@ test('cli returns exit code 2 when --fail-below is not met', () => {
     rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('cli reports the package version', () => {
+  const cliPath = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
+  const result = spawnSync(process.execPath, [cliPath, '--version'], { encoding: 'utf-8' });
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), '@is-ai-native/cli 0.1.1');
+});

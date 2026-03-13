@@ -1,10 +1,21 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const CONFIG_DIR = join(__dirname, '../config');
+const CONFIG_DIR_CANDIDATES = [join(__dirname, '../config'), join(__dirname, 'config')];
+
+function resolveBundledConfigPath(fileName) {
+  for (const configDir of CONFIG_DIR_CANDIDATES) {
+    const candidatePath = join(configDir, fileName);
+    if (existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return join(CONFIG_DIR_CANDIDATES[0], fileName);
+}
 
 /**
  * Validates a single primitive definition from primitives.json.
@@ -125,11 +136,11 @@ export class ConfigSource {
  */
 export class BundledConfigSource extends ConfigSource {
   loadPrimitives() {
-    return validatePrimitivesConfig(readJsonFile(join(CONFIG_DIR, 'primitives.json'), 'primitives'));
+    return validatePrimitivesConfig(readJsonFile(resolveBundledConfigPath('primitives.json'), 'primitives'));
   }
 
   loadAssistants() {
-    return validateAssistantsConfig(readJsonFile(join(CONFIG_DIR, 'assistants.json'), 'assistants'));
+    return validateAssistantsConfig(readJsonFile(resolveBundledConfigPath('assistants.json'), 'assistants'));
   }
 }
 
