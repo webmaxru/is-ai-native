@@ -1,1 +1,6 @@
-export { calculateOverallScore, calculatePerAssistantScores, getVerdict } from '@is-ai-native/core';
+export {
+	calculateOverallScore,
+	calculatePerAssistantScores,
+	calculateTopLevelVerdictScore,
+	getVerdict,
+} from '@is-ai-native/core';

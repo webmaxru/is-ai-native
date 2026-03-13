@@ -2,9 +2,9 @@
 
 Scan any GitHub repository to assess how well it embraces AI-native development practices.
 
-The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex**. It produces a per-assistant breakdown, an overall readiness score based on assistant-specific primitive coverage, and a verdict.
+The scanner inspects a repo's file tree via the GitHub API and checks for the presence of AI-native development primitives — instruction files, reusable prompts, custom agents, skills, MCP server configurations, and agent hooks — across three supported AI coding assistants: **GitHub Copilot**, **Claude Code**, and **OpenAI Codex**. It produces a per-assistant breakdown, an overall readiness score based on assistant-specific primitive coverage, and a verdict based on the strongest per-assistant score.
 
-| Verdict | Score |
+| Verdict | Strongest Assistant Score |
 | --- | --- |
 | **AI-Native** | ≥ 60 % |
 | **AI-Assisted** | 30 – 59 % |
@@ -607,7 +607,7 @@ Scan a GitHub repository.
 
 `branch` is optional. The response includes the scan result plus metadata such as the scanned branch, source, and `paths_scanned`.
 
-The web app, CLI package, and VS Code extension all consume this shared result shape, so fields such as `score`, `verdict`, `branch`, `paths_scanned`, `primitives`, and `per_assistant` stay aligned across clients.
+The web app, CLI package, and VS Code extension all consume this shared result shape, so fields such as `score`, `verdict`, `branch`, `paths_scanned`, `primitives`, and `per_assistant` stay aligned across clients. `score` reflects cross-assistant primitive coverage, while `verdict` reflects the highest per-assistant score.
 
 ### `GET /api/config`
 

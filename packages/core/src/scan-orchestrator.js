@@ -2,7 +2,12 @@ import { basename } from 'node:path';
 import { BundledConfigSource } from './config-source.js';
 import { GitHubFileTreeSource, InMemoryFileTreeSource, LocalFileTreeSource } from './file-tree-source.js';
 import { scanPrimitives } from './scanner.js';
-import { calculateOverallScore, calculatePerAssistantScores, getVerdict } from './scorer.js';
+import {
+  calculateOverallScore,
+  calculatePerAssistantScores,
+  calculateTopLevelVerdictScore,
+  getVerdict,
+} from './scorer.js';
 
 function buildRepositoryMetadata(metadata) {
   if (metadata.kind === 'github') {
@@ -52,12 +57,13 @@ export async function scanRepository({ fileTreeSource, configSource = new Bundle
   const primitiveResults = scanPrimitives(paths, primitives);
   const score = calculateOverallScore(primitiveResults);
   const perAssistant = calculatePerAssistantScores(primitiveResults, assistants);
+  const verdictScore = calculateTopLevelVerdictScore(perAssistant, score);
 
   return {
     source: metadata.kind || 'unknown',
     ...buildRepositoryMetadata(metadata),
     score,
-    verdict: getVerdict(score),
+    verdict: getVerdict(verdictScore),
     scanned_at: new Date().toISOString(),
     primitives: primitiveResults,
     per_assistant: perAssistant,

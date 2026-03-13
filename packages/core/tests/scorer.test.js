@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   calculateOverallScore,
   calculatePerAssistantScores,
+  calculateTopLevelVerdictScore,
   getVerdict,
 } from '../src/index.js';
 
@@ -57,4 +58,19 @@ test('core scorer calculates per-assistant scores from supported primitives only
   const result = calculatePerAssistantScores(primitiveResults, assistants);
   assert.equal(result[0].score, 50);
   assert.equal(result[1].score, 100);
+});
+
+test('core scorer uses the strongest assistant score for the top-level verdict score', () => {
+  const perAssistant = [
+    { id: 'github-copilot', name: 'GitHub Copilot', score: 33, primitives: [] },
+    { id: 'claude-code', name: 'Claude Code', score: 67, primitives: [] },
+  ];
+
+  assert.equal(calculateTopLevelVerdictScore(perAssistant, 50), 67);
+  assert.equal(getVerdict(calculateTopLevelVerdictScore(perAssistant, 50)), 'AI-Native');
+});
+
+test('core scorer falls back to the overall score when no assistant scores exist', () => {
+  assert.equal(calculateTopLevelVerdictScore([], 29), 29);
+  assert.equal(getVerdict(calculateTopLevelVerdictScore([], 29)), 'Traditional');
 });

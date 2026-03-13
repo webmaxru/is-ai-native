@@ -84,3 +84,25 @@ export function getVerdict(score) {
   if (score >= 30) return 'AI-Assisted';
   return 'Traditional';
 }
+
+/**
+ * Selects the score used for the shared top-level verdict.
+ *
+ * The overall score still reflects assistant-specific coverage across all supported
+ * assistant/primitive pairs. The top-level verdict, however, follows the strongest
+ * assistant readiness so a repo can surface its best-supported assistant directly.
+ *
+ * @param {object[]} perAssistantScores - Per-assistant score breakdowns
+ * @param {number} [fallbackScore=0] - Score to use when no per-assistant scores exist
+ * @returns {number} Score 0-100 used to determine the top-level verdict
+ */
+export function calculateTopLevelVerdictScore(perAssistantScores, fallbackScore = 0) {
+  if (!Array.isArray(perAssistantScores) || perAssistantScores.length === 0) {
+    return fallbackScore;
+  }
+
+  return perAssistantScores.reduce((maxScore, assistant) => {
+    const assistantScore = Number.isFinite(assistant?.score) ? assistant.score : 0;
+    return Math.max(maxScore, assistantScore);
+  }, 0);
+}

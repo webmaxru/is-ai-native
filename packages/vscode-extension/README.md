@@ -58,7 +58,7 @@ If you prefer running `vsce` directly, run it from `packages/vscode-extension`. 
 
 - Scans the opened workspace using the shared file-tree abstraction.
 - Scans GitHub repositories directly from the extension.
-- Shows overall score, verdict, per-assistant breakdown, and primitive matches.
+- Shows overall score, a verdict based on the strongest assistant score, per-assistant breakdown, and primitive matches.
 - Allows direct opening of matched files for local workspace scans.
 
 ## Settings

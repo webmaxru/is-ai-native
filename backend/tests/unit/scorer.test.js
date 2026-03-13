@@ -1,6 +1,7 @@
 import {
   calculateOverallScore,
   calculatePerAssistantScores,
+  calculateTopLevelVerdictScore,
   getVerdict,
 } from '../../src/services/scorer.js';
 
@@ -116,5 +117,15 @@ describe('scorer', () => {
     expect(getVerdict(60)).toBe('AI-Native');
     expect(getVerdict(30)).toBe('AI-Assisted');
     expect(getVerdict(29)).toBe('Traditional');
+  });
+
+  it('uses the strongest assistant score for the top-level verdict score', () => {
+    const perAssistant = [
+      { id: 'github-copilot', name: 'GitHub Copilot', score: 33, primitives: [] },
+      { id: 'claude-code', name: 'Claude Code', score: 67, primitives: [] },
+    ];
+
+    expect(calculateTopLevelVerdictScore(perAssistant, 50)).toBe(67);
+    expect(getVerdict(calculateTopLevelVerdictScore(perAssistant, 50))).toBe('AI-Native');
   });
 });
