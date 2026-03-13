@@ -8,6 +8,11 @@ import {
   registerRepoScanTool,
   supportsWebMcp,
 } from './webmcp.js';
+import {
+  GH_CLI_EXTENSION_COMMAND,
+  VSCODE_EXTENSION_URL,
+  getRepoAccessInstallOptions,
+} from './error-banner.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
@@ -324,7 +329,39 @@ export function showToast(message) {
 
 function showError(message) {
   const banner = document.getElementById('error-banner');
-  banner.textContent = message;
+  banner.replaceChildren();
+
+  const messageNode = document.createElement('span');
+  messageNode.textContent = message;
+  banner.append(messageNode);
+
+  const installOptions = getRepoAccessInstallOptions(message);
+  if (installOptions) {
+    const details = document.createElement('div');
+    details.className = 'banner-followup';
+
+    const prefix = document.createElement('span');
+    prefix.textContent = 'Try the ';
+
+    const vscodeLink = document.createElement('a');
+    vscodeLink.href = VSCODE_EXTENSION_URL;
+    vscodeLink.target = '_blank';
+    vscodeLink.rel = 'noopener noreferrer';
+    vscodeLink.textContent = 'VS Code extension';
+
+    const middle = document.createElement('span');
+    middle.textContent = ' or run ';
+
+    const ghCommand = document.createElement('code');
+    ghCommand.textContent = GH_CLI_EXTENSION_COMMAND;
+
+    const suffix = document.createElement('span');
+    suffix.textContent = ' for a local or authenticated scan.';
+
+    details.append(prefix, vscodeLink, middle, ghCommand, suffix);
+    banner.append(details);
+  }
+
   banner.classList.remove('hidden');
 }
 

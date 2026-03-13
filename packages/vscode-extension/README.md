@@ -8,10 +8,17 @@ The hosted web application can now be deployed with either the default scale-to-
 
 - Extension id: `adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b.is-ai-native`
 - Marketplace publisher: `adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b`
+- Marketplace URL: `https://marketplace.visualstudio.com/items?itemName=salnikov.is-ai-native`
 - Entry point: `dist/extension.js`
 - Engine target: VS Code `^1.99.0`
 
 The extension manifest is configured for VS Code Marketplace packaging and publishing.
+
+## Install
+
+Install from the Visual Studio Code Marketplace:
+
+`https://marketplace.visualstudio.com/items?itemName=salnikov.is-ai-native`
 
 ## Build And Test
 

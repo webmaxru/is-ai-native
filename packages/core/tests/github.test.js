@@ -66,3 +66,29 @@ test('core github client surfaces rate limits as GitHubApiError', async () => {
     global.fetch = originalFetch;
   }
 });
+
+test('core github client returns an ambiguous 404 message for missing or inaccessible repositories', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () =>
+    jsonResponse(
+      { message: 'Not Found' },
+      404,
+      {
+        'x-ratelimit-remaining': '60',
+      }
+    );
+
+  try {
+    await assert.rejects(() => fetchRepoTree('owner', 'repo'), (error) => {
+      assert.equal(error instanceof GitHubApiError, true);
+      assert.equal(error.status, 404);
+      assert.equal(
+        error.message,
+        'Repository was not found or is not accessible with the current GitHub credentials. Check the URL, or try a local or authenticated scan.'
+      );
+      return true;
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

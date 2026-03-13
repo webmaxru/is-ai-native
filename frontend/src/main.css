@@ -372,6 +372,19 @@ kbd {
   line-height: 1.5;
 }
 
+.banner a {
+  color: inherit;
+}
+
+.banner code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+.banner-followup {
+  margin-top: 0.35rem;
+}
+
 .banner-error {
   border-left-color: var(--red);
   background: rgba(176, 41, 26, 0.06);

@@ -5,7 +5,7 @@ GitHub CLI extension for scanning local repositories and GitHub repositories for
 ## Install
 
 ```bash
-gh extension install OWNER/gh-is-ai-native
+gh extension install webmaxru/gh-is-ai-native
 ```
 
 On Windows, GitHub CLI runs script-based extensions through `sh.exe`. Install Git for Windows if `gh` reports that `sh.exe` is missing.

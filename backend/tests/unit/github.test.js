@@ -96,6 +96,7 @@ describe('fetchRepoTree', () => {
     await expect(result).rejects.toBeInstanceOf(GitHubApiError);
     await expect(result).rejects.toMatchObject({
       status: 404,
+      message: 'Repository was not found or is not accessible with the current GitHub credentials. Check the URL, or try a local or authenticated scan.',
     });
   });
 });

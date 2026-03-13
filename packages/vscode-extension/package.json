@@ -1,7 +1,7 @@
 {
   "name": "is-ai-native",
   "version": "0.1.0",
-  "publisher": "adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b",
+  "publisher": "salnikov",
   "displayName": "Is AI-Native",
   "description": "Scan workspaces and GitHub repositories for AI-native development primitives.",
   "license": "MIT",

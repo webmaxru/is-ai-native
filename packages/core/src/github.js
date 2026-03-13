@@ -105,7 +105,7 @@ async function handleErrorResponse(resp, context) {
 
   if (resp.status === 403) {
     throw new GitHubApiError(
-      body.message || 'Repository is private or access is forbidden. Only public repositories are supported.',
+      body.message || 'Repository is not accessible with the current GitHub credentials. It may be private, or access may be forbidden.',
       403,
       rateRemaining,
       rateReset
@@ -114,7 +114,7 @@ async function handleErrorResponse(resp, context) {
 
   if (resp.status === 404) {
     throw new GitHubApiError(
-      'Repository not found. Please check the URL and make sure the repository exists.',
+      'Repository was not found or is not accessible with the current GitHub credentials. Check the URL, or try a local or authenticated scan.',
       404,
       rateRemaining,
       rateReset
