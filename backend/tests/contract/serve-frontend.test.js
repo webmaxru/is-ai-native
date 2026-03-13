@@ -16,6 +16,8 @@ process.env.FRONTEND_PATH = tmpDir;
 process.env.SITE_ORIGIN = 'https://example.com';
 process.env.CONTAINER_STARTUP_STRATEGY = 'keep-warm';
 process.env.CONTAINER_MIN_REPLICAS = '1';
+process.env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING =
+  'InstrumentationKey=test-key;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/';
 
 let request;
 let app;
@@ -45,6 +47,15 @@ describe('frontend path configured', () => {
     expect(res.text).toContain('frontend');
     expect(res.text).toContain('<title>Is AI Native | Audit GitHub Repositories for AI Coding Readiness</title>');
     expect(res.text).toContain('content="noindex, nofollow, noarchive"');
+  });
+
+  it('GET / emits a CSP that allows the configured Application Insights ingestion endpoint', async () => {
+    const res = await request(app).get('/');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-security-policy']).toContain(
+      "connect-src 'self' https://eastus2-3.in.applicationinsights.azure.com"
+    );
   });
 
   it('GET /_/report/<uuid> (SPA route) serves the frontend index.html', async () => {

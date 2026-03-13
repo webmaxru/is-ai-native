@@ -11,7 +11,7 @@ import { createConfigRouter } from './routes/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
-import { isAppInsightsEnabled } from './services/app-insights.js';
+import { isAppInsightsEnabled, parseConnectionString } from './services/app-insights.js';
 import {
   buildPageMetadata,
   createSiteMetadata,
@@ -104,6 +104,23 @@ function resolveContainerMinReplicas(env = process.env) {
   return resolveContainerStartupStrategy(env) === 'keep-warm' ? 1 : 0;
 }
 
+export function buildContentSecurityPolicyDirectives(runtime) {
+  const directives = helmet.contentSecurityPolicy.getDefaultDirectives();
+  const appInsightsSettings = parseConnectionString(runtime.appInsightsWebConnectionString);
+
+  if (!appInsightsSettings?.ingestionEndpoint) {
+    return directives;
+  }
+
+  const connectSrc = Array.isArray(directives.connectSrc) ? [...directives.connectSrc] : ["'self'"];
+  if (!connectSrc.includes(appInsightsSettings.ingestionEndpoint)) {
+    connectSrc.push(appInsightsSettings.ingestionEndpoint);
+  }
+
+  directives.connectSrc = connectSrc;
+  return directives;
+}
+
 export function createCleanupScheduler({
   cleanup = cleanupExpired,
   intervalMs = 60 * 60 * 1000,
@@ -187,7 +204,13 @@ export function createApp(runtime = createRuntime()) {
   const app = express();
 
   app.set('trust proxy', runtime.trustProxy);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: buildContentSecurityPolicyDirectives(runtime),
+      },
+    })
+  );
   app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
