@@ -63,6 +63,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 ```
 
 - **Frontend** — Vanilla HTML / CSS / JS single-page application. No build step required.
+- **WebMCP preview** — When Chrome WebMCP is enabled, the hosted web app exposes both an imperative `scan_repository` tool and a declarative `scan_repository_form` tool backed by the same repo-scan flow.
 - **Backend** — Node.js 24 + Express (ESM). Calls the GitHub Trees API to fetch the file tree, matches paths against configurable glob patterns per primitive/assistant, and computes a readiness score from detected assistant-specific primitive matches.
 - **Shared Core** — `packages/core` contains the reusable config loading, repository scanning, scoring, GitHub tree access, and orchestration APIs used by all clients.
 - **CLI** — `packages/cli` provides the terminal / GitHub CLI surface for local-path and GitHub-target scanning on top of the shared core.
@@ -119,6 +120,11 @@ npm run dev:full
 Open **http://localhost:3000** in your browser.
 
 This mode serves the SPA directly from the local `frontend/` directory and keeps the backend API on the same origin, so no extra frontend dev server or CORS setup is required.
+
+To test the WebMCP preview in Chromium-based browser, enable `about://flags/#enable-webmcp-testing`. The page exposes:
+
+- `scan_repository` through `navigator.modelContext.registerTool(...)`
+- `scan_repository_form` through the annotated repo scan form
 
 ### CLI
 
@@ -281,6 +287,7 @@ The shared scan engine also has direct package-level tests:
 
 ```powershell
 npm install
+npm run test:frontend
 npm run test:core
 npm run test:cli
 npm run test:vscode-extension
@@ -289,6 +296,7 @@ npm run build:vscode-extension
 
 Client-surface coverage is split this way:
 
+- `npm run test:frontend` validates the browser-side WebMCP repo scan helper and shared tool payload formatting
 - `npm run test:cli` validates terminal CLI behavior and output formatting
 - `npm run test:vscode-extension` validates extension-side helpers and rendering logic
 - `npm run build:vscode-extension` validates the extension bundle that VS Code loads

@@ -214,6 +214,11 @@ body {
   min-width: 0;
 }
 
+.scan-form-inner:tool-form-active {
+  outline: 1px dashed var(--topbar-accent);
+  outline-offset: 0.4rem;
+}
+
 .scan-cmd {
   color: var(--topbar-muted);
   white-space: nowrap;
@@ -253,6 +258,10 @@ body {
 .scan-form-inner button:hover:not(:disabled) { background: var(--scan-btn-hover); }
 .scan-form-inner button:disabled { opacity: 0.5; cursor: not-allowed; }
 .scan-form-inner button:focus-visible { outline: 2px solid var(--topbar-accent); outline-offset: 2px; }
+.scan-form-inner button:tool-submit-active {
+  outline: 1px dashed #ffb366;
+  outline-offset: 2px;
+}
 
 /* ── Log body ── */
 .log-body {

@@ -1,6 +1,13 @@
 import { scanRepo, fetchSharedReport, fetchConfig } from './api.js';
 import { renderReport } from './report.js';
 import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
+import {
+  buildRepoScanErrorPayload,
+  buildRepoScanPayload,
+  getDeclarativeToolName,
+  registerRepoScanTool,
+  supportsWebMcp,
+} from './webmcp.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
@@ -61,6 +68,7 @@ let progressTimer = null;
 let telemetryConfig = null;
 let hasScanStarted = false;
 let resizeTimer = null;
+let activeScanPromise = null;
 
 function getAnalyticsConsent() {
   try {
@@ -384,51 +392,86 @@ async function loadSharedReport(id, sharingEnabled) {
   }
 }
 
-async function handleScan(repoUrl, sharingEnabled) {
-  hideError();
-  if (!hasScanStarted) {
-    hasScanStarted = true;
-    animateScanStart();
+async function executeScan(repoUrl, sharingEnabled) {
+  const trimmedRepoUrl = repoUrl.trim();
+  if (!trimmedRepoUrl) {
+    throw new Error('GitHub repository is required. Provide owner/repository or a full GitHub URL.');
   }
-  setLoading(true);
-  showProgress();
-  document.getElementById('report').classList.add('hidden');
-  // Update topbar to show which repo (owner/repo slug) is being scanned
-  const topbarScope = document.getElementById('topbar-scope');
-  if (topbarScope) topbarScope.textContent = repoUrl;
-  syncViewState();
+
+  if (activeScanPromise) {
+    throw new Error('A repository scan is already in progress. Wait for it to finish before starting another scan.');
+  }
 
   const controller = new AbortController();
-  try {
-    trackUiEvent('scan_requested_client', {
-      repo_reference: repoUrl,
-    });
-    const result = await scanRepo(repoUrl, controller.signal);
-    hideProgress();
-    renderReport(result, { sharingEnabled });
-    syncViewState();
-    trackUiEvent(
-      'scan_succeeded_client',
-      {
-        repo_name: result.repo_name,
-        verdict: result.verdict,
-      },
-      {
-        score: Number(result.score),
-      }
-    );
-  } catch (err) {
-    hideProgress();
-    if (err.name !== 'AbortError') {
-      showError(err.message);
-      trackUiEvent('scan_failed_client', {
-        repo_reference: repoUrl,
-        error_name: err.name,
-        reason: err.message,
-      });
+  const run = (async () => {
+    hideError();
+    if (!hasScanStarted) {
+      hasScanStarted = true;
+      animateScanStart();
     }
+    setLoading(true);
+    showProgress();
+    document.getElementById('report').classList.add('hidden');
+    const topbarScope = document.getElementById('topbar-scope');
+    if (topbarScope) topbarScope.textContent = trimmedRepoUrl;
+    syncViewState();
+
+    try {
+      trackUiEvent('scan_requested_client', {
+        repo_reference: trimmedRepoUrl,
+      });
+      const result = await scanRepo(trimmedRepoUrl, controller.signal);
+      hideProgress();
+      renderReport(result, { sharingEnabled });
+      syncViewState();
+      trackUiEvent(
+        'scan_succeeded_client',
+        {
+          repo_name: result.repo_name,
+          verdict: result.verdict,
+        },
+        {
+          score: Number(result.score),
+        }
+      );
+      return result;
+    } catch (err) {
+      hideProgress();
+      if (err.name !== 'AbortError') {
+        showError(err.message);
+        trackUiEvent('scan_failed_client', {
+          repo_reference: trimmedRepoUrl,
+          error_name: err.name,
+          reason: err.message,
+        });
+      }
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  })();
+
+  activeScanPromise = run;
+
+  try {
+    return await run;
   } finally {
-    setLoading(false);
+    if (activeScanPromise === run) {
+      activeScanPromise = null;
+    }
+  }
+}
+
+async function handleScan(repoUrl, sharingEnabled) {
+  hideError();
+  try {
+    return await executeScan(repoUrl, sharingEnabled);
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return null;
+    }
+
+    return null;
   }
 }
 
@@ -475,14 +518,55 @@ document.addEventListener('DOMContentLoaded', async () => {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const repoUrl = repoInput.value.trim();
-    if (repoUrl) handleScan(repoUrl, sharingEnabled);
+    if (!repoUrl) {
+      const error = new Error('GitHub repository is required. Provide owner/repository or a full GitHub URL.');
+      showError(error.message);
+      if (e.agentInvoked && typeof e.respondWith === 'function') {
+        e.respondWith(Promise.resolve(buildRepoScanErrorPayload(error, '')));
+      }
+      return;
+    }
+
+    const runPromise = executeScan(repoUrl, sharingEnabled);
+
+    if (e.agentInvoked && typeof e.respondWith === 'function') {
+      e.respondWith(
+        runPromise
+          .then((result) => buildRepoScanPayload(result))
+          .catch((error) => buildRepoScanErrorPayload(error, repoUrl))
+      );
+      return;
+    }
+
+    void runPromise.catch(() => {});
   });
+
+  if (supportsWebMcp()) {
+    registerRepoScanTool({
+      async executeScan(repoUrl) {
+        repoInput.value = repoUrl;
+        return executeScan(repoUrl, sharingEnabled);
+      },
+    });
+
+    window.addEventListener('toolactivated', (event) => {
+      if (event?.toolName === getDeclarativeToolName()) {
+        showToast('WebMCP populated the repo scan form. Running scan…');
+      }
+    });
+
+    window.addEventListener('toolcancel', (event) => {
+      if (event?.toolName === getDeclarativeToolName()) {
+        showToast('WebMCP canceled the repo scan form.');
+      }
+    });
+  }
 
   // Auto-scan from /owner/repo on the current app host
   const repoFromPath = getRepoFromPath(window.location.pathname);
   if (repoFromPath) {
     repoInput.value = repoFromPath;
-    handleScan(repoFromPath, sharingEnabled);
+    void handleScan(repoFromPath, sharingEnabled);
     return;
   }
 
@@ -493,7 +577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sanitized = normalizeRepoReference(repoParam);
     if (sanitized) {
       repoInput.value = sanitized;
-      handleScan(sanitized, sharingEnabled);
+      void handleScan(sanitized, sharingEnabled);
     } else {
       showError('Invalid repo parameter. Expected format: owner/repository');
     }
