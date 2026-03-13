@@ -245,8 +245,68 @@ function syncViewState() {
   body.classList.toggle('results-view', isShowingReport);
 }
 
+function playFlipAnimation(element, firstRect, { scale = false } = {}) {
+  if (!element || !firstRect) {
+    return;
+  }
+
+  const lastRect = element.getBoundingClientRect();
+  if (!lastRect.width || !lastRect.height) {
+    return;
+  }
+
+  const deltaX = firstRect.left - lastRect.left;
+  const deltaY = firstRect.top - lastRect.top;
+  const scaleX = scale ? firstRect.width / lastRect.width : 1;
+  const scaleY = scale ? firstRect.height / lastRect.height : 1;
+  const hasMovement = Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5;
+  const hasScale = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
+
+  if (!hasMovement && !hasScale) {
+    return;
+  }
+
+  element.animate(
+    [
+      {
+        transformOrigin: 'top left',
+        transform: `translate(${deltaX}px, ${deltaY}px) scale(${scaleX}, ${scaleY})`,
+      },
+      {
+        transformOrigin: 'top left',
+        transform: 'translate(0, 0) scale(1, 1)',
+      },
+    ],
+    {
+      duration: 550,
+      easing: 'cubic-bezier(0, 0, 0.2, 1)',
+      fill: 'both',
+    }
+  );
+}
+
 function animateScanStart() {
-  document.body.classList.add('scan-started');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+
+  const scanForm = document.getElementById('scan-form');
+  const scanLineContent = document.querySelector('.scan-line-content');
+  const logBody = document.getElementById('log-body');
+
+  if (!scanForm || !scanLineContent || !logBody) {
+    return;
+  }
+
+  const scanFormRect = scanForm.getBoundingClientRect();
+  const scanLineContentRect = scanLineContent.getBoundingClientRect();
+  const logBodyRect = logBody.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    playFlipAnimation(scanForm, scanFormRect);
+    playFlipAnimation(scanLineContent, scanLineContentRect, { scale: true });
+    playFlipAnimation(logBody, logBodyRect);
+  });
 }
 
 export function showToast(message) {
