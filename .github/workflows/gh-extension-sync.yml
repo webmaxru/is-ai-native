@@ -1,0 +1,97 @@
+name: Publish GH Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repository:
+        description: 'Optional override for the dedicated gh extension repository in owner/repo format'
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - packages/cli/**
+      - packages/core/**
+      - .github/workflows/gh-extension-sync.yml
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync gh-is-ai-native repo
+    runs-on: ubuntu-latest
+    env:
+      TARGET_REPOSITORY: ${{ inputs.target_repository || vars.GH_EXTENSION_REPOSITORY }}
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Validate sync configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TARGET_REPOSITORY}" ]]; then
+            echo "Set repository variable GH_EXTENSION_REPOSITORY to owner/gh-is-ai-native or pass workflow_dispatch.input.target_repository."
+            exit 1
+          fi
+
+          if [[ "${TARGET_REPOSITORY}" != */gh-* ]]; then
+            echo "Target repository must be named like owner/gh-is-ai-native. Received: ${TARGET_REPOSITORY}"
+            exit 1
+          fi
+
+          if [[ -z "${{ secrets.GH_EXTENSION_SYNC_TOKEN }}" ]]; then
+            echo "Set secret GH_EXTENSION_SYNC_TOKEN with contents:write on ${TARGET_REPOSITORY}."
+            exit 1
+          fi
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build standalone gh extension repo contents
+        run: npm run build:gh-extension
+
+      - name: Upload generated gh extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-is-ai-native-repo
+          path: artifacts/gh-extension/repo
+
+      - name: Sync generated contents to target repository
+        shell: bash
+        env:
+          PUSH_TOKEN: ${{ secrets.GH_EXTENSION_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          target_dir="$(mktemp -d)"
+
+          git clone "https://x-access-token:${PUSH_TOKEN}@github.com/${TARGET_REPOSITORY}.git" "$target_dir"
+
+          find "$target_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -R artifacts/gh-extension/repo/. "$target_dir/"
+          chmod +x "$target_dir/gh-is-ai-native"
+
+          cd "$target_dir"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add --all
+
+          if git diff --cached --quiet; then
+            echo "No gh extension changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA}"
+          git push origin HEAD:main

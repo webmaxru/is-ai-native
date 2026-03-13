@@ -23,6 +23,17 @@ npm run build:vscode-extension
 npm run test:vscode-extension
 ```
 
+## Package And Publish
+
+From the repository root:
+
+```powershell
+npm run package:vscode-extension
+npm run publish:vscode-extension
+```
+
+If you prefer running `vsce` directly, run it from `packages/vscode-extension`. Running `vsce` from the repository root targets the workspace `package.json`, which does not contain the extension manifest fields required by the Marketplace.
+
 ## Run From Source
 
 1. Open the repository in VS Code.

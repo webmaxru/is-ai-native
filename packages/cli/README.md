@@ -8,10 +8,34 @@ For Azure-hosted web deployments, the shared backend now reports the active Cont
 
 - Package name: `@is-ai-native/cli`
 - Executable: `is-ai-native`
-- Distribution: private workspace package
+- Distribution: private workspace package plus generated `gh-is-ai-native` export artifacts
 - Scope: local filesystem scans and GitHub repository scans
 
-This package is not currently published to npm and is not yet wrapped as a native `gh` extension. Use it from the workspace source.
+This package is not currently published to npm. It can generate the contents for a dedicated `gh-is-ai-native` repository, which is the supported way to publish it as a native GitHub CLI extension from this monorepo.
+
+## GitHub CLI Extension Export
+
+Build the dedicated `gh-is-ai-native` repository contents from the workspace root:
+
+```powershell
+npm install
+npm run build:gh-extension
+```
+
+This writes a standalone script-based GitHub CLI extension layout to `artifacts/gh-extension/repo` with:
+
+- a root launcher named `gh-is-ai-native`
+- a bundled Node entrypoint named `gh-is-ai-native.mjs`
+- a dedicated extension README and the project license
+
+The repository includes a sync workflow at `.github/workflows/gh-extension-sync.yml` that can push those generated contents into a separate `owner/gh-is-ai-native` repository.
+
+Required GitHub Actions configuration in the source repository:
+
+- repository variable `GH_EXTENSION_REPOSITORY`: the target repository in `owner/gh-is-ai-native` format
+- secret `GH_EXTENSION_SYNC_TOKEN`: a token with `contents:write` access to that target repository
+
+Because GitHub CLI installs script extensions from the repository root, publishing through a separate generated repository is the supported path when the CLI source lives under `packages/cli` in this monorepo.
 
 ## Run From Source
 

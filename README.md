@@ -134,8 +134,17 @@ Current status:
 
 - The package is private and lives inside the workspace.
 - It is not published to npm.
-- It is not yet packaged as a native `gh` extension.
+- It can generate a standalone `gh-is-ai-native` repository for native `gh extension install` distribution.
 - It uses the same shared scan engine and configuration as the web app and VS Code extension.
+
+To build the generated GitHub CLI extension repository contents locally:
+
+```powershell
+npm install
+npm run build:gh-extension
+```
+
+That command writes a standalone extension layout to `artifacts/gh-extension/repo`. The source repository also includes `.github/workflows/gh-extension-sync.yml`, which can push those generated contents to a dedicated `owner/gh-is-ai-native` repository by using the `GH_EXTENSION_REPOSITORY` repository variable and `GH_EXTENSION_SYNC_TOKEN` secret.
 
 Run it directly from source from the repository root:
 

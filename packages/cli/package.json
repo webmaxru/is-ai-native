@@ -16,9 +16,13 @@
     "src"
   ],
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build:gh-extension": "node ./scripts/build-gh-extension.mjs"
   },
   "dependencies": {
     "@is-ai-native/core": "file:../core"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
   }
 }
