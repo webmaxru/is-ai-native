@@ -115,6 +115,18 @@ function primitiveDisclosureOpenAttr() {
   return window.matchMedia('(max-width: 620px)').matches ? '' : ' open';
 }
 
+function primitiveMetaHtml(prim, name, cat, fileSummary, assistantName, { expandable = false } = {}) {
+  return `
+    <span class="primitive-entry-meta-row">
+      ${expandable ? '<span class="primitive-entry-chevron" aria-hidden="true">▼</span>' : ''}
+      <span class="primitive-entry-meta">${escapeHtml(fileSummary)}</span>
+      <span class="row-cat-wrap">
+        <button type="button" class="row-cat row-cat-trigger" aria-label="About ${name}">${cat}</button>
+        ${primitivePopoverHtml(prim, assistantName)}
+      </span>
+    </span>`;
+}
+
 function setPageHeading(text) {
   const heading = document.getElementById('page-heading');
   if (heading) {
@@ -150,39 +162,43 @@ function progressBarHtml(score, colorClass) {
 /**
  * Render one primitive as a terminal log row.
  */
-function primitiveRow(prim, assistantName = '') {
+export function renderPrimitiveRow(prim, assistantName = '') {
   const found = prim.detected;
   const rowClass = found ? 'found' : 'absent';
   const icon = found ? '☑️' : '⬜';
   const name = escapeHtml(prim.name);
   const cat = escapeHtml((prim.category || '').toLowerCase());
   const fileCount = prim.matched_files?.length ?? 0;
+  const hasMatchedFiles = fileCount > 0;
   const fileSummary = fileCount ? `${fileCount} file${fileCount !== 1 ? 's' : ''} found` : 'not found';
+  const metaHtml = primitiveMetaHtml(prim, name, cat, fileSummary, assistantName, {
+    expandable: hasMatchedFiles,
+  });
+
+  if (!hasMatchedFiles) {
+    return `
+      <div class="primitive-entry primitive-entry-static ${rowClass}">
+        <div class="log-row primitive-entry-summary">
+          <span class="row-icon">${icon}</span>
+          <span class="row-name">${name}</span>
+          ${metaHtml}
+        </div>
+      </div>`;
+  }
+
   const openAttr = primitiveDisclosureOpenAttr();
 
-  let fileHtml;
-  if (prim.matched_files?.length) {
-    const fileItems = prim.matched_files
-      .map((f) => `<div class="matched-file-item">${escapeHtml(f)}</div>`)
-      .join('');
-    fileHtml = `<div class="row-file-list">${fileItems}</div>`;
-  } else {
-    fileHtml = '<span class="row-file">not found</span>';
-  }
+  const fileItems = prim.matched_files
+    .map((f) => `<div class="matched-file-item">${escapeHtml(f)}</div>`)
+    .join('');
+  const fileHtml = `<div class="row-file-list">${fileItems}</div>`;
 
   return `
     <details class="primitive-entry ${rowClass}"${openAttr}>
       <summary class="log-row primitive-entry-summary">
         <span class="row-icon">${icon}</span>
         <span class="row-name">${name}</span>
-        <span class="primitive-entry-meta-row">
-          <span class="primitive-entry-chevron" aria-hidden="true">▼</span>
-          <span class="primitive-entry-meta">${escapeHtml(fileSummary)}</span>
-          <span class="row-cat-wrap">
-            <button type="button" class="row-cat row-cat-trigger" aria-label="About ${name}">${cat}</button>
-            ${primitivePopoverHtml(prim, assistantName)}
-          </span>
-        </span>
+        ${metaHtml}
       </summary>
       <div class="primitive-entry-panel">
         <div class="primitive-entry-files">
@@ -201,7 +217,7 @@ function assistantSection(assistant, primitiveMetaByName) {
   const rowsHtml = assistant.primitives?.length
     ? assistant.primitives
         .map((primitive) => enrichPrimitive(primitive, primitiveMetaByName))
-        .map((primitive) => primitiveRow(primitive, assistant.name))
+        .map((primitive) => renderPrimitiveRow(primitive, assistant.name))
         .join('')
     : '<p class="log-empty">no primitives data available</p>';
 
@@ -257,7 +273,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
           <span class="lh-title">primitives</span>
           <span class="lh-score ${sColorClass}">${result.score}/100</span>
         </div>
-        ${result.primitives.map((primitive) => primitiveRow(primitive)).join('')}
+        ${result.primitives.map((primitive) => renderPrimitiveRow(primitive)).join('')}
       </div>`;
   } else {
     sectionsHtml = `

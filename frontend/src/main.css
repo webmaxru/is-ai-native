@@ -589,6 +589,11 @@ kbd {
   outline-offset: 2px;
 }
 
+.primitive-entry-static .primitive-entry-summary {
+  cursor: default;
+  user-select: text;
+}
+
 .row-icon {
   display: inline-flex;
   align-items: center;
