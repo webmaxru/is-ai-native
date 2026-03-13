@@ -1,15 +1,39 @@
 {
-  "name": "@is-ai-native/vscode-extension",
+  "name": "is-ai-native",
   "version": "0.1.0",
-  "description": "VS Code extension for AI-native repository scanning",
-  "private": true,
+  "publisher": "adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b",
+  "displayName": "Is AI-Native",
+  "description": "Scan workspaces and GitHub repositories for AI-native development primitives.",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/extension.js",
+  "icon": "media/icon.png",
+  "homepage": "https://github.com/webmaxru/is-ai-native#readme",
+  "bugs": {
+    "url": "https://github.com/webmaxru/is-ai-native/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webmaxru/is-ai-native.git"
+  },
+  "galleryBanner": {
+    "color": "#0b2336",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.99.0"
   },
   "categories": [
+    "Machine Learning",
     "Other"
+  ],
+  "keywords": [
+    "ai",
+    "ai-native",
+    "github-copilot",
+    "repository-scanner",
+    "developer-tools",
+    "productivity"
   ],
   "contributes": {
     "commands": [
@@ -38,13 +62,12 @@
     }
   },
   "scripts": {
+    "vscode:prepublish": "npm run build",
     "build": "node esbuild.config.mjs",
     "test": "node --test tests/*.test.js"
   },
-  "dependencies": {
-    "@is-ai-native/core": "file:../core"
-  },
   "devDependencies": {
+    "@is-ai-native/core": "file:../core",
     "esbuild": "^0.25.0"
   }
 }

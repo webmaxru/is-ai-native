@@ -6,12 +6,12 @@ The hosted web application can now be deployed with either the default scale-to-
 
 ## Status
 
-- Package name: `@is-ai-native/vscode-extension`
-- Distribution: private workspace package
+- Extension id: `adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b.is-ai-native`
+- Marketplace publisher: `adbfaa08-0a72-47e0-93d8-d5ec8ddaff6b`
 - Entry point: `dist/extension.js`
 - Engine target: VS Code `^1.99.0`
 
-The extension is currently intended for source-based development and internal validation. It is not yet published to the VS Code Marketplace.
+The extension manifest is configured for VS Code Marketplace packaging and publishing.
 
 ## Build And Test
 
@@ -51,4 +51,4 @@ npm run test:vscode-extension
 
 - The extension bundle must remain ESM. The shared core uses `import.meta.url` to load bundled configuration.
 - File-opening actions only apply to local workspace results, not remote GitHub scans.
-- The current UX is command-driven with a results webview. Sidebar views and marketplace packaging are still future work.
+- The current UX is command-driven with a results webview. Sidebar views are still future work.

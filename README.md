@@ -188,11 +188,11 @@ For GitHub repository scans, the CLI resolves tokens in this order:
 
 ### VS Code Extension
 
-The repository includes a private source-based extension in [packages/vscode-extension/README.md](packages/vscode-extension/README.md). It reuses the same shared scan core as the web app and CLI package.
+The repository includes a VS Code extension in [packages/vscode-extension/README.md](packages/vscode-extension/README.md). It reuses the same shared scan core as the web app and CLI package.
 
 Current status:
 
-- The extension package is private and is not yet published to the VS Code Marketplace.
+- The extension manifest is configured for VS Code Marketplace packaging and publishing.
 - The bundle entry point is `packages/vscode-extension/dist/extension.js`.
 - The extension bundle must stay ESM because the shared core uses `import.meta.url` to load bundled configuration.
 
@@ -231,7 +231,7 @@ Extension setting:
 Current limitations:
 
 - File-opening actions are only available for local workspace scans, not remote GitHub scans.
-- The extension is currently command-driven with a results webview. It does not yet provide a dedicated sidebar view, tree view, or marketplace packaging flow.
+- The extension is currently command-driven with a results webview. It does not yet provide a dedicated sidebar view or tree view.
 
 ### Full Stack with Docker Compose
 

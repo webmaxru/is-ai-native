@@ -1,3 +1,6 @@
 src/**
 tests/**
 esbuild.config.mjs
+node_modules/**
+is-ai-native.vsix
+dist/**/*.map
