@@ -8,6 +8,7 @@ data/reports/
 # Build artifacts
 dist/
 frontend/dist/
+packages/vscode-extension/config/
 coverage/
 .playwright-mcp/
 *.log

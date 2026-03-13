@@ -68,5 +68,6 @@ If you prefer running `vsce` directly, run it from `packages/vscode-extension`. 
 ## Notes
 
 - The extension bundle must remain ESM. The shared core uses `import.meta.url` to load bundled configuration.
+- The build copies `packages/core/config/*.json` into `packages/vscode-extension/config` so Marketplace installs include the scanner definitions required at runtime.
 - File-opening actions only apply to local workspace results, not remote GitHub scans.
 - The current UX is command-driven with a results webview. Sidebar views are still future work.
