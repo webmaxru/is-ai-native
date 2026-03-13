@@ -67,7 +67,6 @@ let toastTimer = null;
 let progressTimer = null;
 let telemetryConfig = null;
 let hasScanStarted = false;
-let resizeTimer = null;
 let activeScanPromise = null;
 
 function getAnalyticsConsent() {
@@ -246,55 +245,8 @@ function syncViewState() {
   body.classList.toggle('results-view', isShowingReport);
 }
 
-function applyCenteredLanding() {
-    if (hasScanStarted) return;
-    const topbar = document.querySelector('.term-topbar');
-    const scanForm = document.getElementById('scan-form');
-    const logBody = document.getElementById('log-body');
-    const footer = document.querySelector('.log-footer');
-    const landingMsg = document.getElementById('landing-msg');
-    if (!topbar || !scanForm || !logBody || !footer || !landingMsg) return;
-
-    // Reset inline transforms before measuring so we get natural positions
-    scanForm.style.transform = '';
-    logBody.style.transform = '';
-
-    const topbarH = topbar.offsetHeight;
-    const footerH = footer.offsetHeight;
-    const scanFormH = scanForm.offsetHeight;
-    const logBodyPT = parseFloat(getComputedStyle(logBody).paddingTop) || 24;
-    const landingMsgH = landingMsg.offsetHeight;
-    const availableH = window.innerHeight - topbarH - footerH;
-    const contentH = scanFormH + logBodyPT + landingMsgH;
-    const delta = Math.max(0, (availableH - contentH) / 2);
-
-    // Instantly reposition without transition
-    scanForm.style.transition = 'none';
-    logBody.style.transition = 'none';
-    scanForm.style.transform = `translateY(${delta}px)`;
-    logBody.style.transform = `translateY(${delta}px)`;
-}
-
 function animateScanStart() {
-    const scanForm = document.getElementById('scan-form');
-    const logBody = document.getElementById('log-body');
-    if (!scanForm || !logBody) return;
-
-    // Force a style flush so the browser knows the start position
-    scanForm.getBoundingClientRect();
-
-    const EASING = 'transform 0.55s cubic-bezier(0, 0, 0.2, 1)';
-    scanForm.style.transition = EASING;
-    logBody.style.transition = EASING;
-    scanForm.style.transform = 'translateY(0)';
-    logBody.style.transform = 'translateY(0)';
-
-    setTimeout(() => {
-      scanForm.style.transition = '';
-      scanForm.style.transform = '';
-      logBody.style.transition = '';
-      logBody.style.transform = '';
-    }, 620);
+  document.body.classList.add('scan-started');
 }
 
 export function showToast(message) {
@@ -484,7 +436,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     new URLSearchParams(window.location.search).get('repo') ||
     window.location.pathname.match(/^\/_\/report\/[^/]+$/)
   );
-  if (!isAutoScanPage) applyCenteredLanding();
 
   let sharingEnabled = false;
   try {
@@ -585,12 +536,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // No auto-scan: focus the repo input for immediate typing
-  // Apply centered layout after fonts are ready for accurate measurements
-  document.fonts.ready.then(() => applyCenteredLanding());
-  window.addEventListener('resize', () => {
-    if (hasScanStarted) return;
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(applyCenteredLanding, 150);
-  });
   repoInput.focus({ preventScroll: true });
 });

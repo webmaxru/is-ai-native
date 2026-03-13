@@ -94,6 +94,18 @@ body {
   overflow-x: hidden;
 }
 
+.app-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.landing-view .app-shell {
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -273,6 +285,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+body.landing-view .log-body {
+  flex: 0 1 auto;
 }
 
 /* ── Landing message ── */
@@ -1058,6 +1074,10 @@ a:focus-visible {
 
 /* ── Responsive ── */
 @media (max-width: 620px) {
+  body.landing-view .app-shell {
+    padding: 1rem 0;
+  }
+
   .term-topbar {
     padding: 0.5rem 1rem;
     gap: 0.5rem;
