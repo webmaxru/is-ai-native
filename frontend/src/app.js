@@ -13,53 +13,18 @@ import {
   VSCODE_EXTENSION_URL,
   getRepoAccessInstallOptions,
 } from './error-banner.js';
+import {
+  getRepoFromPath,
+  normalizeRepoInputValue,
+  normalizeRepoReference,
+  syncRepoPathInBrowser,
+} from './repo-location.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
 const THEME_OPTIONS = new Set(['system', 'light', 'dark']);
 const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-// GitHub owner: alphanumeric or hyphens, 1-39 chars, no leading/trailing hyphen
-// GitHub repo: alphanumeric, hyphens, dots, underscores, 1-100 chars
-const REPO_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?\/[a-zA-Z0-9._-]{1,100}$/;
-
-/**
- * Parse GitHub URL or short form (owner/repo) into owner/repo format.
- * Handles: https://github.com/owner/repo, http://github.com/owner/repo, owner/repo
- * @param {string} input - Raw user input
- * @returns {string|null} Normalized owner/repo string or null if invalid
- */
-function parseGitHubReference(input) {
-  if (!input || typeof input !== 'string') return null;
-  
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-
-  // Already in short form owner/repo
-  if (REPO_RE.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Try to parse as URL
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    try {
-      const url = new URL(trimmed);
-      if (url.hostname !== 'github.com') return null;
-      
-      const match = url.pathname.match(/^\/([^/]+)\/([^/\s]+)/);
-      if (!match) return null;
-      
-      const owner = match[1];
-      const repo = match[2].replace(/\.git$/, '');
-      
-      return `${owner}/${repo}`;
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
 const ANALYTICS_CONSENT_KEY = 'is-ai-native-analytics-consent';
 
 const PROGRESS_STAGES = [
@@ -221,24 +186,6 @@ function initThemeSwitcher() {
       applyTheme('system');
     }
   });
-}
-
-function normalizeRepoReference(value) {
-  const parsed = parseGitHubReference(value);
-  return parsed;
-}
-
-function getRepoFromPath(pathname) {
-  const match = pathname.match(/^\/([^/]+)\/([^/]+)\/?$/);
-  if (!match) {
-    return null;
-  }
-
-  try {
-    return normalizeRepoReference(`${decodeURIComponent(match[1])}/${decodeURIComponent(match[2])}`);
-  } catch {
-    return null;
-  }
 }
 
 function syncViewState() {
@@ -447,6 +394,9 @@ async function executeScan(repoUrl, sharingEnabled) {
     throw new Error('GitHub repository is required. Provide owner/repository or a full GitHub URL.');
   }
 
+  const normalizedRepoReference = normalizeRepoReference(trimmedRepoUrl);
+  const repoReference = normalizedRepoReference || trimmedRepoUrl;
+
   if (activeScanPromise) {
     throw new Error('A repository scan is already in progress. Wait for it to finish before starting another scan.');
   }
@@ -462,14 +412,21 @@ async function executeScan(repoUrl, sharingEnabled) {
     showProgress();
     document.getElementById('report').classList.add('hidden');
     const topbarScope = document.getElementById('topbar-scope');
-    if (topbarScope) topbarScope.textContent = trimmedRepoUrl;
+    const repoInput = document.getElementById('repo-url');
+    if (normalizedRepoReference && repoInput) {
+      repoInput.value = normalizedRepoReference;
+    }
+    if (topbarScope) topbarScope.textContent = repoReference;
     syncViewState();
+    if (normalizedRepoReference) {
+      syncRepoPathInBrowser(normalizedRepoReference);
+    }
 
     try {
       trackUiEvent('scan_requested_client', {
-        repo_reference: trimmedRepoUrl,
+        repo_reference: repoReference,
       });
-      const result = await scanRepo(trimmedRepoUrl, controller.signal);
+      const result = await scanRepo(repoReference, controller.signal);
       hideProgress();
       renderReport(result, { sharingEnabled });
       syncViewState();
@@ -489,7 +446,7 @@ async function executeScan(repoUrl, sharingEnabled) {
       if (err.name !== 'AbortError') {
         showError(err.message);
         trackUiEvent('scan_failed_client', {
-          repo_reference: trimmedRepoUrl,
+          repo_reference: repoReference,
           error_name: err.name,
           reason: err.message,
         });
@@ -575,7 +532,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const runPromise = executeScan(repoUrl, sharingEnabled);
+    repoInput.value = normalizeRepoInputValue(repoUrl);
+
+    const runPromise = executeScan(repoInput.value, sharingEnabled);
 
     if (e.agentInvoked && typeof e.respondWith === 'function') {
       e.respondWith(
@@ -592,8 +551,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (supportsWebMcp()) {
     registerRepoScanTool({
       async executeScan(repoUrl) {
-        repoInput.value = repoUrl;
-        return executeScan(repoUrl, sharingEnabled);
+        repoInput.value = normalizeRepoInputValue(repoUrl);
+        return executeScan(repoInput.value, sharingEnabled);
       },
     });
 
