@@ -23,6 +23,12 @@ function scoreColorClass(score) {
   return 'score-red';
 }
 
+export function getVerdictForScore(score) {
+  if (score >= 60) return 'AI-Native';
+  if (score >= 30) return 'AI-Assisted';
+  return 'Traditional';
+}
+
 const ASSISTANT_DOC_HINTS = {
   'github-copilot': ['docs.github.com', 'code.visualstudio.com/docs/copilot', 'github.com/features/copilot'],
   'claude-code': ['code.claude.com', 'docs.anthropic.com', 'anthropic.com'],
@@ -159,6 +165,24 @@ function progressBarHtml(score, colorClass) {
   return `<div class="progress-track ${colorClass}" aria-hidden="true">${blocks.join('')}</div>`;
 }
 
+export function selectPreferredAssistant(result) {
+  const assistants = Array.isArray(result?.per_assistant) ? result.per_assistant.filter(Boolean) : [];
+
+  if (assistants.length === 0) {
+    return null;
+  }
+
+  return assistants.reduce((bestAssistant, assistant) => {
+    if (!bestAssistant) {
+      return assistant;
+    }
+
+    const bestScore = Number.isFinite(bestAssistant.score) ? bestAssistant.score : 0;
+    const assistantScore = Number.isFinite(assistant.score) ? assistant.score : 0;
+    return assistantScore > bestScore ? assistant : bestAssistant;
+  }, null);
+}
+
 /**
  * Render one primitive as a terminal log row.
  */
@@ -211,7 +235,7 @@ export function renderPrimitiveRow(prim, assistantName = '') {
 /**
  * Render one assistant as a collapsible terminal log section.
  */
-function assistantSection(assistant, primitiveMetaByName) {
+function assistantSection(assistant, primitiveMetaByName, { label = null } = {}) {
   const colorClass = scoreColorClass(assistant.score);
   const slug = escapeHtml(toKebab(assistant.name));
   const rowsHtml = assistant.primitives?.length
@@ -224,7 +248,8 @@ function assistantSection(assistant, primitiveMetaByName) {
   return `
     <details class="log-section" id="section-${slug}" open>
       <summary class="log-header">
-        <span class="lh-title">${slug}</span>
+        ${label ? `<span class="lh-kicker">${escapeHtml(label)}</span>` : ''}
+        <span class="lh-title">${escapeHtml(assistant.name)}</span>
         <span class="lh-score ${colorClass}">${escapeHtml(String(assistant.score))}/100</span>
         <span class="lh-chevron" aria-hidden="true">▼</span>
       </summary>
@@ -234,12 +259,16 @@ function assistantSection(assistant, primitiveMetaByName) {
 
 export function renderReport(result, { sharingEnabled = false } = {}) {
   const el = document.getElementById('report');
-  const vClass = verdictClass(result.verdict);
-  const sColorClass = scoreColorClass(result.score);
   const primitiveMetaByName = new Map((result.primitives || []).map((primitive) => [primitive.name, primitive]));
   const pageHeading = result.repo_name
     ? `AI coding readiness report for ${result.repo_name}`
     : 'AI coding readiness report';
+  const preferredAssistant = selectPreferredAssistant(result);
+  const displayedScore = preferredAssistant ? preferredAssistant.score : result.score;
+  const displayedVerdict = preferredAssistant ? getVerdictForScore(preferredAssistant.score) : result.verdict;
+  const displayedPrimitives = preferredAssistant?.primitives || result.primitives || [];
+  const vClass = verdictClass(displayedVerdict);
+  const sColorClass = scoreColorClass(displayedScore);
 
   setPageHeading(pageHeading);
 
@@ -248,32 +277,38 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   if (topbarScope) topbarScope.textContent = result.repo_name;
 
   // Count overall primitives
-  const totalPrims = result.primitives?.length ?? 0;
-  const foundPrims = result.primitives?.filter((p) => p.detected).length ?? 0;
+  const totalPrims = displayedPrimitives.length;
+  const foundPrims = displayedPrimitives.filter((primitive) => primitive.detected).length;
   const primsColorClass =
     totalPrims > 0 && foundPrims === totalPrims ? 'score-green' : foundPrims > 0 ? 'score-yellow' : 'score-red';
 
   // Progress bar
-  const barHtml = progressBarHtml(result.score, sColorClass);
+  const barHtml = progressBarHtml(displayedScore, sColorClass);
 
   // Verdict display (terminal-style: uppercase kebab)
-  const verdictDisplay = escapeHtml(toKebab(result.verdict).toUpperCase());
+  const verdictDisplay = escapeHtml(toKebab(displayedVerdict).toUpperCase());
 
   // Human-friendly timestamp
   const scanTs = escapeHtml(formatTimestamp(result.scanned_at));
 
-  // Per-assistant sections (preferred) or flat primitive list
+  const assistants = Array.isArray(result.per_assistant) ? result.per_assistant : [];
+
+  // Per-assistant sections with preferred agent highlighted first when available.
   let sectionsHtml = '';
-  if (result.per_assistant?.length) {
-    sectionsHtml = result.per_assistant.map((a) => assistantSection(a, primitiveMetaByName)).join('');
+  if (assistants.length > 0) {
+    sectionsHtml = assistants
+      .map((assistant) => assistantSection(assistant, primitiveMetaByName, {
+        label: preferredAssistant?.name === assistant.name ? 'preferred agent' : null,
+      }))
+      .join('');
   } else if (totalPrims > 0) {
     sectionsHtml = `
       <div class="log-section">
         <div class="log-header">
           <span class="lh-title">primitives</span>
-          <span class="lh-score ${sColorClass}">${result.score}/100</span>
+          <span class="lh-score ${sColorClass}">${displayedScore}/100</span>
         </div>
-        ${result.primitives.map((primitive) => renderPrimitiveRow(primitive)).join('')}
+        ${displayedPrimitives.map((primitive) => renderPrimitiveRow(primitive)).join('')}
       </div>`;
   } else {
     sectionsHtml = `
@@ -289,25 +324,29 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
   const topShareControlsHtml = sharingEnabled ? shareButtonHtml('top') : '';
   const footerShareControlsHtml = sharingEnabled ? shareButtonHtml('footer') : '';
   const pathsScanned = formatPathsScanned(result.paths_scanned);
-
-  // Per-assistant score chips for summary (link to each section)
   const assistantChipsHtml =
-    result.per_assistant?.length
-      ? result.per_assistant
-          .map((a) => {
-            const slug = escapeHtml(toKebab(a.name));
-            const cc = scoreColorClass(a.score);
-            const score = escapeHtml(String(Math.round(Number(a.score))));
-            return `<a href="#section-${slug}" class="as-chip ${cc}">${slug}: ${score}%</a>`;
+    assistants.length > 0
+      ? assistants
+          .map((assistant) => {
+            const slug = escapeHtml(toKebab(assistant.name));
+            const cc = scoreColorClass(assistant.score);
+            const score = escapeHtml(String(Math.round(Number(assistant.score))));
+            const preferredClass = preferredAssistant?.name === assistant.name ? ' as-chip-preferred' : '';
+            return `<a href="#section-${slug}" class="as-chip ${cc}${preferredClass}">${escapeHtml(assistant.name)}: ${score}%</a>`;
           })
           .join('')
       : '';
 
   el.innerHTML = `
     <div class="log-summary">
+      ${preferredAssistant ? `
+      <div class="summary-item summary-item-agent">
+        <div class="si-label">preferred agent</div>
+        <div class="si-value si-agent-name">${escapeHtml(preferredAssistant.name)}</div>
+      </div>` : ''}
       <div class="summary-item">
         <div class="si-label">readiness score</div>
-        <div class="si-value ${sColorClass}">${escapeHtml(String(result.score))}<span class="si-denom">/100</span></div>
+        <div class="si-value ${sColorClass}">${escapeHtml(String(displayedScore))}<span class="si-denom">/100</span></div>
       </div>
       <div class="summary-item">
         <div class="si-label">verdict</div>
@@ -336,7 +375,7 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
     <div class="score-share-row">
       <div class="text-progress">
-        <div class="bar-label">score: ${escapeHtml(String(result.score))}%</div>
+        <div class="bar-label">${preferredAssistant ? `preferred agent score: ${escapeHtml(String(displayedScore))}%` : `score: ${escapeHtml(String(displayedScore))}%`}</div>
         ${barHtml}
       </div>
       ${topShareControlsHtml ? `<div class="report-top-bar">${topShareControlsHtml}</div>` : ''}

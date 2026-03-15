@@ -444,6 +444,12 @@ kbd {
   color: var(--ink);
 }
 
+.summary-item .si-value.si-agent-name {
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .summary-item .si-value.score-green,
 .summary-item .si-value.verdict-native  { color: var(--green); }
 .summary-item .si-value.score-yellow,
@@ -524,6 +530,14 @@ kbd {
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--ink);
+}
+
+.lh-kicker {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .lh-score {
@@ -932,6 +946,10 @@ details.primitive-entry:not([open]) .primitive-entry-chevron {
 .as-chip.score-green { color: var(--green); }
 .as-chip.score-yellow { color: var(--amber); }
 .as-chip.score-red { color: var(--red); }
+.as-chip.as-chip-preferred {
+  background: var(--green-bg);
+  font-weight: 700;
+}
 .as-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
 /* ── Report: top share bar ── */

@@ -11,7 +11,34 @@ const sampleResult = {
   scanned_at: '2026-03-12T12:00:00.000Z',
   score: 75,
   verdict: 'AI-Native',
-  per_assistant: [{ name: 'GitHub Copilot', score: 100 }],
+  per_assistant: [
+    {
+      name: 'GitHub Copilot',
+      score: 100,
+      primitives: [
+        {
+          name: 'Instruction Files',
+          category: 'instructions',
+          description: 'Instruction files',
+          detected: true,
+          matched_files: ['.github/copilot-instructions.md'],
+        },
+      ],
+    },
+    {
+      name: 'Claude Code',
+      score: 25,
+      primitives: [
+        {
+          name: 'Instruction Files',
+          category: 'instructions',
+          description: 'Instruction files',
+          detected: false,
+          matched_files: [],
+        },
+      ],
+    },
+  ],
   primitives: [
     {
       name: 'Instruction Files',
@@ -26,7 +53,11 @@ const sampleResult = {
 test('renderResultsHtml includes metadata and assistant content', () => {
   const html = renderResultsHtml(sampleResult, { nonce: 'abc123' });
   assert.match(html, /Paths Scanned/);
+  assert.match(html, /Preferred Agent/);
   assert.match(html, /GitHub Copilot/);
+  assert.match(html, /Claude Code/);
+  assert.match(html, /Per-Assistant Primitives/);
+  assert.match(html, /Preferred<\/span>/);
   assert.match(html, /Open repository/);
 });
 

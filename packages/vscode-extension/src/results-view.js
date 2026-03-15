@@ -24,6 +24,36 @@ function sanitizeHttpUrl(value) {
   return null;
 }
 
+function getVerdictForScore(score) {
+  if (score >= 60) {
+    return 'AI-Native';
+  }
+
+  if (score >= 30) {
+    return 'AI-Assisted';
+  }
+
+  return 'Traditional';
+}
+
+function getPreferredAssistant(result) {
+  const assistants = Array.isArray(result?.per_assistant) ? result.per_assistant.filter(Boolean) : [];
+
+  if (assistants.length === 0) {
+    return null;
+  }
+
+  return assistants.reduce((bestAssistant, assistant) => {
+    if (!bestAssistant) {
+      return assistant;
+    }
+
+    const bestScore = Number.isFinite(bestAssistant.score) ? bestAssistant.score : 0;
+    const assistantScore = Number.isFinite(assistant.score) ? assistant.score : 0;
+    return assistantScore > bestScore ? assistant : bestAssistant;
+  }, null);
+}
+
 function renderMetaRow(label, value) {
   if (value == null || value === '') {
     return '';
@@ -71,10 +101,32 @@ function renderAssistant(assistant) {
   return `<li class="assistant-item"><span>${escapeHtml(assistant.name)}</span><strong>${escapeHtml(`${assistant.score}%`)}</strong></li>`;
 }
 
+function renderAssistantSection(assistant, preferredAssistant, canOpenFiles) {
+  const verdict = getVerdictForScore(assistant.score);
+  const headingSuffix = preferredAssistant?.name === assistant.name ? ' <span class="preferred-pill">Preferred</span>' : '';
+
+  return `
+    <section class="assistant-section">
+      <div class="assistant-section-header">
+        <h3>${escapeHtml(assistant.name)}${headingSuffix}</h3>
+        <div class="assistant-section-score">${escapeHtml(`${assistant.score}% (${verdict})`)}</div>
+      </div>
+      <div class="assistant-primitives">
+        ${(assistant.primitives || []).map((primitive) => renderPrimitive(primitive, canOpenFiles)).join('')}
+      </div>
+    </section>
+  `;
+}
+
 export function renderResultsHtml(result, { canOpenFiles = false, nonce } = {}) {
   const title = result.repo_name || result.repo_path || 'Is AI-Native Report';
   const scriptNonce = escapeHtml(nonce || '');
   const safeRepoUrl = sanitizeHttpUrl(result.repo_url);
+  const preferredAssistant = getPreferredAssistant(result);
+  const displayedScore = preferredAssistant ? preferredAssistant.score : result.score;
+  const displayedVerdict = preferredAssistant ? getVerdictForScore(preferredAssistant.score) : result.verdict;
+  const displayedPrimitives = preferredAssistant?.primitives || result.primitives || [];
+  const assistants = Array.isArray(result.per_assistant) ? result.per_assistant : [];
 
   return `<!DOCTYPE html>
   <html lang="en">
@@ -103,7 +155,14 @@ export function renderResultsHtml(result, { canOpenFiles = false, nonce } = {}) 
         .assistant-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
         .assistant-item { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--vscode-panel-border); }
         .assistant-item:last-child { border-bottom: 0; padding-bottom: 0; }
+        .assistant-item.preferred { font-weight: 700; }
         .primitives-panel { display: grid; gap: 12px; }
+        .assistant-section { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--vscode-panel-border); border-radius: 10px; background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-textLink-foreground) 6%); }
+        .assistant-section-header { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+        .assistant-section-header h3 { margin: 0; font-size: 1rem; }
+        .assistant-section-score { color: var(--vscode-descriptionForeground); font-weight: 600; }
+        .assistant-primitives { display: grid; gap: 12px; }
+        .preferred-pill { display: inline-flex; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--vscode-testing-iconPassed) 18%, transparent); color: var(--vscode-testing-iconPassed); font-size: 0.75rem; vertical-align: middle; }
         .primitive { padding: 14px; }
         .primitive.detected { border-color: var(--vscode-testing-iconPassed); }
         .primitive.missing { border-color: var(--vscode-testing-iconFailed); }
@@ -133,18 +192,21 @@ export function renderResultsHtml(result, { canOpenFiles = false, nonce } = {}) 
         </div>
       </section>
       <section class="stats">
-        <article class="stat-card"><span class="stat-label">Overall Score</span><div class="stat-value">${escapeHtml(`${result.score}%`)}</div></article>
-        <article class="stat-card"><span class="stat-label">Verdict</span><div class="stat-value">${escapeHtml(result.verdict)}</div></article>
-        <article class="stat-card"><span class="stat-label">Detected Primitives</span><div class="stat-value">${escapeHtml(String((result.primitives || []).filter((primitive) => primitive.detected).length))}/${escapeHtml(String((result.primitives || []).length))}</div></article>
+        ${preferredAssistant ? `<article class="stat-card"><span class="stat-label">Preferred Agent</span><div class="stat-value">${escapeHtml(preferredAssistant.name)}</div></article>` : ''}
+        <article class="stat-card"><span class="stat-label">Readiness Score</span><div class="stat-value">${escapeHtml(`${displayedScore}%`)}</div></article>
+        <article class="stat-card"><span class="stat-label">Verdict</span><div class="stat-value">${escapeHtml(displayedVerdict)}</div></article>
+        <article class="stat-card"><span class="stat-label">Detected Primitives</span><div class="stat-value">${escapeHtml(String(displayedPrimitives.filter((primitive) => primitive.detected).length))}/${escapeHtml(String(displayedPrimitives.length))}</div></article>
       </section>
       <section class="content-grid">
         <aside class="assistant-card">
           <h2>Per Assistant</h2>
-          <ul class="assistant-list">${(result.per_assistant || []).map(renderAssistant).join('')}</ul>
+          <ul class="assistant-list">${assistants.map((assistant) => renderAssistant(assistant)).join('')}</ul>
         </aside>
         <section class="primitives-panel">
-          <h2>Primitives</h2>
-          ${(result.primitives || []).map((primitive) => renderPrimitive(primitive, canOpenFiles)).join('')}
+          <h2>Per-Assistant Primitives</h2>
+          ${assistants.length > 0
+            ? assistants.map((assistant) => renderAssistantSection(assistant, preferredAssistant, canOpenFiles)).join('')
+            : (result.primitives || []).map((primitive) => renderPrimitive(primitive, canOpenFiles)).join('')}
         </section>
       </section>
       <script nonce="${scriptNonce}">

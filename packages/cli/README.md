@@ -79,9 +79,9 @@ is-ai-native scan . --output summary --fail-below 60
 ## Output Modes
 
 - `json`: full structured scan result
-- `human`: readable console report
+- `human`: readable console report with a preferred-agent headline plus full per-assistant detail
 - `csv`: one row per primitive
-- `summary`: one-line CI-friendly output
+- `summary`: one-line CI-friendly output based on the preferred agent
 
 ## Exit Codes
 

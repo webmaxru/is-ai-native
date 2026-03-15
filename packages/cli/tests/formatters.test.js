@@ -8,7 +8,32 @@ const sampleResult = {
   repo_path: null,
   verdict: 'AI-Native',
   score: 75,
-  per_assistant: [{ name: 'GitHub Copilot', score: 100 }],
+  per_assistant: [
+    {
+      name: 'GitHub Copilot',
+      score: 100,
+      primitives: [
+        {
+          name: 'Instruction Files',
+          category: 'instructions',
+          detected: true,
+          matched_files: ['.github/copilot-instructions.md'],
+        },
+      ],
+    },
+    {
+      name: 'Claude Code',
+      score: 25,
+      primitives: [
+        {
+          name: 'Instruction Files',
+          category: 'instructions',
+          detected: false,
+          matched_files: [],
+        },
+      ],
+    },
+  ],
   primitives: [
     {
       name: 'Instruction Files',
@@ -21,8 +46,11 @@ const sampleResult = {
 
 test('formatResult renders human output', () => {
   const output = formatResult(sampleResult, 'human');
-  assert.match(output, /Overall Score: 75%/);
-  assert.match(output, /Instruction Files/);
+  assert.match(output, /Preferred Agent: GitHub Copilot/);
+  assert.match(output, /Readiness Score: 100% \(AI-Native\)/);
+  assert.match(output, /- Claude Code: 25%/);
+  assert.match(output, /GitHub Copilot \(preferred agent\): 100% \(AI-Native\)/);
+  assert.match(output, /Claude Code: 25% \(Traditional\)/);
 });
 
 test('formatResult renders csv output', () => {
@@ -33,5 +61,5 @@ test('formatResult renders csv output', () => {
 
 test('formatResult renders summary output', () => {
   const output = formatResult({ ...sampleResult, branch: 'main' }, 'summary');
-  assert.equal(output, 'octo/demo: 75% (AI-Native) @ main');
+  assert.equal(output, 'octo/demo: 100% (AI-Native) [preferred: GitHub Copilot] @ main');
 });
