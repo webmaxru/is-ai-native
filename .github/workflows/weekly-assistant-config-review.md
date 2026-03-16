@@ -12,8 +12,8 @@ engine:
   id: copilot
   agent: assistant-config-curator
 tools:
-  edit: true
-  web-fetch: true
+  edit:
+  web-fetch:
   bash: true
 network:
   allowed:
