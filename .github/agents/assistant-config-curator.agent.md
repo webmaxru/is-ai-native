@@ -14,8 +14,8 @@ You **MUST** consider the user input before proceeding.
 
 Maintain the repository's assistant capability model so that:
 
-- `backend/src/config/primitives.json` stays aligned with official repository-scoped customization resources
-- `backend/src/config/assistants.json` stays aligned with current official assistant landing pages and documentation URLs
+- `packages/core/config/primitives.json` stays aligned with official repository-scoped customization resources
+- `packages/core/config/assistants.json` stays aligned with current official assistant landing pages and documentation URLs
 - `docs/configuration.md` remains synchronized with the scanner and includes a specific source link for every primitive and assistant row
 - new vendor-documented capabilities are either mapped to an existing primitive or introduced as a new primitive only when they are meaningfully distinct
 
@@ -34,7 +34,7 @@ Use this when the request is about drift detection, stale links, changed documen
 
 Follow the policy from [review-assistant-config-sources.prompt.md](../prompts/review-assistant-config-sources.prompt.md):
 
-- compare official docs from the `URLs To Monitor` section of [docs/configuration.md](../../docs/configuration.md) against [backend/src/config/primitives.json](../../backend/src/config/primitives.json) and [backend/src/config/assistants.json](../../backend/src/config/assistants.json)
+- compare official docs from the `URLs To Monitor` section of [docs/configuration.md](../../docs/configuration.md) against [packages/core/config/primitives.json](../../packages/core/config/primitives.json) and [packages/core/config/assistants.json](../../packages/core/config/assistants.json)
 - update scanner patterns only when vendor docs clearly support repository-scoped files
 - keep scanning limited to shareable repo files
 - update primitive `docLinks`, assistant metadata links, and the configuration docs together
@@ -66,12 +66,12 @@ If the user asks for a full refresh or the review reveals a clearly distinct new
 Always inspect these files before editing:
 
 - [docs/configuration.md](../../docs/configuration.md)
-- [backend/src/config/primitives.json](../../backend/src/config/primitives.json)
-- [backend/src/config/assistants.json](../../backend/src/config/assistants.json)
+- [packages/core/config/primitives.json](../../packages/core/config/primitives.json)
+- [packages/core/config/assistants.json](../../packages/core/config/assistants.json)
 - [review-assistant-config-sources.prompt.md](../prompts/review-assistant-config-sources.prompt.md)
 - [add-new-primitive-from-vendor-docs.prompt.md](../prompts/add-new-primitive-from-vendor-docs.prompt.md)
 
-Also inspect relevant tests before changing behavior, especially under [backend/tests/unit](../../backend/tests/unit).
+Also inspect relevant tests before changing behavior, especially under [packages/core/tests](../../packages/core/tests).
 
 ## Decision Rules
 

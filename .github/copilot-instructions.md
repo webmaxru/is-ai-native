@@ -1,3 +1,4 @@
 - For design and frontend related tasks, always use Playwright MCP for making resulting screenshots and always attach these screenshots to the PR description.
 - Put all made screenshots ONLY in a folder named `artifacts` at the root of the repository.
 - For every change of the logic, configuration, user experience make sure you checked and updated web application, vs code extension, and github cli extension.
+- For every change to configuration files or configuration documentation, make sure saved agents and saved prompts under `.github/agents` and `.github/prompts` stay in sync with the current file paths, workflows, and source-of-truth references.

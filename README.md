@@ -531,10 +531,13 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 | `AZURE_TENANT_ID` | Azure AD tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
 | `GH_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
+| `COPILOT_GITHUB_TOKEN` | Required by the weekly GH-AW workflow to run the Copilot engine for assistant configuration maintenance |
 | `CUSTOM_DOMAIN_NAME` | *(optional)* Custom domain name (e.g., `scan.example.com`). Leave empty to use the default Azure FQDN |
 | `MANAGED_CERT_NAME` | *(optional)* Name of the managed certificate created in the [Custom Domain](#custom-domain-with-managed-tls) setup |
 | `SECONDARY_CUSTOM_DOMAIN_NAME` | *(optional)* Secondary custom domain to keep bound during migrations or parallel-hostname support |
 | `SECONDARY_MANAGED_CERT_NAME` | *(optional)* Managed certificate name for `SECONDARY_CUSTOM_DOMAIN_NAME` |
+
+`COPILOT_GITHUB_TOKEN` is a GitHub Actions secret for agentic workflow execution only. It is not consumed by [infra/main.bicep](infra/main.bicep), so no Azure IaC parameter or app secret wiring is required for this automation.
 
 ---
 
