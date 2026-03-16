@@ -1,18 +1,10 @@
 lockfile_version: '1'
-generated_at: '2026-03-16T10:29:46.386823+00:00'
+generated_at: '2026-03-16T11:11:06.133893+00:00'
 apm_version: 0.7.9
 dependencies:
 - repo_url: webmaxru/agent-skills
   host: github.com
-  resolved_commit: 42789c8dce5e91f4b2df470728c2b67f1d00f06e
-  virtual_path: skills/webmcp
-  is_virtual: true
-  package_type: claude_skill
-  deployed_files:
-  - .github/skills/webmcp
-- repo_url: webmaxru/agent-skills
-  host: github.com
-  resolved_commit: 42789c8dce5e91f4b2df470728c2b67f1d00f06e
+  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
   virtual_path: skills/github-agentic-workflows
   is_virtual: true
   package_type: claude_skill
@@ -20,9 +12,17 @@ dependencies:
   - .github/skills/github-agentic-workflows
 - repo_url: webmaxru/agent-skills
   host: github.com
-  resolved_commit: 42789c8dce5e91f4b2df470728c2b67f1d00f06e
+  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
   virtual_path: skills/prompt-api
   is_virtual: true
   package_type: claude_skill
   deployed_files:
   - .github/skills/prompt-api
+- repo_url: webmaxru/agent-skills
+  host: github.com
+  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
+  virtual_path: skills/webmcp
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .github/skills/webmcp
