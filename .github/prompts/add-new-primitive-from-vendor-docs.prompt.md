@@ -35,6 +35,7 @@ Constraints:
 - Do not add a new primitive if the capability is better represented as a documented expansion of an existing primitive.
 - If the app can support the new primitive entirely through configuration, prefer that over introducing new backend logic.
 - If new backend logic is genuinely required, implement the smallest defensible change and add tests for it.
+- If you prepare a pull request description, every single update or addition described in that PR body must include its own official source URL with a fragment link to the exact section, heading, or anchored reference that justifies that specific change. Do not group multiple changes under one generic source citation, and do not use bare top-level doc URLs when a deeper fragment is available.
 
 Output expectations:
 
@@ -42,3 +43,5 @@ Output expectations:
 - List the exact assistants affected.
 - List the exact repository-scoped resources now counted.
 - Call out any proxy scanning behavior, limitations, or non-parsed config sections.
+- If you create or draft a PR description, list each update or addition separately and attach the exact supporting source URL with fragment link directly to that item.
+- The PR description must make it possible to trace each individual suggested change back to the exact vendor reference without inference.

@@ -20,3 +20,9 @@ Constraints:
 - Call out legacy-vs-current formats explicitly instead of silently replacing one with the other.
 - Do not invent support for a primitive when the vendor docs only show an adjacent feature.
 - Review `packages/core/config/assistants.json` as well as `packages/core/config/primitives.json`; stale assistant metadata links should be updated alongside primitive links.
+- If you prepare a pull request description, every single update or addition described in that PR body must include its own official source URL with a fragment link to the exact section, heading, or anchored reference that justifies that specific change. Do not group multiple changes under one generic source citation, and do not use bare top-level doc URLs when a deeper fragment is available.
+
+Output expectations:
+
+- If you create or draft a PR description, list each update or addition separately and attach the exact supporting source URL with fragment link directly to that item.
+- The PR description must make it possible to trace each individual suggested change back to the exact vendor reference without inference.

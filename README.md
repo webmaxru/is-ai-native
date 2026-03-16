@@ -16,6 +16,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 - **Report sharing** — Save scan results as shareable links under `/_/report/<uuid>` (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
 - **Operational telemetry** — Emit scan/report custom events to Azure Application Insights so counts, recent activity, report views, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
+- **Weekly assistant maintenance** — Supporting skills and scanner configuration are reviewed weekly through a GitHub Agentic Workflow that scans multiple upstream documentation sources, filters and ranks relevant spec drift, and proposes minimal updates as a draft PR that still requires human review before merge.
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
 ---
@@ -30,6 +31,7 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
   - [VS Code Extension](#vs-code-extension)
   - [Full Stack with Docker Compose](#full-stack-with-docker-compose)
   - [Single Container](#single-container)
+- [Supporting Automation](#supporting-automation)
 - [Testing](#testing)
 - [Environment Variables](#environment-variables)
 - [Cloud Deployment (Azure)](#cloud-deployment-azure)
@@ -276,6 +278,23 @@ docker run -p 3000:3000 -e NODE_ENV=production is-ai-native
 Open **http://localhost:3000**.
 
 If you want the standalone container run to use optional local settings, pass them explicitly with additional `-e` flags such as `GH_TOKEN_FOR_SCAN`, `APPLICATIONINSIGHTS_CONNECTION_STRING`, or `ALLOWED_ORIGIN`.
+
+---
+
+## Supporting Automation
+
+The repository includes a GitHub Agentic Workflow at [`.github/workflows/weekly-assistant-config-review.md`](.github/workflows/weekly-assistant-config-review.md) to keep supporting skills, prompts, and scanner configuration aligned with current assistant platform documentation.
+
+GitHub Agentic Workflows are markdown-authored automations that run inside GitHub Actions with an explicit agent, tool list, network policy, and safe outputs. In this repository, the weekly workflow runs on a weekly schedule with the `assistant-config-curator` agent, fetches the vendor documentation sources listed in [docs/configuration.md](docs/configuration.md), compares them against the current repository-scoped assistant model, and narrows any detected drift down to the smallest relevant changes.
+
+The workflow is intentionally constrained:
+
+- it starts in maintenance mode and only broadens scope if the review finds a genuinely new repository-scoped capability
+- it keeps network access limited to the vendor documentation hosts it needs
+- it uses safe outputs to create a draft pull request rather than merging changes directly
+- it calls `noop` when the weekly scan finds no justified edits
+
+That means weekly skills and scanner updates are proposed automatically from multiple documentation sources, with relevance filtering before a PR is opened, but every merge still depends on a mandatory human check and approval step.
 
 ---
 
