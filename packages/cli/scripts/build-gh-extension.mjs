@@ -53,6 +53,9 @@ async function main() {
     resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'README.md'),
     resolve(outputDir, 'README.md')
   );
+  await cp(resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'assets'), resolve(outputDir, 'assets'), {
+    recursive: true,
+  });
 
   process.stdout.write(`Generated ${extensionName} repo contents in ${outputDir}\n`);
 }

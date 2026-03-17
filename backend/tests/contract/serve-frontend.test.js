@@ -83,6 +83,33 @@ describe('frontend path configured', () => {
       short_name: 'IsAINative',
       start_url: '/',
     });
+    expect(res.body.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          src: '/assets/brand/icon-192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        }),
+        expect.objectContaining({
+          src: '/assets/brand/icon-maskable-512.png',
+          purpose: 'maskable',
+        }),
+      ])
+    );
+  });
+
+  it('GET /favicon.ico redirects to the generated asset', async () => {
+    const res = await request(app).get('/favicon.ico');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/assets/brand/favicon.ico');
+  });
+
+  it('GET /social-card.svg redirects to the generated asset', async () => {
+    const res = await request(app).get('/social-card.svg');
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/assets/brand/social-card.svg');
   });
 
   it('GET /api/unknown still returns JSON 404 (not index.html)', async () => {

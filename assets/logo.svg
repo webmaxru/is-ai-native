@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="a" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="-6.585" y="-4.885" width="530.566" height="518.119" style="stroke: rgb(0, 0, 0); visibility: hidden;"/>
+  <rect x="12.876" y="156.658" width="486.249" height="52.285" rx="8" stroke-width="4" style="fill: rgb(43, 62, 91); stroke-width: 4;"/>
+  <path d="M 208.944 78.231 C 130.517 78.231 104.374 130.516 104.374 182.802 C 104.374 235.086 52.089 256 52.089 256 C 52.089 256 104.374 276.913 104.374 329.199 C 104.374 381.483 130.517 433.768 208.944 433.768 M 303.057 78.231 C 381.483 78.231 407.627 130.516 407.627 182.802 C 407.627 235.086 459.911 256 459.911 256 C 459.911 256 407.627 276.913 407.627 329.199 C 407.627 381.483 381.483 433.768 303.057 433.768" fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke: rgb(122, 136, 158); stroke-width: 50px;"/>
+  <path d="M 164.502 110.909 C 208.944 110.909 229.858 143.587 256 143.587 C 282.144 143.587 303.057 110.909 347.499 110.909 C 387.203 110.909 419.391 143.096 419.391 182.802 C 419.391 222.506 387.203 254.693 347.499 254.693 C 303.057 254.693 282.144 222.015 256 222.015 C 229.858 222.015 208.944 254.693 164.502 254.693 C 124.796 254.693 92.61 222.506 92.61 182.802 C 92.61 143.096 124.796 110.909 164.502 110.909 Z" stroke="#0f172a" stroke-linejoin="round" style="fill: rgb(42, 62, 93); stroke-width: 14px;"/>
+  <circle cx="164.502" cy="182.802" r="41.828" fill="#0f172a" style="stroke-width: 1;"/>
+  <circle cx="347.498" cy="182.802" r="41.828" fill="#0f172a" style="stroke-width: 1;"/>
+  <circle cx="164.502" cy="182.802" r="33.985" fill="#00ff41" filter="url(#a)" style="stroke-width: 1;"/>
+  <circle cx="347.498" cy="182.802" r="33.985" fill="#00ff41" filter="url(#a)" style="stroke-width: 1;"/>
+  <circle cx="164.502" cy="182.802" r="18.3" fill="#a3ffa3" style="stroke-width: 1;"/>
+  <circle cx="347.498" cy="182.802" r="18.3" fill="#a3ffa3" style="stroke-width: 1;"/>
+  <circle cx="164.502" cy="182.802" r="7.842" fill="#fff" style="stroke-width: 1;"/>
+  <circle cx="347.498" cy="182.802" r="7.842" fill="#fff" style="stroke-width: 1;"/>
+</svg>

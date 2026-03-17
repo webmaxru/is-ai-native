@@ -1,5 +1,7 @@
 # gh-is-ai-native
 
+![Is AI-Native GitHub CLI extension social card](./assets/brand/social-card.png)
+
 GitHub CLI extension for scanning local repositories and GitHub repositories for AI-native development primitives.
 
 ## Install

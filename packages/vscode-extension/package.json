@@ -1,6 +1,6 @@
 {
   "name": "is-ai-native",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "salnikov",
   "displayName": "Is AI-Native",
   "description": "Scan workspaces and GitHub repositories for AI-native development primitives.",

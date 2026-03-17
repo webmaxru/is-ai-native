@@ -3,7 +3,7 @@
 This project now covers the minimum technical discovery surface for launch:
 
 - Route-aware HTML metadata for the homepage, repo scan routes, and shared report routes.
-- Dynamic `robots.txt`, `sitemap.xml`, `site.webmanifest`, `favicon.svg`, and `social-card.svg` endpoints.
+- Dynamic `robots.txt` and `sitemap.xml` endpoints plus a branded `site.webmanifest` that points at generated static icon assets.
 - Default homepage indexing in production, with shared reports and scan-result URLs marked `noindex`.
 - Canonical URLs and Open Graph / Twitter tags derived from the production site origin when configured.
 - Basic JSON-LD structured data for the website and web application.
@@ -38,19 +38,21 @@ These are solid default suggestions you can ship immediately:
 - Subtitle / hero line: `Audit any public GitHub repository for AI coding readiness across Copilot, Claude Code, and Codex.`
 - Meta description: `Scan public GitHub repositories for prompts, instructions, agents, skills, hooks, and MCP setup across GitHub Copilot, Claude Code, and OpenAI Codex.`
 
-## Fallback Assets And What To Replace Later
+## Brand Asset Pipeline
 
-The app currently uses generated fallback assets so launch is not blocked. Replace these when your final brand assets are ready:
+Brand assets are now generated from [assets/logo.svg](c:/Users/masalnik/Downloads/projects/is-ai-native/assets/logo.svg) and written into the consumer-specific folders:
 
-- Favicon fallback: served by [backend/src/services/site-metadata.js](c:/Users/masalnik/Downloads/projects/is-ai-native/backend/src/services/site-metadata.js) via `getFaviconSvg()`.
-- Social share image fallback: served by [backend/src/services/site-metadata.js](c:/Users/masalnik/Downloads/projects/is-ai-native/backend/src/services/site-metadata.js) via `getSocialCardSvg()`.
-- Manifest icon reference: declared in [backend/src/services/site-metadata.js](c:/Users/masalnik/Downloads/projects/is-ai-native/backend/src/services/site-metadata.js) inside `getWebManifest()`.
+- Web app: `frontend/assets/brand/` for favicon, Apple touch icon, manifest PNGs, maskable icon, and social card files.
+- GitHub CLI extension export: `packages/cli/gh-extension/assets/brand/` for the generated repo README and future repo branding.
+- VS Code extension: `packages/vscode-extension/media/icon.png` for Marketplace packaging.
 
-Recommended replacement path:
+Rebuild the full set with:
 
-1. Add your final static assets under the frontend public surface, for example `frontend/assets/brand/favicon.svg` and `frontend/assets/brand/social-card.png`.
-2. Update the corresponding URLs returned by `getWebManifest()`, `getFaviconSvg()` or replace the route entirely, and `buildPageMetadata()` for `ogImageUrl`.
-3. If you add a PNG social card, prefer a 1200x630 image.
+```powershell
+npm run build:brand-assets
+```
+
+The backend manifest and metadata now point at those generated static files, while the legacy `/favicon.svg`, `/favicon.ico`, and `/social-card.svg` routes remain as compatibility redirects.
 
 ## Minimal Mandatory Launch Set
 
@@ -71,8 +73,8 @@ Optional but strongly recommended shortly after launch:
 ### Brand Assets
 
 - Final logo pack: SVG logo, square icon, monochrome variant.
-- Final social share card artwork if the generated fallback is not acceptable.
-- Real favicon set if you need Apple touch icon / pinned tab support beyond the SVG fallback.
+- Final social share card artwork if the generated card needs a later marketing refresh.
+- Safari pinned-tab specific monochrome asset if that channel becomes important.
 
 ### Legal And Trust
 
@@ -106,6 +108,6 @@ Optional but strongly recommended shortly after launch:
 
 To finish the next pass cleanly, I still need only these materials:
 
-1. Final brand assets when available: logo, favicon, and preferred social share image.
-2. Whether you want to keep the suggested launch copy as-is or revise it.
+1. Whether you want to keep the generated social card copy as-is or replace it with launch-specific marketing copy.
+2. Whether you want a Safari pinned-tab specific monochrome mark in the next pass.
 3. Whether you are adding analytics before launch, which determines whether a cookie disclosure is needed immediately.

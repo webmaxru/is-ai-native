@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "build:brand-assets": "node ./scripts/build-brand-assets.mjs",
     "build:gh-extension": "npm --workspace packages/cli run build:gh-extension",
     "test:frontend": "node --test frontend/tests/unit/*.test.js",
     "test:backend": "npm --workspace backend test",
@@ -16,5 +17,9 @@
     "test:vscode-extension": "node --test packages/vscode-extension/tests/*.test.js",
     "package:vscode-extension": "cd packages/vscode-extension && npx @vscode/vsce package --no-dependencies -o is-ai-native.vsix",
     "publish:vscode-extension": "cd packages/vscode-extension && npx @vscode/vsce publish --no-dependencies"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.4",
+    "to-ico": "^1.1.5"
   }
 }

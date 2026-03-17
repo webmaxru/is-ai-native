@@ -249,15 +249,15 @@ export function createApp(runtime = createRuntime()) {
   });
 
   app.get('/favicon.svg', (_req, res) => {
-    res.type('image/svg+xml').send(getFaviconSvg(runtime));
+    res.redirect(302, '/assets/brand/favicon.svg');
   });
 
   app.get('/social-card.svg', (_req, res) => {
-    res.type('image/svg+xml').send(getSocialCardSvg(runtime));
+    res.redirect(302, '/assets/brand/social-card.svg');
   });
 
   app.get('/favicon.ico', (_req, res) => {
-    res.redirect(302, '/favicon.svg');
+    res.redirect(302, '/assets/brand/favicon.ico');
   });
 
   if (runtime.frontendPath && runtime.frontendTemplate) {

@@ -379,6 +379,12 @@ GH_TOKEN_FOR_SCAN=ghp_your_personal_access_token
 ENABLE_SHARING=true
 ```
 
+Brand assets are generated from [assets/logo.svg](assets/logo.svg). Rebuild the web, GH extension, and VS Code extension icon set with:
+
+```powershell
+npm run build:brand-assets
+```
+
 ---
 
 ## Cloud Deployment (Azure)

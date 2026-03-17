@@ -27,6 +27,7 @@ This writes a standalone script-based GitHub CLI extension layout to `artifacts/
 - a root launcher named `gh-is-ai-native`
 - a bundled Node entrypoint named `gh-is-ai-native.mjs`
 - a bundled `config/` directory copied from `packages/core/config`
+- a branded `assets/brand/` directory with the extension icon and social card
 - a dedicated extension README and the project license
 
 The repository includes a sync workflow at `.github/workflows/gh-extension-sync.yml` that can push those generated contents into a separate `owner/gh-is-ai-native` repository.
