@@ -19,6 +19,23 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 - **Weekly assistant maintenance** — Supporting skills and scanner configuration are reviewed weekly through a GitHub Agentic Workflow that scans multiple upstream documentation sources, filters and ranks relevant spec drift, and proposes minimal updates as a draft PR that still requires human review before merge.
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
 
+> [!IMPORTANT]
+> **Repo-maintained AI skills power this project.**
+> This application uses the **WebMCP** and **GitHub Agentic Workflows** skills maintained in the companion [webmaxru/agent-skills](https://github.com/webmaxru/agent-skills/) repository.
+>
+> Skills currently exposed by the `agent-skills` repo:
+> - **Agent Package Manager**
+> - **GitHub Agentic Workflows**
+> - **Language Detector API**
+> - **Prompt API**
+> - **Proofreader API**
+> - **Translator API**
+> - **WebMCP**
+> - **WebNN**
+> - **Writing Assistance APIs**
+>
+> These skills are reviewed regularly and manually validated before changes are relied on in the app's workflows, scanner maintenance, and supporting automation.
+
 ---
 
 ## Table of Contents
