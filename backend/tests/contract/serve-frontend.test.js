@@ -11,6 +11,7 @@ writeFileSync(
   '<!DOCTYPE html><html><head><title>__PAGE_TITLE__</title><meta name="robots" content="__PAGE_ROBOTS__"><link rel="canonical" href="__PAGE_CANONICAL__"></head><body>frontend</body></html>'
 );
 writeFileSync(join(brandDir, 'favicon.ico'), 'placeholder-icon');
+writeFileSync(join(brandDir, 'social-card.png'), 'placeholder-social-card');
 writeFileSync(join(brandDir, 'social-card.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 writeFileSync(join(brandDir, 'pinned-tab.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 
@@ -127,11 +128,24 @@ describe('frontend path configured', () => {
     expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
   });
 
+  it('GET /social-card.png serves the generated raster asset directly', async () => {
+    const res = await request(app).get('/social-card.png');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toContain('max-age=86400');
+  });
+
   it('GET /mask-icon.svg serves the generated pinned-tab asset directly', async () => {
     const res = await request(app).get('/mask-icon.svg');
 
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+  });
+
+  it('GET /android-chrome-192x192.png returns 404 instead of 500 when the branded asset is absent', async () => {
+    const res = await request(app).get('/android-chrome-192x192.png');
+
+    expect(res.status).toBe(404);
   });
 
   it('GET /manifest.webmanifest redirects to the canonical manifest route', async () => {

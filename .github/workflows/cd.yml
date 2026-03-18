@@ -262,6 +262,15 @@ jobs:
 
           grep -q "github.com/" /tmp/homepage.html
 
+          for asset in /favicon.ico /favicon.svg /favicon-32x32.png /favicon-16x16.png /social-card.png /social-card.svg; do
+            echo "Asset check: $APP_URL$asset"
+            curl --fail --show-error --silent \
+              --retry 6 \
+              --retry-all-errors \
+              --retry-delay 10 \
+              "$APP_URL$asset" > /dev/null
+          done
+
       - name: Dump Azure diagnostics on failed deployment validation
         if: failure()
         shell: bash

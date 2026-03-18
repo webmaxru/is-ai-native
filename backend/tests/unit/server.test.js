@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -68,6 +68,14 @@ describe('resolveFrontendPath', () => {
     } finally {
       rmSync(tmpRoot, { recursive: true, force: true });
     }
+  });
+});
+
+describe('runtime Docker image packaging', () => {
+  it('copies the generated frontend brand assets into the runtime image', () => {
+    const dockerfile = readFileSync(join(process.cwd(), '..', 'Dockerfile'), 'utf8');
+
+    expect(dockerfile).toContain('COPY frontend/assets ../frontend/assets');
   });
 });
 

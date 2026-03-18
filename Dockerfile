@@ -30,6 +30,7 @@ COPY backend/src ./src
 
 # Copy runtime frontend assets so Express can serve them in the single-container image
 COPY frontend/index.html ../frontend/index.html
+COPY frontend/assets ../frontend/assets
 COPY frontend/src ../frontend/src
 
 ENV REPORTS_DIR=/app/data/reports

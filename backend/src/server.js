@@ -50,7 +50,13 @@ function sendFrontendAsset(runtime, res, assetPath) {
     return;
   }
 
-  res.set('Cache-Control', 'public, max-age=86400').sendFile(join(runtime.frontendPath, assetPath));
+  const absoluteAssetPath = join(runtime.frontendPath, assetPath);
+  if (!existsSync(absoluteAssetPath)) {
+    res.sendStatus(404);
+    return;
+  }
+
+  res.set('Cache-Control', 'public, max-age=86400').sendFile(absoluteAssetPath);
 }
 
 function resolveFrontendPath(
