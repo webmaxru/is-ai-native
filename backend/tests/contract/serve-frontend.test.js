@@ -49,6 +49,14 @@ describe('frontend path configured', () => {
     expect(res.text).toContain('content="noindex, nofollow, noarchive"');
   });
 
+  it('does not rate limit repeated frontend GET requests', async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 110 }, () => request(app).get('/'))
+    );
+
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+  });
+
   it('GET / emits a CSP that allows the configured Application Insights ingestion endpoint', async () => {
     const res = await request(app).get('/');
 

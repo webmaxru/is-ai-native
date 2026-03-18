@@ -62,4 +62,17 @@ describe('POST /api/scan', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'repo_url is required' });
   });
+
+  it('still rate limits repeated scan submissions', async () => {
+    const responses = [];
+
+    for (let attempt = 0; attempt < 101; attempt += 1) {
+      responses.push(await request(app).post('/api/scan').send({}));
+    }
+
+    expect(responses[0]?.status).toBe(400);
+    expect(responses.some((response) => response.status === 429)).toBe(true);
+    expect(responses.at(-1)?.status).toBe(429);
+    expect(responses.at(-1)?.text).toContain('Too many requests');
+  });
 });

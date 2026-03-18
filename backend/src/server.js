@@ -202,6 +202,7 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
 
 export function createApp(runtime = createRuntime()) {
   const app = express();
+  const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 
   app.set('trust proxy', runtime.trustProxy);
   app.use(
@@ -214,10 +215,10 @@ export function createApp(runtime = createRuntime()) {
   app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 10000, // High limit since we have other mitigations and want to avoid blocking legitimate users; primarily intended to slow down automated abuse
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => req.path === '/health',
+    skip: (req) => req.path === '/health' || safeMethods.has(req.method),
   });
   app.use(limiter);
 
