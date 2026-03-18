@@ -312,7 +312,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       scale: {
         // Keep one replica warm when requested to reduce cold-start latency.
         minReplicas: containerStartupStrategy == 'keep-warm' ? 1 : 0
-        maxReplicas: 3
+        maxReplicas: 4
         rules: [
           {
             name: 'http-scaling'

@@ -298,7 +298,7 @@
           "volumes": "[variables('appVolumes')]",
           "scale": {
             "minReplicas": 0,
-            "maxReplicas": 3,
+            "maxReplicas": 4,
             "rules": [
               {
                 "name": "http-scaling",
