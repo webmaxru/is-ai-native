@@ -13,6 +13,12 @@ param enableSharing = true
 // Application Insights is enabled by default for scan/report telemetry and Azure Workbook monitoring.
 param enableAppInsights = true
 
+// Low-cost public website monitoring is created when you pass monitoringAlertEmail at deploy time.
+param enableAvailabilityMonitoring = true
+
+// Default website availability alert email for manual deployments.
+param monitoringAlertEmail = 'salnikov@gmail.com'
+
 // Use 'keep-warm' to keep one replica ready and avoid scale-to-zero cold starts.
 param containerStartupStrategy = 'scale-to-zero'
 

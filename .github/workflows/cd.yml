@@ -20,6 +20,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  MONITORING_ALERT_EMAIL: salnikov@gmail.com
   # Update these to match your Azure environment
   AZURE_RESOURCE_GROUP: is-ai-native-rg
   AZURE_LOCATION: eastus2
@@ -148,7 +149,10 @@ jobs:
             containerImage=${{ needs.build-push.outputs.immutable_image }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
             enableSharing=true
+            enableAvailabilityMonitoring=true
             containerStartupStrategy=keep-warm
+            monitoringAlertEmail=${{ secrets.MONITORING_ALERT_EMAIL != '' && secrets.MONITORING_ALERT_EMAIL || env.MONITORING_ALERT_EMAIL }}
+            monitoringUrl=${{ secrets.SITE_ORIGIN }}
             siteOrigin=${{ secrets.SITE_ORIGIN }}
             customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
             managedCertName=${{ secrets.MANAGED_CERT_NAME }}

@@ -410,12 +410,14 @@ All Azure resources are defined in [`infra/main.bicep`](infra/main.bicep). A sin
 | **Container Apps Environment** | Consumption plan host (no workload profiles needed) |
 | **Container App** | The application with health / readiness probes, HTTP auto-scaling (0 → 3 replicas), and a system-assigned managed identity |
 | **Azure Storage Account + File Share** | *(conditional, when `enableSharing=true`)* Azure Files mounted for shared-report persistence |
+| **Action Group + Availability Test + Alert Rule** | *(conditional, when `monitoringAlertEmail` is provided)* Lowest-cost email alerting when the public site fails |
 
 Optional features in the Bicep template:
 - **ACR integration** — Pass `acrName` to pull images from Azure Container Registry using admin credentials stored as secrets.
 - **Custom domain + managed TLS** — Pass `customDomainName` and `managedCertName` to bind a custom domain with a Let's Encrypt certificate.
 - **Secondary custom domain + managed TLS** — Pass `secondaryCustomDomainName` and `secondaryManagedCertName` to keep a second hostname bound during migrations or gradual cutovers.
 - **Startup strategy toggle** — Pass `containerStartupStrategy=keep-warm` to keep one replica ready and avoid scale-to-zero cold starts. The default `scale-to-zero` setting minimizes cost.
+- **Low-cost website monitoring** — Pass `monitoringAlertEmail` to create one standard availability test, one email action group, and one alert rule. By default, the probe targets the default Container App URL; pass `monitoringUrl` if you want to monitor a custom domain instead.
 
 Default parameter values live in [`infra/main.bicepparam`](infra/main.bicepparam) for quick manual deployments. The CD workflow passes all parameters inline (`.bicepparam` files cannot be mixed with additional CLI overrides).
 
@@ -462,12 +464,28 @@ If you prefer to deploy manually:
      --template-file infra/main.bicep \
      --parameters namePrefix=is-ai-native \
                   enableSharing=true \
-                   containerStartupStrategy=keep-warm \
+                  containerStartupStrategy=keep-warm \
                   containerImage=ghcr.io/<owner>/is-ai-native:latest \
-                  githubToken=<optional-pat>
+                  githubToken=<optional-pat> \
+                  monitoringAlertEmail=salnikov@gmail.com
    ```
 
    > **Note:** Do not mix a `.bicepparam` file with inline `--parameters` overrides — use one or the other.
+
+  > **Minimum-cost monitoring:** this creates a single standard Application Insights availability test that runs every 15 minutes from 1 region and sends email when that location fails. This is the cheapest profile in the repository, but detection can take up to about 15 minutes.
+
+   If you want to monitor the public custom domain instead of the default Azure URL, add a full `monitoringUrl` override:
+
+   ```bash
+   az deployment group create \
+     --resource-group is-ai-native-rg \
+     --template-file infra/main.bicep \
+     --parameters namePrefix=is-ai-native \
+                  enableSharing=true \
+                  containerImage=ghcr.io/<owner>/is-ai-native:latest \
+                  monitoringAlertEmail=salnikov@gmail.com \
+                  monitoringUrl='https://scan.example.com/'
+   ```
 
 ### Custom Domain with Managed TLS
 
@@ -581,11 +599,16 @@ Configure the following secrets in your GitHub repository for the CD pipeline:
 | `AZURE_TENANT_ID` | Azure AD tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
 | `GH_TOKEN_FOR_SCAN` | *(optional)* GitHub PAT passed to the container for higher API rate limits |
+| `MONITORING_ALERT_EMAIL` | *(optional)* Email address that receives Azure availability alerts. Defaults to `salnikov@gmail.com` in the workflow when the secret is not set |
 | `COPILOT_GITHUB_TOKEN` | Required by the weekly GH-AW workflow to run the Copilot engine for assistant configuration maintenance |
 | `CUSTOM_DOMAIN_NAME` | *(optional)* Custom domain name (e.g., `scan.example.com`). Leave empty to use the default Azure FQDN |
 | `MANAGED_CERT_NAME` | *(optional)* Name of the managed certificate created in the [Custom Domain](#custom-domain-with-managed-tls) setup |
 | `SECONDARY_CUSTOM_DOMAIN_NAME` | *(optional)* Secondary custom domain to keep bound during migrations or parallel-hostname support |
 | `SECONDARY_MANAGED_CERT_NAME` | *(optional)* Managed certificate name for `SECONDARY_CUSTOM_DOMAIN_NAME` |
+
+The CD workflow reuses `SITE_ORIGIN` as the monitored URL when it is set. If `SITE_ORIGIN` is empty, the availability test falls back to the default Azure Container Apps URL.
+
+The default monitoring email value is `salnikov@gmail.com`. If you want a different mailbox without editing the workflow, set the `MONITORING_ALERT_EMAIL` repository secret.
 
 `COPILOT_GITHUB_TOKEN` is a GitHub Actions secret for agentic workflow execution only. It is not consumed by [infra/main.bicep](infra/main.bicep), so no Azure IaC parameter or app secret wiring is required for this automation.
 

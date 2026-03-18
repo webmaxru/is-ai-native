@@ -28,6 +28,15 @@ param enableSharing bool = false
 @description('Enable Azure Application Insights telemetry for scan/report monitoring.')
 param enableAppInsights bool = true
 
+@description('Enable low-cost external website availability monitoring. Requires Application Insights and a monitoring alert email address.')
+param enableAvailabilityMonitoring bool = true
+
+@description('Email address that receives website availability alerts. Leave empty to skip alert creation.')
+param monitoringAlertEmail string = 'salnikov@gmail.com'
+
+@description('Optional public URL to probe. Leave empty to monitor the default Container App URL.')
+param monitoringUrl string = ''
+
 @description('Container startup strategy. Use scale-to-zero for lowest cost, or keep-warm to keep one replica ready and reduce cold starts.')
 @allowed([
   'scale-to-zero'
@@ -211,6 +220,13 @@ var appVolumeMounts = enableSharing ? [
   { mountPath: '/app/data', volumeName: 'reports-data' }
 ] : []
 
+var availabilityMonitoringEnabled = enableAppInsights && enableAvailabilityMonitoring && monitoringAlertEmail != ''
+var monitoringTargetUrl = monitoringUrl != '' ? monitoringUrl : 'https://${containerApp.properties.configuration.ingress.fqdn}'
+var monitoringActionGroupShortName = take(replace('${namePrefix}mon', '-', ''), 12)
+var monitoringLocationIds = [
+  'us-il-ch1-azr'
+]
+
 var customDomainBindings = concat(
   (customDomainName != '' && managedCertName != '') ? [
     {
@@ -308,6 +324,86 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
+// ── Low-cost external availability monitoring ─────────────────────
+resource monitoringActionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (availabilityMonitoringEnabled) {
+  name: '${namePrefix}-site-alerts'
+  location: 'global'
+  tags: tags
+  properties: {
+    enabled: true
+    groupShortName: monitoringActionGroupShortName
+    emailReceivers: [
+      {
+        name: 'primary-email'
+        emailAddress: monitoringAlertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+}
+
+resource siteAvailabilityTest 'Microsoft.Insights/webtests@2022-06-15' = if (availabilityMonitoringEnabled) {
+  name: '${namePrefix}-site-availability'
+  location: location
+  kind: 'standard'
+  tags: union(tags, {
+    'hidden-link:${appInsights!.id}': 'Resource'
+  })
+  properties: {
+    Name: '${namePrefix}-site-availability'
+    SyntheticMonitorId: '${namePrefix}-site-availability'
+    Description: 'Lowest-cost public site availability check for email alerting.'
+    Enabled: true
+    Frequency: 900
+    Timeout: 30
+    Kind: 'standard'
+    RetryEnabled: true
+    Locations: [for locationId in monitoringLocationIds: {
+      Id: locationId
+    }]
+    Request: {
+      RequestUrl: monitoringTargetUrl
+      HttpVerb: 'GET'
+      ParseDependentRequests: true
+      FollowRedirects: true
+    }
+    ValidationRules: {
+      ExpectedHttpStatusCode: 200
+      SSLCheck: true
+      SSLCertRemainingLifetimeCheck: 14
+    }
+  }
+}
+
+resource siteAvailabilityAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (availabilityMonitoringEnabled) {
+  name: '${namePrefix}-site-down'
+  location: 'global'
+  tags: tags
+  properties: {
+    description: 'Sends email when the public site is unavailable or returns non-200 responses from the lowest-cost availability test profile.'
+    enabled: true
+    severity: 1
+    scopes: [
+      appInsights!.id
+      siteAvailabilityTest.id
+    ]
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.WebtestLocationAvailabilityCriteria'
+      componentId: appInsights!.id
+      webTestId: siteAvailabilityTest.id
+      failedLocationCount: 1
+    }
+    actions: [
+      {
+        actionGroupId: monitoringActionGroup.id
+      }
+    ]
+  }
+}
+
 // ── Outputs ───────────────────────────────────────────────────────
 @description('Public URL of the deployed application.')
 output appUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
@@ -317,6 +413,12 @@ output containerAppName string = containerApp.name
 
 @description('Name of the Application Insights component used for telemetry.')
 output appInsightsName string = enableAppInsights ? appInsights.name : ''
+
+@description('True when external website availability monitoring resources were deployed.')
+output availabilityMonitoringConfigured bool = availabilityMonitoringEnabled
+
+@description('URL monitored by the external availability test.')
+output availabilityMonitoringTargetUrl string = availabilityMonitoringEnabled ? monitoringTargetUrl : ''
 
 @description('Resource group name.')
 output resourceGroupName string = resourceGroup().name
