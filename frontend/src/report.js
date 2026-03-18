@@ -272,10 +272,6 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
   setPageHeading(pageHeading);
 
-  // Update topbar breadcrumb with the repo name
-  const topbarScope = document.getElementById('topbar-scope');
-  if (topbarScope) topbarScope.textContent = result.repo_name;
-
   // Count overall primitives
   const totalPrims = displayedPrimitives.length;
   const foundPrims = displayedPrimitives.filter((primitive) => primitive.detected).length;

@@ -1,7 +1,7 @@
 /*
  * IsAINative — "Log Terminal" design
  * CLI-output aesthetic: Fira Code monospace, flat layout, no rounded corners.
- * Light theme: paper-white body, near-black ink, green accent, dark topbar.
+ * Light theme: paper-white body, near-black ink, green accent, soft sage header.
  * Dark theme: near-black body, light ink, bright green accent.
  */
 
@@ -13,7 +13,7 @@
 
 /* ── Design tokens ── */
 :root {
-  --bg:             #f9faf9;
+  --bg:             #f1f4f0;
   --ink:            #1a1c1a;
   --muted:          #5a6059;
   --rule:           #d4d8d4;
@@ -21,13 +21,19 @@
   --green-bg:       rgba(26, 122, 46, 0.08);
   --amber:          #8a6000;
   --red:            #b0291a;
-  --topbar-bg:      #1a1c1a;
-  --topbar-text:    #e0e5e0;
-  --topbar-muted:   #8a9e8a;
-  --topbar-accent:  #6fcf7a;
-  --scan-bg:        #242824;
-  --scan-border:    rgba(255, 255, 255, 0.15);
-  --scan-text:      #ffffff;
+  --topbar-bg:      linear-gradient(180deg, #f4f8f2 0%, #e8f0e7 100%);
+  --topbar-text:    #223325;
+  --topbar-muted:   #58705d;
+  --topbar-accent:  #1a7a2e;
+  --topbar-border:  rgba(26, 52, 31, 0.12);
+  --topbar-shadow:  0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --topbar-link:    #314735;
+  --topbar-link-hover: #132317;
+  --topbar-button-bg: rgba(26, 122, 46, 0.08);
+  --topbar-button-hover-bg: rgba(26, 122, 46, 0.16);
+  --scan-bg:        linear-gradient(180deg, #eef5ee 0%, #e6efe6 100%);
+  --scan-border:    rgba(26, 122, 46, 0.24);
+  --scan-text:      #203022;
   --scan-btn-bg:    #1a7a2e;
   --scan-btn-hover: #166626;
   --summary-bg:     #f2f6f2;
@@ -52,6 +58,12 @@
   --topbar-text:    #c0d0c0;
   --topbar-muted:   #5a7a5a;
   --topbar-accent:  #4ec95f;
+  --topbar-border:  rgba(255, 255, 255, 0.08);
+  --topbar-shadow:  none;
+  --topbar-link:    #8fb48f;
+  --topbar-link-hover: #c0d0c0;
+  --topbar-button-bg: rgba(78, 201, 95, 0.08);
+  --topbar-button-hover-bg: rgba(78, 201, 95, 0.16);
   --scan-bg:        #0d100d;
   --scan-border:    rgba(255, 255, 255, 0.1);
   --scan-text:      #c0d0c0;
@@ -121,6 +133,8 @@ body.landing-view .app-shell {
 .term-topbar {
   background: var(--topbar-bg);
   color: var(--topbar-text);
+  border-bottom: 1px solid var(--topbar-border);
+  box-shadow: var(--topbar-shadow);
   padding: 0.55rem 1.5rem;
   display: flex;
   align-items: center;
@@ -158,17 +172,17 @@ body.landing-view .app-shell {
 }
 
 .tbar-right a {
-  color: var(--topbar-muted);
+  color: var(--topbar-link);
   text-decoration: none;
   font-size: 0.72rem;
 }
-.tbar-right a:hover { color: var(--topbar-text); }
+.tbar-right a:hover { color: var(--topbar-link-hover); }
 
 /* ── Theme toggle ── */
 .theme-toggle {
-  background: none;
-  border: 1px solid var(--topbar-muted);
-  color: var(--topbar-muted);
+  background: var(--topbar-button-bg);
+  border: none;
+  color: var(--topbar-link);
   font-family: inherit;
   font-size: 1rem;
   padding: 0.1rem 0.35rem;
@@ -177,7 +191,7 @@ body.landing-view .app-shell {
   line-height: 1;
 }
 .theme-toggle:hover {
-  border-color: var(--topbar-accent);
+  background: var(--topbar-button-hover-bg);
   color: var(--topbar-accent);
 }
 .theme-toggle:focus-visible {
@@ -191,6 +205,7 @@ body.landing-view .app-shell {
 .scan-line {
   background: var(--scan-bg);
   color: var(--scan-text);
+  border-bottom: 1px solid var(--topbar-border);
   padding: 0.6rem 0;
   font-size: 0.8rem;
   flex-shrink: 0;
@@ -253,6 +268,10 @@ body.landing-view .app-shell {
 .scan-form-inner input::placeholder { color: rgba(255, 255, 255, 0.3); }
 .scan-form-inner input:focus { border-bottom-color: var(--topbar-accent); }
 .scan-form-inner input:disabled { opacity: 0.5; }
+
+:root:not([data-theme='dark']) .scan-form-inner input::placeholder {
+  color: rgba(32, 48, 34, 0.48);
+}
 
 .scan-form-inner button {
   padding: 0.3rem 0.9rem;

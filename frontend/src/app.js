@@ -39,6 +39,13 @@ let telemetryConfig = null;
 let hasScanStarted = false;
 let activeScanPromise = null;
 
+function setTopbarScope(text) {
+  const topbarScope = document.getElementById('topbar-scope');
+  if (topbarScope) {
+    topbarScope.textContent = text;
+  }
+}
+
 function getAnalyticsConsent() {
   try {
     const value = localStorage.getItem(ANALYTICS_CONSENT_KEY);
@@ -142,7 +149,7 @@ function updateThemeColorMeta(resolvedTheme) {
     return;
   }
 
-  meta.setAttribute('content', resolvedTheme === 'dark' ? '#050805' : '#1a1c1a');
+  meta.setAttribute('content', resolvedTheme === 'dark' ? '#050805' : '#e8f0e7');
 }
 
 function applyTheme(mode) {
@@ -372,6 +379,7 @@ async function loadSharedReport(id, sharingEnabled) {
   }
   try {
     const result = await fetchSharedReport(id);
+    setTopbarScope('result');
     renderReport(result, { sharingEnabled: false });
     syncViewState();
     trackUiEvent('shared_report_loaded_client', {
@@ -411,12 +419,11 @@ async function executeScan(repoUrl, sharingEnabled) {
     setLoading(true);
     showProgress();
     document.getElementById('report').classList.add('hidden');
-    const topbarScope = document.getElementById('topbar-scope');
     const repoInput = document.getElementById('repo-url');
     if (normalizedRepoReference && repoInput) {
       repoInput.value = normalizedRepoReference;
     }
-    if (topbarScope) topbarScope.textContent = repoReference;
+    setTopbarScope('scanning...');
     syncViewState();
     if (normalizedRepoReference) {
       syncRepoPathInBrowser(normalizedRepoReference);
@@ -428,6 +435,7 @@ async function executeScan(repoUrl, sharingEnabled) {
       });
       const result = await scanRepo(repoReference, controller.signal);
       hideProgress();
+      setTopbarScope('result');
       renderReport(result, { sharingEnabled });
       syncViewState();
       trackUiEvent(

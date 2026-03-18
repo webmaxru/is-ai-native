@@ -117,6 +117,8 @@ test('selectPreferredAssistant returns the highest scoring assistant and keeps f
 });
 
 test('renderReport keeps preferred agent summary while retaining all assistant chips and sections', () => {
+  browserStubs.elements.get('topbar-scope').textContent = 'check your repo';
+
   renderReport({
     repo_name: 'octo/demo',
     repo_url: 'https://github.com/octo/demo',
@@ -163,4 +165,5 @@ test('renderReport keeps preferred agent summary while retaining all assistant c
   assert.match(html, /<span class="lh-title">Claude Code<\/span>/);
   assert.doesNotMatch(html, />34<span class="si-denom">\/100</);
   assert.equal(browserStubs.repoLink.href, 'https://github.com/octo/demo');
+  assert.equal(browserStubs.elements.get('topbar-scope').textContent, 'check your repo');
 });
