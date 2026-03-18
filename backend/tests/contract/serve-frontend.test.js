@@ -1,13 +1,18 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 // Must be set before importing server.js (module-level if-block reads this)
 const tmpDir = mkdtempSync(join(tmpdir(), 'is-ai-native-frontend-'));
+const brandDir = join(tmpDir, 'assets', 'brand');
+mkdirSync(brandDir, { recursive: true });
 writeFileSync(
   join(tmpDir, 'index.html'),
   '<!DOCTYPE html><html><head><title>__PAGE_TITLE__</title><meta name="robots" content="__PAGE_ROBOTS__"><link rel="canonical" href="__PAGE_CANONICAL__"></head><body>frontend</body></html>'
 );
+writeFileSync(join(brandDir, 'favicon.ico'), 'placeholder-icon');
+writeFileSync(join(brandDir, 'social-card.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
+writeFileSync(join(brandDir, 'pinned-tab.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 
 process.env.NODE_ENV = 'test';
 process.env.REPORTS_DIR = ':memory:';
@@ -44,6 +49,7 @@ describe('frontend path configured', () => {
     const res = await request(app).get('/');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
     expect(res.text).toContain('frontend');
     expect(res.text).toContain('<title>Is AI Native | Audit GitHub Repositories for AI Coding Readiness</title>');
     expect(res.text).toContain('content="noindex, nofollow, noarchive"');
@@ -89,35 +95,50 @@ describe('frontend path configured', () => {
     expect(res.body).toMatchObject({
       name: 'IsAINative',
       short_name: 'IsAINative',
+      id: '/',
       start_url: '/',
     });
     expect(res.body.icons).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          src: '/assets/brand/icon-192.png',
+          src: '/android-chrome-192x192.png',
           sizes: '192x192',
           type: 'image/png',
         }),
         expect.objectContaining({
-          src: '/assets/brand/icon-maskable-512.png',
+          src: '/maskable-icon-512x512.png',
           purpose: 'maskable',
         }),
       ])
     );
   });
 
-  it('GET /favicon.ico redirects to the generated asset', async () => {
+  it('GET /favicon.ico serves the generated asset directly', async () => {
     const res = await request(app).get('/favicon.ico');
 
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/assets/brand/favicon.ico');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toContain('max-age=86400');
   });
 
-  it('GET /social-card.svg redirects to the generated asset', async () => {
+  it('GET /social-card.svg serves the generated asset directly', async () => {
     const res = await request(app).get('/social-card.svg');
 
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+  });
+
+  it('GET /mask-icon.svg serves the generated pinned-tab asset directly', async () => {
+    const res = await request(app).get('/mask-icon.svg');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+  });
+
+  it('GET /manifest.webmanifest redirects to the canonical manifest route', async () => {
+    const res = await request(app).get('/manifest.webmanifest');
+
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('/assets/brand/social-card.svg');
+    expect(res.headers.location).toBe('/site.webmanifest');
   });
 
   it('GET /api/unknown still returns JSON 404 (not index.html)', async () => {

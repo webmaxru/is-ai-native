@@ -4,6 +4,7 @@ import {
   buildScanKey,
   isAppInsightsEnabled,
   parseConnectionString,
+  trackRateLimitHit,
   trackReportCreated,
   trackSharedReportViewed,
   trackScanCompleted,
@@ -128,6 +129,36 @@ describe('telemetry sending', () => {
     expect(payload.data.baseData.name).toBe('shared_report_viewed');
     expect(payload.data.baseData.properties.report_id).toBe('abc-123');
     expect(payload.data.baseData.properties.scan_key).toBe(buildScanKey(sampleResult));
+  });
+
+  it('posts rate-limit-hit telemetry with hashed client context', async () => {
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING =
+      'InstrumentationKey=test-key;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '',
+    });
+
+    await trackRateLimitHit({
+      policyName: 'scan_api',
+      route: '/api/scan',
+      method: 'POST',
+      ip: '203.0.113.10',
+      limit: 120,
+      remaining: 0,
+      retryAfterSeconds: 900,
+      windowMs: 900000,
+    });
+
+    const [payload] = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(payload.data.baseData.name).toBe('rate_limit_hit');
+    expect(payload.data.baseData.properties.policy_name).toBe('scan_api');
+    expect(payload.data.baseData.properties.route).toBe('/api/scan');
+    expect(payload.data.baseData.properties.method).toBe('POST');
+    expect(payload.data.baseData.properties.client_hash).toHaveLength(64);
+    expect(payload.data.baseData.measurements.limit).toBe(120);
+    expect(payload.data.baseData.measurements.retry_after_seconds).toBe(900);
   });
 
   it('builds an envelope directly for deterministic inspection', () => {

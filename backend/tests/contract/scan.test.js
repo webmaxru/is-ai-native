@@ -1,6 +1,8 @@
 import { jest } from '@jest/globals';
 
 process.env.NODE_ENV = 'test';
+const originalScanRateLimitMax = process.env.SCAN_RATE_LIMIT_MAX;
+process.env.SCAN_RATE_LIMIT_MAX = '5';
 
 let request;
 let app;
@@ -27,6 +29,14 @@ beforeAll(async () => {
 
 afterEach(() => {
   global.fetch = originalFetch;
+});
+
+afterAll(() => {
+  if (originalScanRateLimitMax === undefined) {
+    delete process.env.SCAN_RATE_LIMIT_MAX;
+  } else {
+    process.env.SCAN_RATE_LIMIT_MAX = originalScanRateLimitMax;
+  }
 });
 
 describe('POST /api/scan', () => {
@@ -66,7 +76,7 @@ describe('POST /api/scan', () => {
   it('still rate limits repeated scan submissions', async () => {
     const responses = [];
 
-    for (let attempt = 0; attempt < 101; attempt += 1) {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
       responses.push(await request(app).post('/api/scan').send({}));
     }
 

@@ -77,6 +77,17 @@ function createSocialCardSvg(sourceSvg) {
   ].join('\n');
 }
 
+function createPinnedTabSvg() {
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">',
+    '  <path d="M 208.944 78.231 C 130.517 78.231 104.374 130.516 104.374 182.802 C 104.374 235.086 52.089 256 52.089 256 C 52.089 256 104.374 276.913 104.374 329.199 C 104.374 381.483 130.517 433.768 208.944 433.768 M 303.057 78.231 C 381.483 78.231 407.627 130.516 407.627 182.802 C 407.627 235.086 459.911 256 459.911 256 C 459.911 256 407.627 276.913 407.627 329.199 C 407.627 381.483 381.483 433.768 303.057 433.768" fill="none" stroke="currentColor" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>',
+    '  <path d="M 164.502 110.909 C 208.944 110.909 229.858 143.587 256 143.587 C 282.144 143.587 303.057 110.909 347.499 110.909 C 387.203 110.909 419.391 143.096 419.391 182.802 C 419.391 222.506 387.203 254.693 347.499 254.693 C 303.057 254.693 282.144 222.015 256 222.015 C 229.858 222.015 208.944 254.693 164.502 254.693 C 124.796 254.693 92.61 222.506 92.61 182.802 C 92.61 143.096 124.796 110.909 164.502 110.909 Z" fill="currentColor"/>',
+    '  <circle cx="164.502" cy="182.802" r="41.828" fill="#fff"/>',
+    '  <circle cx="347.498" cy="182.802" r="41.828" fill="#fff"/>',
+    '</svg>',
+  ].join('\n');
+}
+
 async function ensureDir(dir) {
   await mkdir(dir, { recursive: true });
 }
@@ -94,6 +105,7 @@ async function main() {
   const logoSquareSvg = createSquareLogoSvg(sourceSvg, { size: 512, inset: 42, radius: 120 });
   const faviconSvg = createSquareLogoSvg(sourceSvg, { size: 512, inset: 52, radius: 120 });
   const maskableSvg = createSquareLogoSvg(sourceSvg, { size: 512, inset: 76, radius: 120 });
+  const pinnedTabSvg = createPinnedTabSvg();
   const socialCardSvg = createSocialCardSvg(sourceSvg);
 
   await Promise.all([ensureDir(frontendBrandDir), ensureDir(ghBrandDir)]);
@@ -102,6 +114,7 @@ async function main() {
     writeTextFile(resolve(frontendBrandDir, 'logo-square.svg'), logoSquareSvg),
     writeTextFile(resolve(frontendBrandDir, 'favicon.svg'), faviconSvg),
     writeTextFile(resolve(frontendBrandDir, 'icon-maskable.svg'), maskableSvg),
+    writeTextFile(resolve(frontendBrandDir, 'pinned-tab.svg'), pinnedTabSvg),
     writeTextFile(resolve(frontendBrandDir, 'social-card.svg'), socialCardSvg),
     writeTextFile(resolve(ghBrandDir, 'logo-square.svg'), logoSquareSvg),
     writeTextFile(resolve(ghBrandDir, 'social-card.svg'), socialCardSvg),
@@ -111,6 +124,7 @@ async function main() {
   const icon512 = await sharp(Buffer.from(logoSquareSvg)).png().toBuffer();
   const icon192 = await sharp(Buffer.from(createSquareLogoSvg(sourceSvg, { size: 192, inset: 18, radius: 46 }))).png().toBuffer();
   const icon180 = await sharp(Buffer.from(createSquareLogoSvg(sourceSvg, { size: 180, inset: 16, radius: 44 }))).png().toBuffer();
+  const mstile150 = await sharp(Buffer.from(createSquareLogoSvg(sourceSvg, { size: 150, inset: 14, radius: 36 }))).png().toBuffer();
   const favicon32 = await sharp(Buffer.from(faviconSvg)).resize(32, 32).png().toBuffer();
   const favicon16 = await sharp(Buffer.from(faviconSvg)).resize(16, 16).png().toBuffer();
   const maskable512 = await sharp(Buffer.from(maskableSvg)).resize(512, 512).png().toBuffer();
@@ -122,6 +136,7 @@ async function main() {
     writeFile(resolve(frontendBrandDir, 'icon-512.png'), icon512),
     writeFile(resolve(frontendBrandDir, 'icon-192.png'), icon192),
     writeFile(resolve(frontendBrandDir, 'apple-touch-icon.png'), icon180),
+    writeFile(resolve(frontendBrandDir, 'mstile-150.png'), mstile150),
     writeFile(resolve(frontendBrandDir, 'favicon-32.png'), favicon32),
     writeFile(resolve(frontendBrandDir, 'favicon-16.png'), favicon16),
     writeFile(resolve(frontendBrandDir, 'favicon.ico'), faviconIco),

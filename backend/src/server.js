@@ -11,20 +11,47 @@ import { createConfigRouter } from './routes/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
-import { isAppInsightsEnabled, parseConnectionString } from './services/app-insights.js';
+import { isAppInsightsEnabled, parseConnectionString, trackRateLimitHit } from './services/app-insights.js';
 import {
   buildPageMetadata,
   createSiteMetadata,
-  getFaviconSvg,
   getRobotsTxt,
   getSitemapXml,
-  getSocialCardSvg,
   getWebManifest,
   renderIndexHtml,
 } from './services/site-metadata.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const STATIC_ASSET_ALIASES = new Map([
+  ['/favicon.ico', 'assets/brand/favicon.ico'],
+  ['/favicon.svg', 'assets/brand/favicon.svg'],
+  ['/favicon-16x16.png', 'assets/brand/favicon-16.png'],
+  ['/favicon-32x32.png', 'assets/brand/favicon-32.png'],
+  ['/apple-touch-icon.png', 'assets/brand/apple-touch-icon.png'],
+  ['/android-chrome-192x192.png', 'assets/brand/icon-192.png'],
+  ['/android-chrome-512x512.png', 'assets/brand/icon-512.png'],
+  ['/maskable-icon-512x512.png', 'assets/brand/icon-maskable-512.png'],
+  ['/mask-icon.svg', 'assets/brand/pinned-tab.svg'],
+  ['/mstile-150x150.png', 'assets/brand/mstile-150.png'],
+  ['/social-card.png', 'assets/brand/social-card.png'],
+  ['/social-card.svg', 'assets/brand/social-card.svg'],
+]);
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const DEFAULT_SCAN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const DEFAULT_SCAN_RATE_LIMIT_MAX = 120;
+const DEFAULT_REPORT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const DEFAULT_REPORT_RATE_LIMIT_MAX = 240;
+
+function sendFrontendAsset(runtime, res, assetPath) {
+  if (!runtime.frontendPath) {
+    res.sendStatus(404);
+    return;
+  }
+
+  res.set('Cache-Control', 'public, max-age=86400').sendFile(join(runtime.frontendPath, assetPath));
+}
 
 function resolveFrontendPath(
   frontendPathOverride = process.env.FRONTEND_PATH,
@@ -104,9 +131,76 @@ function resolveContainerMinReplicas(env = process.env) {
   return resolveContainerStartupStrategy(env) === 'keep-warm' ? 1 : 0;
 }
 
+function resolvePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (Number.isInteger(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return fallback;
+}
+
+function resolveRateLimitPolicy(env = process.env, { windowMsKey, maxKey, defaultWindowMs, defaultMax }) {
+  return {
+    windowMs: resolvePositiveInteger(env[windowMsKey], defaultWindowMs),
+    max: resolvePositiveInteger(env[maxKey], defaultMax),
+  };
+}
+
+function buildRetryAfterSeconds(rateLimitState, windowMs) {
+  const resetTime = rateLimitState?.resetTime;
+  if (resetTime instanceof Date) {
+    const durationMs = resetTime.getTime() - Date.now();
+    if (durationMs > 0) {
+      return Math.ceil(durationMs / 1000);
+    }
+  }
+
+  return Math.ceil(windowMs / 1000);
+}
+
+function createRateLimitHandler({ policyName, route, windowMs }) {
+  return (req, res, _next, options) => {
+    const retryAfterSeconds = buildRetryAfterSeconds(req.rateLimit, windowMs);
+
+    res.set('Retry-After', String(retryAfterSeconds));
+    console.warn(
+      `Rate limit hit for ${policyName}: ${req.method} ${route} from ${req.ip} (limit=${req.rateLimit?.limit ?? options.max})`
+    );
+    void trackRateLimitHit({
+      policyName,
+      route,
+      method: req.method,
+      ip: req.ip,
+      limit: req.rateLimit?.limit ?? options.max,
+      remaining: req.rateLimit?.remaining,
+      retryAfterSeconds,
+      windowMs,
+    });
+
+    return res.status(options.statusCode).send(options.message);
+  };
+}
+
+function createApiRateLimiter({ policyName, route, windowMs, max }) {
+  return rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests, please try again later.',
+    skip: (req) => SAFE_METHODS.has(req.method),
+    handler: createRateLimitHandler({ policyName, route, windowMs }),
+  });
+}
+
 export function buildContentSecurityPolicyDirectives(runtime) {
   const directives = helmet.contentSecurityPolicy.getDefaultDirectives();
   const appInsightsSettings = parseConnectionString(runtime.appInsightsWebConnectionString);
+
+  if (runtime.env.NODE_ENV !== 'production') {
+    delete directives.upgradeInsecureRequests;
+  }
 
   if (!appInsightsSettings?.ingestionEndpoint) {
     return directives;
@@ -197,12 +291,39 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     get containerMinReplicas() {
       return resolveContainerMinReplicas(env);
     },
+    get scanRateLimit() {
+      return resolveRateLimitPolicy(env, {
+        windowMsKey: 'SCAN_RATE_LIMIT_WINDOW_MS',
+        maxKey: 'SCAN_RATE_LIMIT_MAX',
+        defaultWindowMs: DEFAULT_SCAN_RATE_LIMIT_WINDOW_MS,
+        defaultMax: DEFAULT_SCAN_RATE_LIMIT_MAX,
+      });
+    },
+    get reportRateLimit() {
+      return resolveRateLimitPolicy(env, {
+        windowMsKey: 'REPORT_RATE_LIMIT_WINDOW_MS',
+        maxKey: 'REPORT_RATE_LIMIT_MAX',
+        defaultWindowMs: DEFAULT_REPORT_RATE_LIMIT_WINDOW_MS,
+        defaultMax: DEFAULT_REPORT_RATE_LIMIT_MAX,
+      });
+    },
   };
 }
 
 export function createApp(runtime = createRuntime()) {
   const app = express();
-  const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
+  const scanLimiter = createApiRateLimiter({
+    policyName: 'scan_api',
+    route: '/api/scan',
+    windowMs: runtime.scanRateLimit.windowMs,
+    max: runtime.scanRateLimit.max,
+  });
+  const reportLimiter = createApiRateLimiter({
+    policyName: 'report_api',
+    route: '/api/report',
+    windowMs: runtime.reportRateLimit.windowMs,
+    max: runtime.reportRateLimit.max,
+  });
 
   app.set('trust proxy', runtime.trustProxy);
   app.use(
@@ -213,18 +334,10 @@ export function createApp(runtime = createRuntime()) {
     })
   );
   app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10000, // High limit since we have other mitigations and want to avoid blocking legitimate users; primarily intended to slow down automated abuse
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (req) => req.path === '/health' || safeMethods.has(req.method),
-  });
-  app.use(limiter);
 
   app.use('/api/config', express.json({ limit: '1kb' }), createConfigRouter(runtime));
-  app.use('/api/scan', express.json({ limit: '10kb' }), createScanRouter(runtime));
-  app.use('/api/report', express.json({ limit: '100kb' }), createReportRouter(runtime));
+  app.use('/api/scan', scanLimiter, express.json({ limit: '10kb' }), createScanRouter(runtime));
+  app.use('/api/report', reportLimiter, express.json({ limit: '100kb' }), createReportRouter(runtime));
 
   app.get('/health', (_req, res) =>
     res.json({
@@ -238,34 +351,35 @@ export function createApp(runtime = createRuntime()) {
   );
 
   app.get('/robots.txt', (_req, res) => {
-    res.type('text/plain').send(getRobotsTxt(runtime));
+    res.set('Cache-Control', 'public, max-age=3600').type('text/plain').send(getRobotsTxt(runtime));
   });
 
   app.get('/sitemap.xml', (_req, res) => {
-    res.type('application/xml').send(getSitemapXml(runtime));
+    res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(getSitemapXml(runtime));
   });
 
   app.get('/site.webmanifest', (_req, res) => {
-    res.type('application/manifest+json').send(getWebManifest(runtime));
+    res.set('Cache-Control', 'public, max-age=3600').type('application/manifest+json').send(getWebManifest(runtime));
   });
 
-  app.get('/favicon.svg', (_req, res) => {
-    res.redirect(302, '/assets/brand/favicon.svg');
+  app.get('/manifest.webmanifest', (_req, res) => {
+    res.redirect(302, '/site.webmanifest');
   });
 
-  app.get('/social-card.svg', (_req, res) => {
-    res.redirect(302, '/assets/brand/social-card.svg');
-  });
-
-  app.get('/favicon.ico', (_req, res) => {
-    res.redirect(302, '/assets/brand/favicon.ico');
-  });
+  for (const [aliasPath, targetPath] of STATIC_ASSET_ALIASES) {
+    app.get(aliasPath, (_req, res) => {
+      sendFrontendAsset(runtime, res, targetPath);
+    });
+  }
 
   if (runtime.frontendPath && runtime.frontendTemplate) {
     app.use(express.static(runtime.frontendPath, { index: false }));
     app.get(/^(?!\/api(\/|$))/, (req, res) => {
       const pageMetadata = buildPageMetadata(runtime, req.path);
-      res.type('html').send(renderIndexHtml(runtime.frontendTemplate, pageMetadata));
+      res
+        .set('X-Robots-Tag', pageMetadata.robots)
+        .type('html')
+        .send(renderIndexHtml(runtime.frontendTemplate, pageMetadata));
     });
   } else if (runtime.env.NODE_ENV === 'production') {
     console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
@@ -322,6 +436,7 @@ export {
   resolveContainerMinReplicas,
   resolveContainerStartupStrategy,
   resolveFrontendPath,
+  resolveRateLimitPolicy,
   resolveTrustProxyValue,
 };
 export default app;

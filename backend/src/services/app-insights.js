@@ -51,6 +51,10 @@ export function buildScanKey(result) {
   return createHash('sha256').update(input).digest('hex');
 }
 
+function hashValue(value = '') {
+  return createHash('sha256').update(String(value)).digest('hex');
+}
+
 export function buildEventEnvelope(eventName, properties = {}, measurements = {}, options = {}) {
   const settings = options.settings || parseConnectionString();
   if (!settings) {
@@ -181,6 +185,33 @@ export async function trackSharedReportViewed(result, { reportId } = {}) {
     {
       score: result.score,
       stars: result.stars,
+    }
+  );
+}
+
+export async function trackRateLimitHit({
+  policyName,
+  route,
+  method,
+  ip,
+  limit,
+  remaining,
+  retryAfterSeconds,
+  windowMs,
+} = {}) {
+  return trackEvent(
+    'rate_limit_hit',
+    {
+      policy_name: policyName,
+      route,
+      method,
+      client_hash: ip ? hashValue(ip) : undefined,
+    },
+    {
+      limit,
+      remaining,
+      retry_after_seconds: retryAfterSeconds,
+      window_ms: windowMs,
     }
   );
 }

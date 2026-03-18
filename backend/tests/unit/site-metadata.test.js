@@ -2,6 +2,7 @@ import {
   buildPageMetadata,
   createSiteMetadata,
   getRobotsTxt,
+  getWebManifest,
 } from '../../src/services/site-metadata.js';
 
 describe('site metadata', () => {
@@ -58,5 +59,39 @@ describe('site metadata', () => {
     expect(robots).toContain('Allow: /');
     expect(robots).toContain('Disallow: /api/');
     expect(robots).toContain('Sitemap: https://scan.example.com/sitemap.xml');
+  });
+
+  it('emits a launch-ready manifest with compatibility icon aliases', () => {
+    const runtime = {
+      env: {
+        NODE_ENV: 'production',
+        SITE_ORIGIN: 'https://scan.example.com',
+      },
+      siteMetadata: createSiteMetadata({
+        NODE_ENV: 'production',
+        SITE_ORIGIN: 'https://scan.example.com',
+      }),
+    };
+
+    const manifest = JSON.parse(getWebManifest(runtime));
+
+    expect(manifest).toMatchObject({
+      id: '/',
+      lang: 'en',
+      start_url: '/',
+      display: 'standalone',
+    });
+    expect(manifest.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          src: '/android-chrome-192x192.png',
+          sizes: '192x192',
+        }),
+        expect.objectContaining({
+          src: '/maskable-icon-512x512.png',
+          purpose: 'maskable',
+        }),
+      ])
+    );
   });
 });

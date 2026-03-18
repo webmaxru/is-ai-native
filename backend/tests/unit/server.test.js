@@ -93,6 +93,97 @@ describe('resolveTrustProxyValue', () => {
   });
 });
 
+describe('resolveRateLimitPolicy', () => {
+  it('falls back to defaults when values are absent or invalid', async () => {
+    const { resolveRateLimitPolicy } = await import('../../src/server.js');
+
+    expect(
+      resolveRateLimitPolicy(
+        { SCAN_RATE_LIMIT_WINDOW_MS: 'invalid', SCAN_RATE_LIMIT_MAX: '0' },
+        {
+          windowMsKey: 'SCAN_RATE_LIMIT_WINDOW_MS',
+          maxKey: 'SCAN_RATE_LIMIT_MAX',
+          defaultWindowMs: 1000,
+          defaultMax: 25,
+        }
+      )
+    ).toEqual({ windowMs: 1000, max: 25 });
+  });
+
+  it('uses positive integer overrides when provided', async () => {
+    const { resolveRateLimitPolicy } = await import('../../src/server.js');
+
+    expect(
+      resolveRateLimitPolicy(
+        { REPORT_RATE_LIMIT_WINDOW_MS: '60000', REPORT_RATE_LIMIT_MAX: '12' },
+        {
+          windowMsKey: 'REPORT_RATE_LIMIT_WINDOW_MS',
+          maxKey: 'REPORT_RATE_LIMIT_MAX',
+          defaultWindowMs: 1000,
+          defaultMax: 25,
+        }
+      )
+    ).toEqual({ windowMs: 60000, max: 12 });
+  });
+});
+
+describe('createApp rate limiting', () => {
+  const buildTestApp = async (envOverrides = {}) => {
+    const [{ createApp, createRuntime }, supertest] = await Promise.all([
+      import('../../src/server.js'),
+      import('supertest'),
+    ]);
+
+    const runtime = createRuntime({
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        REPORTS_DIR: ':memory:',
+        ENABLE_SHARING: 'true',
+        ...envOverrides,
+      },
+    });
+
+    return supertest.default(createApp(runtime));
+  };
+
+  it('uses separate limiter buckets for scan and report APIs', async () => {
+    const request = await buildTestApp({
+      SCAN_RATE_LIMIT_MAX: '2',
+      REPORT_RATE_LIMIT_MAX: '1',
+    });
+
+    const scanResponses = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      scanResponses.push(await request.post('/api/scan').send({}));
+    }
+
+    const reportResponses = [];
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      reportResponses.push(await request.post('/api/report').send({}));
+    }
+
+    expect(scanResponses[0].status).toBe(400);
+    expect(scanResponses[1].status).toBe(400);
+    expect(scanResponses[2].status).toBe(429);
+    expect(reportResponses[0].status).toBe(400);
+    expect(reportResponses[1].status).toBe(429);
+  });
+
+  it('does not rate limit safe report GET requests', async () => {
+    const request = await buildTestApp({
+      REPORT_RATE_LIMIT_MAX: '1',
+    });
+
+    const responses = [];
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      responses.push(await request.get('/api/report/not-a-uuid'));
+    }
+
+    expect(responses.every((response) => response.status === 400)).toBe(true);
+  });
+});
+
 describe('createCleanupScheduler', () => {
   it('does not start overlapping cleanup runs', async () => {
     const { createCleanupScheduler } = await import('../../src/server.js');

@@ -3,10 +3,12 @@
 This project now covers the minimum technical discovery surface for launch:
 
 - Route-aware HTML metadata for the homepage, repo scan routes, and shared report routes.
-- Dynamic `robots.txt` and `sitemap.xml` endpoints plus a branded `site.webmanifest` that points at generated static icon assets.
+- Dynamic `robots.txt` and `sitemap.xml` endpoints plus a branded `site.webmanifest` with a stable install identity, shortcuts, and compatibility icon aliases.
 - Default homepage indexing in production, with shared reports and scan-result URLs marked `noindex`.
 - Canonical URLs and Open Graph / Twitter tags derived from the production site origin when configured.
 - Basic JSON-LD structured data for the website and web application.
+- Standard launch asset aliases for favicon, Apple touch icon, Android icons, Safari mask icon, Microsoft tile image, and social card files.
+- Generated Safari pinned-tab SVG and Windows tile PNG assets alongside the existing favicon and social-card set.
 
 ## Configure Before Launch
 
@@ -29,6 +31,11 @@ Set these environment variables in production so metadata resolves to the real p
 ## Remaining Launch Work
 
 These items still need product and brand input; they should be treated as blockers or near-blockers for a public launch.
+
+- Privacy policy page.
+- Terms of use page.
+- Search Console and Bing Webmaster Tools verification after the final production domain is live.
+- Production validation against live social-card and rich-result debuggers once the public hostname is final.
 
 ## Suggested Launch Copy
 

@@ -50,9 +50,26 @@ function createStructuredData(siteMetadata, pageMetadata) {
     '@graph': [
       {
         '@type': 'WebSite',
+        '@id': `${siteMetadata.homeUrl}#website`,
         name: siteMetadata.siteName,
         url: siteMetadata.homeUrl,
         description: siteMetadata.description,
+        image: siteMetadata.socialImageUrl,
+        inLanguage: siteMetadata.siteLanguage,
+      },
+      {
+        '@type': 'WebPage',
+        name: pageMetadata.title,
+        url: pageMetadata.canonicalUrl,
+        description: pageMetadata.description,
+        inLanguage: siteMetadata.siteLanguage,
+        isPartOf: {
+          '@id': `${siteMetadata.homeUrl}#website`,
+        },
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          url: siteMetadata.socialImageUrl,
+        },
       },
       {
         '@type': 'WebApplication',
@@ -61,6 +78,8 @@ function createStructuredData(siteMetadata, pageMetadata) {
         name: siteMetadata.siteName,
         url: pageMetadata.canonicalUrl,
         description: pageMetadata.description,
+        image: siteMetadata.socialImageUrl,
+        inLanguage: siteMetadata.siteLanguage,
       },
     ],
   };
@@ -70,6 +89,8 @@ export function createSiteMetadata(env = {}) {
   const siteOrigin = normalizeOrigin(env.SITE_ORIGIN || env.PUBLIC_SITE_URL || env.APP_URL || '');
   const siteName = (env.SITE_NAME || 'IsAINative').trim();
   const shortName = (env.SITE_SHORT_NAME || siteName).trim();
+  const siteLanguage = (env.SITE_LANGUAGE || 'en').trim();
+  const siteLocale = (env.SITE_LOCALE || 'en_US').trim();
   const title = (env.DEFAULT_PAGE_TITLE || 'Is AI Native | Audit GitHub Repositories for AI Coding Readiness').trim();
   const description = (
     env.DEFAULT_META_DESCRIPTION ||
@@ -77,23 +98,29 @@ export function createSiteMetadata(env = {}) {
   ).trim();
   const themeColor = (env.THEME_COLOR || '#1a1c1a').trim();
   const backgroundColor = (env.BACKGROUND_COLOR || '#050805').trim();
+  const maskIconColor = (env.MASK_ICON_COLOR || '#1a7a2e').trim();
   const twitterHandle = (env.TWITTER_HANDLE || '').trim();
   const allowIndexing = env.ALLOW_SITE_INDEXING === 'true' || (env.NODE_ENV === 'production' && env.ALLOW_SITE_INDEXING !== 'false');
   const homeUrl = resolveUrl(siteOrigin, '/');
-  const socialImageUrl = resolveUrl(siteOrigin, '/assets/brand/social-card.png');
+  const socialImageUrl = resolveUrl(siteOrigin, '/social-card.png');
+  const socialImageAlt = (env.SOCIAL_IMAGE_ALT || `${siteName} social card`).trim();
 
   return {
     siteOrigin,
     siteName,
     shortName,
+    siteLanguage,
+    siteLocale,
     title,
     description,
     themeColor,
     backgroundColor,
+    maskIconColor,
     twitterHandle,
     allowIndexing,
     homeUrl,
     socialImageUrl,
+    socialImageAlt,
   };
 }
 
@@ -129,7 +156,14 @@ export function buildPageMetadata(runtime, pathname = '/') {
     description,
     robots,
     canonicalUrl,
+    siteName: siteMetadata.siteName,
+    shortName: siteMetadata.shortName,
+    siteLocale: siteMetadata.siteLocale,
     ogImageUrl: siteMetadata.socialImageUrl,
+    socialImageAlt: siteMetadata.socialImageAlt,
+    themeColor: siteMetadata.themeColor,
+    backgroundColor: siteMetadata.backgroundColor,
+    maskIconColor: siteMetadata.maskIconColor,
     twitterHandle: siteMetadata.twitterHandle,
     structuredData,
   };
@@ -141,7 +175,14 @@ export function renderIndexHtml(template, pageMetadata) {
     .replaceAll('__PAGE_DESCRIPTION__', escapeHtml(pageMetadata.description))
     .replaceAll('__PAGE_ROBOTS__', escapeHtml(pageMetadata.robots))
     .replaceAll('__PAGE_CANONICAL__', escapeHtml(pageMetadata.canonicalUrl))
+    .replaceAll('__SITE_NAME__', escapeHtml(pageMetadata.siteName))
+    .replaceAll('__SITE_SHORT_NAME__', escapeHtml(pageMetadata.shortName))
+    .replaceAll('__SITE_LOCALE__', escapeHtml(pageMetadata.siteLocale))
     .replaceAll('__OG_IMAGE_URL__', escapeHtml(pageMetadata.ogImageUrl))
+    .replaceAll('__SOCIAL_IMAGE_ALT__', escapeHtml(pageMetadata.socialImageAlt))
+    .replaceAll('__THEME_COLOR__', escapeHtml(pageMetadata.themeColor))
+    .replaceAll('__BACKGROUND_COLOR__', escapeHtml(pageMetadata.backgroundColor))
+    .replaceAll('__MASK_ICON_COLOR__', escapeHtml(pageMetadata.maskIconColor))
     .replaceAll('__TWITTER_HANDLE__', escapeHtml(pageMetadata.twitterHandle))
     .replaceAll('__STRUCTURED_DATA__', escapeJsonForScript(pageMetadata.structuredData));
 }
@@ -186,34 +227,48 @@ export function getWebManifest(runtime) {
     {
       name: siteMetadata.siteName,
       short_name: siteMetadata.shortName,
+      id: '/',
       description: siteMetadata.description,
+      lang: siteMetadata.siteLanguage,
+      dir: 'ltr',
       start_url: '/',
       scope: '/',
+      display_override: ['standalone', 'minimal-ui', 'browser'],
       display: 'standalone',
       orientation: 'portrait',
+      categories: ['developer tools', 'productivity', 'utilities'],
+      prefer_related_applications: false,
       background_color: siteMetadata.backgroundColor,
       theme_color: siteMetadata.themeColor,
+      shortcuts: [
+        {
+          name: 'Scan a GitHub repository',
+          short_name: 'Scan repo',
+          description: 'Open the scanner and audit a public GitHub repository for AI-native readiness.',
+          url: '/?source=app-shortcut',
+        },
+      ],
       icons: [
         {
-          src: '/assets/brand/icon-192.png',
+          src: '/android-chrome-192x192.png',
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any',
         },
         {
-          src: '/assets/brand/icon-512.png',
+          src: '/android-chrome-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any',
         },
         {
-          src: '/assets/brand/icon-maskable-512.png',
+          src: '/maskable-icon-512x512.png',
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable',
         },
         {
-          src: '/assets/brand/favicon.svg',
+          src: '/favicon.svg',
           sizes: 'any',
           type: 'image/svg+xml',
           purpose: 'any',

@@ -15,6 +15,10 @@ The scanner inspects a repo's file tree via the GitHub API and checks for the pr
 - **Six primitive categories** — Instructions, Prompts, Agents, Skills, MCP Config, and Agent Hooks — mapped to glob patterns per assistant.
 - **Report sharing** — Save scan results as shareable links under `/_/report/<uuid>` (backed by a file-based report store; enabled by default in production). Reports auto-expire after 90 days.
 - **Operational telemetry** — Emit scan/report custom events to Azure Application Insights so counts, recent activity, report views, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
+- **Operational telemetry** — Emit scan/report/rate-limit custom events to Azure Application Insights so counts, recent activity, report views, abuse signals, and drill-down monitoring can live in Azure Workbooks instead of a bespoke in-app dashboard.
+| `SCAN_RATE_LIMIT_MAX` | `120` | Maximum requests per IP within the scan limiter window |
+| `REPORT_RATE_LIMIT_WINDOW_MS` | `900000` | Window length in milliseconds for the `/api/report` limiter |
+| `REPORT_RATE_LIMIT_MAX` | `240` | Maximum unsafe requests per IP within the report limiter window; safe `GET`/`HEAD`/`OPTIONS` requests are exempt |
 - **Configuration-driven** — Add new primitives or assistants by editing JSON files. No code changes required. See [Configuration Guide](docs/configuration.md).
 - **Weekly assistant maintenance** — Supporting skills and scanner configuration are reviewed weekly through a GitHub Agentic Workflow that scans multiple upstream documentation sources, filters and ranks relevant spec drift, and proposes minimal updates as a draft PR that still requires human review before merge.
 - **Zero-to-production IaC** — Full Azure Container Apps deployment via Bicep, with CI/CD through GitHub Actions.
@@ -363,6 +367,10 @@ Client-surface coverage is split this way:
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
 | `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
 | `TRUST_PROXY` | `1` in production, otherwise `false` | Express proxy trust setting used for client IP and rate-limit handling. Set this explicitly when deploying behind a non-default proxy chain. |
+| `SCAN_RATE_LIMIT_WINDOW_MS` | `900000` | Window length in milliseconds for the `/api/scan` limiter |
+| `SCAN_RATE_LIMIT_MAX` | `120` | Maximum requests per client IP within the scan limiter window |
+| `REPORT_RATE_LIMIT_WINDOW_MS` | `900000` | Window length in milliseconds for the `/api/report` limiter |
+| `REPORT_RATE_LIMIT_MAX` | `240` | Maximum unsafe requests per client IP within the report limiter window; safe `GET`/`HEAD`/`OPTIONS` requests are exempt |
 | `ALLOWED_ORIGIN` | `false` (CORS disabled) | Allowed CORS origin (e.g., `http://localhost:5173`) |
 | `SITE_ORIGIN` | unset | Public base URL used for canonical tags, sitemap entries, and social card URLs |
 | `SITE_NAME` | `IsAINative` | Product name used in structured data and web manifest |
