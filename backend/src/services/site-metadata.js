@@ -87,7 +87,7 @@ function createStructuredData(siteMetadata, pageMetadata) {
 
 export function createSiteMetadata(env = {}) {
   const siteOrigin = normalizeOrigin(env.SITE_ORIGIN || env.PUBLIC_SITE_URL || env.APP_URL || '');
-  const siteName = (env.SITE_NAME || 'IsAINative').trim();
+  const siteName = (env.SITE_NAME || 'Is AI Native').trim();
   const shortName = (env.SITE_SHORT_NAME || siteName).trim();
   const siteLanguage = (env.SITE_LANGUAGE || 'en').trim();
   const siteLocale = (env.SITE_LOCALE || 'en_US').trim();
@@ -99,7 +99,7 @@ export function createSiteMetadata(env = {}) {
   const themeColor = (env.THEME_COLOR || '#1a1c1a').trim();
   const backgroundColor = (env.BACKGROUND_COLOR || '#050805').trim();
   const maskIconColor = (env.MASK_ICON_COLOR || '#1a7a2e').trim();
-  const twitterHandle = (env.TWITTER_HANDLE || '').trim();
+  const twitterHandle = (env.TWITTER_HANDLE || '@webmaxru').trim();
   const allowIndexing = env.ALLOW_SITE_INDEXING === 'true' || (env.NODE_ENV === 'production' && env.ALLOW_SITE_INDEXING !== 'false');
   const homeUrl = resolveUrl(siteOrigin, '/');
   const socialImageUrl = resolveUrl(siteOrigin, '/social-card.png');
