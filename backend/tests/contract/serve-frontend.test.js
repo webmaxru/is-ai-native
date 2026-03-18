@@ -14,6 +14,7 @@ writeFileSync(join(brandDir, 'favicon.ico'), 'placeholder-icon');
 writeFileSync(join(brandDir, 'social-card.png'), 'placeholder-social-card');
 writeFileSync(join(brandDir, 'social-card.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 writeFileSync(join(brandDir, 'pinned-tab.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
+writeFileSync(join(brandDir, 'logo-square.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 
 process.env.NODE_ENV = 'test';
 process.env.REPORTS_DIR = ':memory:';
@@ -119,6 +120,7 @@ describe('frontend path configured', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toContain('max-age=86400');
+    expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
   });
 
   it('GET /social-card.svg serves the generated asset directly', async () => {
@@ -133,6 +135,15 @@ describe('frontend path configured', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toContain('max-age=86400');
+    expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+
+  it('GET /assets/brand/logo-square.svg serves static graphic assets with cross-origin CORP', async () => {
+    const res = await request(app).get('/assets/brand/logo-square.svg');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
+    expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
   });
 
   it('GET /mask-icon.svg serves the generated pinned-tab asset directly', async () => {

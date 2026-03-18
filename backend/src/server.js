@@ -39,10 +39,22 @@ const STATIC_ASSET_ALIASES = new Map([
 ]);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const FRONTEND_GRAPHIC_EXTENSIONS = new Set(['.png', '.svg', '.ico', '.jpg', '.jpeg', '.gif', '.webp', '.avif']);
 const DEFAULT_SCAN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_SCAN_RATE_LIMIT_MAX = 120;
 const DEFAULT_REPORT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_REPORT_RATE_LIMIT_MAX = 240;
+
+function isFrontendGraphicAssetPath(assetPath = '') {
+  const normalizedAssetPath = String(assetPath).toLowerCase();
+  return [...FRONTEND_GRAPHIC_EXTENSIONS].some((extension) => normalizedAssetPath.endsWith(extension));
+}
+
+function applyFrontendGraphicHeaders(res, assetPath) {
+  if (isFrontendGraphicAssetPath(assetPath)) {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}
 
 function sendFrontendAsset(runtime, res, assetPath) {
   if (!runtime.frontendPath) {
@@ -56,6 +68,7 @@ function sendFrontendAsset(runtime, res, assetPath) {
     return;
   }
 
+  applyFrontendGraphicHeaders(res, assetPath);
   res.set('Cache-Control', 'public, max-age=86400').sendFile(absoluteAssetPath);
 }
 
@@ -379,7 +392,14 @@ export function createApp(runtime = createRuntime()) {
   }
 
   if (runtime.frontendPath && runtime.frontendTemplate) {
-    app.use(express.static(runtime.frontendPath, { index: false }));
+    app.use(
+      express.static(runtime.frontendPath, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          applyFrontendGraphicHeaders(res, filePath);
+        },
+      })
+    );
     app.get(/^(?!\/api(\/|$))/, (req, res) => {
       const pageMetadata = buildPageMetadata(runtime, req.path);
       res
