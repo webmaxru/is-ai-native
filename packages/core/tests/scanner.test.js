@@ -13,6 +13,8 @@ test('core scanner detects documented repository-scoped files', () => {
       '.agents/skills/refactor/SKILL.md',
       '.codex/config.toml',
       '.github/hooks/security.json',
+      '.claude/agents/code-review.md',
+      '.claude/settings.json',
     ],
     primitives
   );
@@ -23,5 +25,10 @@ test('core scanner detects documented repository-scoped files', () => {
   assert.equal(byName.get('Instruction Files').assistant_results['openai-codex'].detected, true);
   assert.deepEqual(byName.get('Agent Hooks').assistant_results['github-copilot'].matched_files, [
     '.github/hooks/security.json',
+    '.claude/settings.json',
   ]);
+  assert.equal(
+    byName.get('Custom Agent Definitions').assistant_results['github-copilot'].detected,
+    true
+  );
 });
