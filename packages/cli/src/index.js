@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { Profiles, parseRepoUrl, scanRepository } from '@is-ai-native/core';
+import { Profiles, parseRepoUrl, scanRepository } from '../../core/src/index.js';
 import { formatResult } from './formatters.js';
 
 export async function scanGitHubTarget(repoInput, { token, branch, configSource } = {}) {

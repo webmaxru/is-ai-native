@@ -1,0 +1,19 @@
+{
+  "name": "@is-ai-native/gh-extension",
+  "version": "0.1.2",
+  "description": "GitHub CLI extension export tooling for Is AI-Native",
+  "private": true,
+  "type": "module",
+  "files": [
+    "assets",
+    "scripts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

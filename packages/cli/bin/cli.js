@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import { access } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
+import packageJson from '../package.json' with { type: 'json' };
 import { formatResult, scanGitHubTarget, scanLocalTarget } from '../src/index.js';
-
-const CLI_VERSION = '0.1.1';
 
 const HELP_TEXT = `is-ai-native CLI
 
@@ -51,7 +50,7 @@ async function main() {
   }
 
   if (values.version) {
-    process.stdout.write(`@is-ai-native/cli ${CLI_VERSION}\n`);
+    process.stdout.write(`${packageJson.name} ${packageJson.version}\n`);
     return;
   }
 

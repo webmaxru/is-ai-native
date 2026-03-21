@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import packageJson from '../package.json' with { type: 'json' };
 import { scanGitHubTarget, scanLocalTarget } from '../src/index.js';
 
 function jsonResponse(body, status, headers = {}) {
@@ -81,5 +82,5 @@ test('cli reports the package version', () => {
   const result = spawnSync(process.execPath, [cliPath, '--version'], { encoding: 'utf-8' });
 
   assert.equal(result.status, 0);
-  assert.equal(result.stdout.trim(), '@is-ai-native/cli 0.1.1');
+  assert.equal(result.stdout.trim(), `${packageJson.name} ${packageJson.version}`);
 });

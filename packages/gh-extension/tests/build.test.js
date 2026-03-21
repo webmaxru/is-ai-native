@@ -15,7 +15,7 @@ test('build:gh-extension emits a single shebang and a runnable bundle', () => {
     mkdirSync(join(sampleRepo, '.github'), { recursive: true });
     writeFileSync(join(sampleRepo, '.github', 'copilot-instructions.md'), 'instructions');
 
-    const buildScriptPath = fileURLToPath(new URL('../scripts/build-gh-extension.mjs', import.meta.url));
+    const buildScriptPath = fileURLToPath(new URL('../scripts/build.mjs', import.meta.url));
     const buildResult = spawnSync(process.execPath, [buildScriptPath], {
       cwd: join(fileURLToPath(new URL('..', import.meta.url)), '..'),
       env: {

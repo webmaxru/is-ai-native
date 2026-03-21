@@ -151,14 +151,24 @@ To test the WebMCP preview in Chromium-based browser, enable `about://flags/#ena
 
 ### CLI
 
-The repository includes a source-based terminal client in [packages/cli/README.md](packages/cli/README.md). This is the current CLI surface for the project and the closest equivalent to a GitHub CLI workflow today.
+The repository includes a standalone Node CLI in [packages/cli/README.md](packages/cli/README.md) and separate GitHub CLI extension export tooling in [packages/gh-extension/README.md](packages/gh-extension/README.md).
 
 Current status:
 
-- The package is private and lives inside the workspace.
-- It is not published to npm.
+- The package is prepared to publish to npm as `is-ai-native`.
+- Once published, it will support `npm install is-ai-native` and `npx is-ai-native ...`.
 - It can generate a standalone `gh-is-ai-native` repository for native `gh extension install` distribution.
 - It uses the same shared scan engine and configuration as the web app and VS Code extension.
+
+Build and test the two CLI surfaces separately from the repository root:
+
+```powershell
+npm install
+npm run build:cli
+npm run test:cli
+npm run build:gh-extension
+npm run test:gh-extension
+```
 
 To build the generated GitHub CLI extension repository contents locally:
 
@@ -176,11 +186,31 @@ npm install
 node packages/cli/bin/cli.js --help
 ```
 
+After the npm package is published, install and run it with:
+
+```powershell
+npm install is-ai-native
+npx is-ai-native --help
+```
+
+For a coordinated release across the VS Code extension, standalone CLI, and GitHub CLI extension, use the root release automation:
+
+```powershell
+npm run release:all -- 0.1.4 --dry-run
+npm run release:all -- 0.1.4 --publish --push
+```
+
+That command aligns versions in all three package manifests, refreshes `package-lock.json`, runs the release build and test checks, publishes the VS Code extension, syncs the GitHub CLI extension repository, and pushes the `cli-v<version>` tag that triggers npm trusted publishing for the standalone CLI.
+
+Tagged CLI releases are published by `.github/workflows/publish-cli.yml`. The release tag format is `cli-v<version>` and it must match `packages/cli/package.json`.
+
+The workflow is intended to use npm trusted publishing through GitHub Actions OIDC, not a long-lived npm automation token. npm-side configuration still needs to be added once for the `is-ai-native` package by registering `publish-cli.yml` as its trusted publisher.
+
 If you want a shell command during local development, link the package from the workspace root:
 
 ```powershell
 npm install
-npm link --workspace packages/cli
+npm link .\packages\cli
 is-ai-native --help
 ```
 
@@ -339,7 +369,9 @@ npm install
 npm run test:frontend
 npm run test:core
 npm run test:cli
+npm run test:gh-extension
 npm run test:vscode-extension
+npm run build:cli
 npm run build:vscode-extension
 ```
 
@@ -347,7 +379,9 @@ Client-surface coverage is split this way:
 
 - `npm run test:frontend` validates the browser-side WebMCP repo scan helper and shared tool payload formatting
 - `npm run test:cli` validates terminal CLI behavior and output formatting
+- `npm run test:gh-extension` validates the GitHub CLI extension export build and generated launcher bundle
 - `npm run test:vscode-extension` validates extension-side helpers and rendering logic
+- `npm run build:cli` verifies the standalone CLI workspace package entrypoint without generating a bundled artifact
 - `npm run build:vscode-extension` validates the extension bundle that VS Code loads
 
 ---

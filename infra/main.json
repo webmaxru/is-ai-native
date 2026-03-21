@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13088693750965497163"
+      "templateHash": "6857666292213755974"
     }
   },
   "parameters": {
@@ -52,6 +52,38 @@
         "description": "Enable Azure Application Insights telemetry for scan/report monitoring."
       }
     },
+    "enableAvailabilityMonitoring": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable low-cost external website availability monitoring. Requires Application Insights and a monitoring alert email address."
+      }
+    },
+    "monitoringAlertEmail": {
+      "type": "string",
+      "defaultValue": "salnikov@gmail.com",
+      "metadata": {
+        "description": "Email address that receives website availability alerts. Leave empty to skip alert creation."
+      }
+    },
+    "monitoringUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional public URL to probe. Leave empty to monitor the default Container App URL."
+      }
+    },
+    "containerStartupStrategy": {
+      "type": "string",
+      "defaultValue": "scale-to-zero",
+      "allowedValues": [
+        "scale-to-zero",
+        "keep-warm"
+      ],
+      "metadata": {
+        "description": "Container startup strategy. Use scale-to-zero for lowest cost, or keep-warm to keep one replica ready and reduce cold starts."
+      }
+    },
     "acrName": {
       "type": "string",
       "defaultValue": "",
@@ -87,6 +119,13 @@
         "description": "Name of the existing managed certificate for the optional secondary custom domain."
       }
     },
+    "siteOrigin": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Public site origin used for canonical URLs, sitemap entries, and social card URLs. Leave empty to omit a canonical origin."
+      }
+    },
     "tags": {
       "type": "object",
       "defaultValue": {
@@ -111,14 +150,28 @@
       {
         "name": "ENABLE_SHARING",
         "value": "[if(parameters('enableSharing'), 'true', 'false')]"
+      },
+      {
+        "name": "CONTAINER_STARTUP_STRATEGY",
+        "value": "[parameters('containerStartupStrategy')]"
+      },
+      {
+        "name": "CONTAINER_MIN_REPLICAS",
+        "value": "[if(equals(parameters('containerStartupStrategy'), 'keep-warm'), '1', '0')]"
       }
     ],
+    "siteOriginEnv": "[if(not(equals(parameters('siteOrigin'), '')), createArray(createObject('name', 'SITE_ORIGIN', 'value', parameters('siteOrigin'))), createArray())]",
     "tokenEnv": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'GH_TOKEN_FOR_SCAN', 'secretRef', 'gh-token-for-scan')), createArray())]",
     "appInsightsEnv": "[if(parameters('enableAppInsights'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'secretRef', 'app-insights-connection-string')), createArray())]",
-    "appEnv": "[concat(variables('baseEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
+    "appEnv": "[concat(variables('baseEnv'), variables('siteOriginEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
     "appSecrets": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'gh-token-for-scan', 'value', parameters('githubToken'))), createArray())]",
     "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'reports-data', 'storageType', 'AzureFile', 'storageName', 'reports-data')), createArray())]",
     "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'reports-data')), createArray())]",
+    "availabilityMonitoringEnabled": "[and(and(parameters('enableAppInsights'), parameters('enableAvailabilityMonitoring')), not(equals(parameters('monitoringAlertEmail'), '')))]",
+    "monitoringActionGroupShortName": "[take(replace(format('{0}mon', parameters('namePrefix')), '-', ''), 12)]",
+    "monitoringLocationIds": [
+      "us-il-ch1-azr"
+    ],
     "customDomainBindings": "[concat(if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray()), if(and(not(equals(parameters('secondaryCustomDomainName'), '')), not(equals(parameters('secondaryManagedCertName'), ''))), createArray(createObject('name', parameters('secondaryCustomDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('secondaryManagedCertName')))), createArray()))]"
   },
   "resources": [
@@ -297,7 +350,7 @@
           ],
           "volumes": "[variables('appVolumes')]",
           "scale": {
-            "minReplicas": 0,
+            "minReplicas": "[if(equals(parameters('containerStartupStrategy'), 'keep-warm'), 1, 0)]",
             "maxReplicas": 4,
             "rules": [
               {
@@ -316,6 +369,104 @@
         "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
         "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}-env', parameters('namePrefix')), 'reports-data')]",
         "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]"
+      ]
+    },
+    {
+      "condition": "[variables('availabilityMonitoringEnabled')]",
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}-site-alerts', parameters('namePrefix'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "enabled": true,
+        "groupShortName": "[variables('monitoringActionGroupShortName')]",
+        "emailReceivers": [
+          {
+            "name": "primary-email",
+            "emailAddress": "[parameters('monitoringAlertEmail')]",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[variables('availabilityMonitoringEnabled')]",
+      "type": "Microsoft.Insights/webtests",
+      "apiVersion": "2022-06-15",
+      "name": "[format('{0}-site-availability', parameters('namePrefix'))]",
+      "location": "[parameters('location')]",
+      "kind": "standard",
+      "tags": "[union(parameters('tags'), createObject(format('hidden-link:{0}', resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))), 'Resource'))]",
+      "properties": {
+        "copy": [
+          {
+            "name": "Locations",
+            "count": "[length(variables('monitoringLocationIds'))]",
+            "input": {
+              "Id": "[variables('monitoringLocationIds')[copyIndex('Locations')]]"
+            }
+          }
+        ],
+        "Name": "[format('{0}-site-availability', parameters('namePrefix'))]",
+        "SyntheticMonitorId": "[format('{0}-site-availability', parameters('namePrefix'))]",
+        "Description": "Lowest-cost public site availability check for email alerting.",
+        "Enabled": true,
+        "Frequency": 900,
+        "Timeout": 30,
+        "Kind": "standard",
+        "RetryEnabled": true,
+        "Request": {
+          "RequestUrl": "[if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn))]",
+          "HttpVerb": "GET",
+          "ParseDependentRequests": true,
+          "FollowRedirects": true
+        },
+        "ValidationRules": {
+          "ExpectedHttpStatusCode": 200,
+          "SSLCheck": true,
+          "SSLCertRemainingLifetimeCheck": 14
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix')))]"
+      ]
+    },
+    {
+      "condition": "[variables('availabilityMonitoringEnabled')]",
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('{0}-site-down', parameters('namePrefix'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "description": "Sends email when the public site is unavailable or returns non-200 responses from the lowest-cost availability test profile.",
+        "enabled": true,
+        "severity": 1,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
+          "[resourceId('Microsoft.Insights/webtests', format('{0}-site-availability', parameters('namePrefix')))]"
+        ],
+        "evaluationFrequency": "PT15M",
+        "windowSize": "PT15M",
+        "autoMitigate": true,
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.WebtestLocationAvailabilityCriteria",
+          "componentId": "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
+          "webTestId": "[resourceId('Microsoft.Insights/webtests', format('{0}-site-availability', parameters('namePrefix')))]",
+          "failedLocationCount": 1
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', format('{0}-site-alerts', parameters('namePrefix')))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.Insights/actionGroups', format('{0}-site-alerts', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.Insights/webtests', format('{0}-site-availability', parameters('namePrefix')))]"
       ]
     }
   ],
@@ -340,6 +491,20 @@
         "description": "Name of the Application Insights component used for telemetry."
       },
       "value": "[if(parameters('enableAppInsights'), format('{0}-appi', parameters('namePrefix')), '')]"
+    },
+    "availabilityMonitoringConfigured": {
+      "type": "bool",
+      "metadata": {
+        "description": "True when external website availability monitoring resources were deployed."
+      },
+      "value": "[variables('availabilityMonitoringEnabled')]"
+    },
+    "availabilityMonitoringTargetUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL monitored by the external availability test."
+      },
+      "value": "[if(variables('availabilityMonitoringEnabled'), if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn)), '')]"
     },
     "resourceGroupName": {
       "type": "string",

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, '..', '..', '..');
+const extensionPackageRoot = resolve(workspaceRoot, 'packages', 'gh-extension');
+const cliPackageRoot = resolve(workspaceRoot, 'packages', 'cli');
 const extensionName = 'gh-is-ai-native';
 const minimumSupportedNodeMajor = 22;
 const outputDir = process.env.GH_EXTENSION_OUTPUT_DIR
@@ -32,7 +34,7 @@ async function main() {
   await mkdir(outputDir, { recursive: true });
 
   await build({
-    entryPoints: [resolve(workspaceRoot, 'packages', 'cli', 'bin', 'cli.js')],
+    entryPoints: [resolve(cliPackageRoot, 'bin', 'cli.js')],
     outfile: bundlePath,
     bundle: true,
     format: 'esm',
@@ -49,11 +51,8 @@ async function main() {
     recursive: true,
   });
   await cp(resolve(workspaceRoot, 'LICENSE'), resolve(outputDir, 'LICENSE'));
-  await cp(
-    resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'README.md'),
-    resolve(outputDir, 'README.md')
-  );
-  await cp(resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'assets'), resolve(outputDir, 'assets'), {
+  await cp(resolve(extensionPackageRoot, 'README.md'), resolve(outputDir, 'README.md'));
+  await cp(resolve(extensionPackageRoot, 'assets'), resolve(outputDir, 'assets'), {
     recursive: true,
   });
 

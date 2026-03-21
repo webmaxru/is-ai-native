@@ -1,0 +1,74 @@
+name: Publish CLI to npm
+
+on:
+  push:
+    tags:
+      - cli-v*
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish is-ai-native package
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_TAG: ${{ github.ref_name }}
+
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate trusted publishing configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_version="${EXPECTED_TAG#cli-v}"
+          package_version=$(node --input-type=module -e "import packageJson from './packages/cli/package.json' with { type: 'json' }; process.stdout.write(packageJson.version)")
+
+          if [[ "${EXPECTED_TAG}" == "${expected_version}" ]]; then
+            echo "Tag must use the cli-v<version> format. Received: ${EXPECTED_TAG}"
+            exit 1
+          fi
+
+          if [[ "${package_version}" != "${expected_version}" ]]; then
+            echo "Tag version ${expected_version} does not match packages/cli/package.json version ${package_version}."
+            exit 1
+          fi
+
+          echo "Configure npm trusted publishing for package is-ai-native with:"
+          echo "- GitHub organization/user: webmaxru"
+          echo "- Repository: is-ai-native"
+          echo "- Workflow filename: publish-cli.yml"
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run build:cli
+
+      - name: Test CLI
+        run: npm run test:cli
+
+      - name: Pack CLI tarball
+        run: npm run pack:cli
+
+      - name: Upload CLI package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: is-ai-native-cli-package
+          path: is-ai-native-*.tgz
+          if-no-files-found: error
+
+      - name: Publish CLI to npm
+        run: npm publish ./packages/cli --access public

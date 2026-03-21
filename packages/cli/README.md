@@ -1,43 +1,56 @@
-# Is AI-Native CLI
+# Is AI-Native Standalone CLI
 
-The CLI package provides a source-based terminal interface for the shared `@is-ai-native/core` scan engine.
+The standalone CLI provides a terminal interface for the shared scan engine used across the project.
 
-For Azure-hosted web deployments, the shared backend now reports the active Container Apps startup mode via `/api/config` and `/health`. Use the root deployment docs when you need to keep one replica warm instead of scaling to zero.
+For the GitHub CLI extension export surface, see `../gh-extension/README.md`.
 
 ## Status
 
-- Package name: `@is-ai-native/cli`
+- Package name: `is-ai-native`
 - Executable: `is-ai-native`
-- Distribution: private workspace package plus generated `gh-is-ai-native` export artifacts
 - Scope: local filesystem scans and GitHub repository scans
+- Distribution: publishable npm package backed by a bundled runtime artifact
 
-This package is not currently published to npm. It can generate the contents for a dedicated `gh-is-ai-native` repository, which is the supported way to publish it as a native GitHub CLI extension from this monorepo.
+## Install From npm
 
-## GitHub CLI Extension Export
+After the first npm publish, these commands will work:
 
-Build the dedicated `gh-is-ai-native` repository contents from the workspace root:
+```powershell
+npm install is-ai-native
+npx is-ai-native --help
+```
+
+This package requires Node.js 22 or newer.
+
+## Release Checklist
+
+For a coordinated release from the repository root:
+
+```powershell
+npm run release:all -- 0.1.4 --publish --push
+```
+
+That command updates the CLI version together with the VS Code extension and GitHub CLI extension versions, runs validation, publishes the VS Code extension, syncs the GitHub CLI extension repository, and pushes the `cli-v<version>` tag that triggers `.github/workflows/publish-cli.yml`.
+
+If you need a CLI-focused validation pass before the full release flow, run:
 
 ```powershell
 npm install
-npm run build:gh-extension
+npm run build:cli
+npm run test:cli
+npm run pack:cli
+npx .\is-ai-native-<version>.tgz --help
 ```
 
-This writes a standalone script-based GitHub CLI extension layout to `artifacts/gh-extension/repo` with:
+On npmjs.com, open the `is-ai-native` package settings and add a Trusted Publisher for GitHub Actions with:
 
-- a root launcher named `gh-is-ai-native`
-- a bundled Node entrypoint named `gh-is-ai-native.mjs`
-- a bundled `config/` directory copied from `packages/core/config`
-- a branded `assets/brand/` directory with the extension icon and social card
-- a dedicated extension README and the project license
+```text
+Organization or user: webmaxru
+Repository: is-ai-native
+Workflow filename: publish-cli.yml
+```
 
-The repository includes a sync workflow at `.github/workflows/gh-extension-sync.yml` that can push those generated contents into a separate `owner/gh-is-ai-native` repository.
-
-Required GitHub Actions configuration in the source repository:
-
-- repository variable `GH_EXTENSION_REPOSITORY`: the target repository in `owner/gh-is-ai-native` format
-- secret `GH_EXTENSION_SYNC_TOKEN`: a token with `contents:write` access to that target repository
-
-Because GitHub CLI installs script extensions from the repository root, publishing through a separate generated repository is the supported path when the CLI source lives under `packages/cli` in this monorepo.
+Trusted publishing uses GitHub Actions OIDC to exchange the workflow identity for a short-lived npm publish credential. That removes the need for a long-lived `NPM_TOKEN` secret and gives you automatic npm provenance for public packages published from this public repository.
 
 ## Run From Source
 
@@ -52,8 +65,15 @@ To expose the `is-ai-native` command in your shell during local development:
 
 ```powershell
 npm install
-npm link --workspace packages/cli
+npm link .\packages\cli
 is-ai-native --help
+```
+
+To verify the packaged artifact locally before publishing:
+
+```powershell
+npm pack .\packages\cli
+npx .\is-ai-native-0.1.2.tgz --help
 ```
 
 ## Usage

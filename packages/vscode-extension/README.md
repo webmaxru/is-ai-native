@@ -39,6 +39,14 @@ npm run package:vscode-extension
 npm run publish:vscode-extension
 ```
 
+For the normal coordinated release path, run this from the repository root instead:
+
+```powershell
+npm run release:all -- 0.1.4 --publish --push
+```
+
+That root command updates the VS Code extension version together with the standalone CLI and GitHub CLI extension, runs the release validation build and test steps, and then publishes the extension.
+
 If you prefer running `vsce` directly, run it from `packages/vscode-extension`. Running `vsce` from the repository root targets the workspace `package.json`, which does not contain the extension manifest fields required by the Marketplace.
 
 ## Run From Source
