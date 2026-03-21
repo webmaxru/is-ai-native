@@ -183,12 +183,13 @@ describe('frontend path configured', () => {
     });
   });
 
-  it('GET /api/config returns startup strategy metadata', async () => {
+  it('GET /api/config only returns frontend runtime config', async () => {
     const res = await request(app).get('/api/config');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({
-      containerStartupStrategy: 'keep-warm',
-      containerMinReplicas: 1,
+    expect(res.body).toEqual({
+      sharingEnabled: false,
+      appInsightsConnectionString:
+        'InstrumentationKey=test-key;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/',
     });
   });
 });

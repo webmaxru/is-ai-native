@@ -7,8 +7,6 @@ export function createConfigRouter(runtime) {
     res.json({
       sharingEnabled: runtime.sharingEnabled,
       appInsightsConnectionString: runtime.appInsightsWebConnectionString || null,
-      containerStartupStrategy: runtime.containerStartupStrategy,
-      containerMinReplicas: runtime.containerMinReplicas,
     });
   });
 
