@@ -22,8 +22,33 @@ function loadWorkspaceEnv() {
   }
 }
 
+function resolveExecutable(command) {
+  if (process.platform !== 'win32') {
+    return command;
+  }
+
+  if (command === 'npm') {
+    return 'npm.cmd';
+  }
+
+  if (command === 'npx') {
+    return 'npx.cmd';
+  }
+
+  return command;
+}
+
+function quoteWindowsShellArgument(argument) {
+  if (!/[\s"&()\[\]{}^=;!'+,`~|<>]/.test(argument)) {
+    return argument;
+  }
+
+  return `"${argument.replaceAll('"', '""')}"`;
+}
+
 function run(command, args, { cwd = workspaceRoot, env = process.env, dryRun = false, allowNonZero = false, redactValues = [] } = {}) {
   let rendered = `${command} ${args.join(' ')}`.trim();
+  const executable = resolveExecutable(command);
 
   for (const value of redactValues) {
     if (!value) {
@@ -39,12 +64,16 @@ function run(command, args, { cwd = workspaceRoot, env = process.env, dryRun = f
     return { stdout: '', stderr: '', status: 0 };
   }
 
-  const result = spawnSync(command, args, {
+  const spawnOptions = {
     cwd,
     env,
     encoding: 'utf8',
     stdio: ['inherit', 'pipe', 'pipe'],
-  });
+  };
+
+  const result = process.platform === 'win32' && executable.endsWith('.cmd')
+    ? spawnSync(process.env.comspec ?? 'cmd.exe', ['/d', '/s', '/c', [executable, ...args].map(quoteWindowsShellArgument).join(' ')], spawnOptions)
+    : spawnSync(executable, args, spawnOptions);
 
   if (result.stdout) {
     process.stdout.write(result.stdout);
