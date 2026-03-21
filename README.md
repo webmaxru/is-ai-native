@@ -1,5 +1,7 @@
 # 🤖 Is it AI-Native?
 
+![Is AI-Native social card](./webapp/frontend/assets/brand/social-card.svg)
+
 Scan any GitHub repository for AI-native development primitives through the hosted web app, the VS Code extension, the GitHub CLI extension, or the standalone CLI.
 
 Is it AI-Native inspects a repository's file tree and checks for AI-native development primitives across **GitHub Copilot**, **Claude Code**, and **OpenAI Codex**. Every surface uses the same shared scan engine and scoring model, so browser, editor, and CLI results stay aligned.
