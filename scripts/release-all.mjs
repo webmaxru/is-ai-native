@@ -149,6 +149,14 @@ function resolveExecutable(command) {
   return command;
 }
 
+function quoteWindowsShellArgument(argument) {
+  if (!/[\s"&()\[\]{}^=;!'+,`~|<>]/.test(argument)) {
+    return argument;
+  }
+
+  return `"${argument.replaceAll('"', '""')}"`;
+}
+
 function run(command, args, { cwd = workspaceRoot, dryRun = false, env = process.env, allowNonZero = false } = {}) {
   const rendered = `${command} ${args.join(' ')}`.trim();
   const executable = resolveExecutable(command);
@@ -158,12 +166,16 @@ function run(command, args, { cwd = workspaceRoot, dryRun = false, env = process
     return { stdout: '', stderr: '', status: 0 };
   }
 
-  const result = spawnSync(executable, args, {
+  const spawnOptions = {
     cwd,
     env,
     encoding: 'utf8',
     stdio: ['inherit', 'pipe', 'pipe'],
-  });
+  };
+
+  const result = process.platform === 'win32' && executable.endsWith('.cmd')
+    ? spawnSync(process.env.comspec ?? 'cmd.exe', ['/d', '/s', '/c', [executable, ...args].map(quoteWindowsShellArgument).join(' ')], spawnOptions)
+    : spawnSync(executable, args, spawnOptions);
 
   if (result.stdout) {
     process.stdout.write(result.stdout);
