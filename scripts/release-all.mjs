@@ -133,15 +133,32 @@ function determineReleaseVersion(explicitVersion, currentVersions) {
   };
 }
 
+function resolveExecutable(command) {
+  if (process.platform !== 'win32') {
+    return command;
+  }
+
+  if (command === 'npm') {
+    return 'npm.cmd';
+  }
+
+  if (command === 'npx') {
+    return 'npx.cmd';
+  }
+
+  return command;
+}
+
 function run(command, args, { cwd = workspaceRoot, dryRun = false, env = process.env, allowNonZero = false } = {}) {
   const rendered = `${command} ${args.join(' ')}`.trim();
+  const executable = resolveExecutable(command);
   process.stdout.write(`${dryRun ? '[dry-run] ' : ''}${rendered}\n`);
 
   if (dryRun) {
     return { stdout: '', stderr: '', status: 0 };
   }
 
-  const result = spawnSync(command, args, {
+  const result = spawnSync(executable, args, {
     cwd,
     env,
     encoding: 'utf8',
