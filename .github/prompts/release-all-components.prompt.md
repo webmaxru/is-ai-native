@@ -18,6 +18,5 @@ Requirements:
    - `GH_EXTENSION_REPOSITORY` is available from the shell or root `.env`
    - `GH_EXTENSION_SYNC_TOKEN` is available from the shell or root `.env`
    - the git worktree is clean
-   - npm trusted publishing is configured for package `is-ai-native` with workflow filename `publish-cli.yml`
 7. For a full coordinated release, run `npm run release:all -- <version> --publish --push` when a version was provided, or `npm run release:all -- --publish --push` when the version should be auto-derived.
 8. Summarize what changed, what was published, and any manual follow-up that remains.
