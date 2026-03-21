@@ -4,14 +4,18 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const packageRoot = resolve(scriptDir, '..');
-const workspaceRoot = resolve(packageRoot, '..', '..');
-const distDir = resolve(packageRoot, 'dist');
-const minimumSupportedNodeMajor = 22;
+export const packageRoot = resolve(scriptDir, '..');
+export const workspaceRoot = resolve(packageRoot, '..', '..');
+export const distDir = resolve(packageRoot, 'dist');
+export const minimumSupportedNodeMajor = 22;
+const distEntriesToReplace = ['index.js', 'cli.js', 'config', 'cli.blob', 'sea-config.json'];
 
-async function main() {
-  await rm(distDir, { recursive: true, force: true });
+export async function buildPublishableCli() {
   await mkdir(distDir, { recursive: true });
+
+  for (const entry of distEntriesToReplace) {
+    await rm(resolve(distDir, entry), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  }
 
   await build({
     entryPoints: [resolve(packageRoot, 'src', 'index.js')],
@@ -36,12 +40,22 @@ async function main() {
   await chmod(resolve(distDir, 'cli.js'), 0o755);
   await cp(resolve(workspaceRoot, 'packages', 'core', 'config'), resolve(distDir, 'config'), {
     recursive: true,
+    force: true,
+    errorOnExist: false,
   });
+
+  return distDir;
+}
+
+async function main() {
+  await buildPublishableCli();
 
   process.stdout.write(`Built publishable CLI bundle in ${distDir}\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.message}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    process.stderr.write(`${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

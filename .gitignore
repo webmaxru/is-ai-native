@@ -11,6 +11,8 @@ frontend/dist/
 packages/vscode-extension/config/
 coverage/
 .playwright-mcp/
+is-ai-native-*.tgz
+packages/cli/is-ai-native-*.tgz
 *.log
 npm-debug.log*
 yarn-debug.log*

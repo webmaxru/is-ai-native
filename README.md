@@ -156,7 +156,7 @@ The repository includes a standalone Node CLI in [packages/cli/README.md](packag
 Current status:
 
 - The package is prepared to publish to npm as `is-ai-native`.
-- Once published, it will support `npm install is-ai-native` and `npx is-ai-native ...`.
+- Once published, it will support `npm install is-ai-native` and a no-install standalone release bundle.
 - It can generate a standalone `gh-is-ai-native` repository for native `gh extension install` distribution.
 - It uses the same shared scan engine and configuration as the web app and VS Code extension.
 
@@ -190,8 +190,19 @@ After the npm package is published, install and run it with:
 
 ```powershell
 npm install is-ai-native
-npx is-ai-native --help
+is-ai-native --help
 ```
+
+If you want to avoid npm installation entirely, download the standalone CLI bundle from the tagged GitHub release assets, extract it, and run the bundled executable directly while keeping the extracted files together.
+
+To build that portable bundle locally:
+
+```powershell
+npm install
+npm run build:cli:standalone
+```
+
+That command writes a platform-specific bundle to `artifacts/cli/standalone/<platform>-<arch>`.
 
 For a coordinated release across the VS Code extension, standalone CLI, and GitHub CLI extension, use the root release automation:
 

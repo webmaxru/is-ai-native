@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const CONFIG_DIR_CANDIDATES = [join(__dirname, '../config'), join(__dirname, 'config')];
+const CONFIG_DIR_CANDIDATES = [
+  join(__dirname, '../config'),
+  join(__dirname, 'config'),
+  join(dirname(process.execPath), 'config'),
+];
 
 function resolveBundledConfigPath(fileName) {
   for (const configDir of CONFIG_DIR_CANDIDATES) {

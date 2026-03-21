@@ -151,6 +151,7 @@ async function main() {
 
   const validationSteps = [
     ['npm', ['run', 'build:cli']],
+    ['npm', ['run', 'build:cli:standalone']],
     ['npm', ['run', 'test:cli']],
     ['npm', ['run', 'build:vscode-extension']],
     ['npm', ['run', 'test:vscode-extension']],

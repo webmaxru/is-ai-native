@@ -17,10 +17,30 @@ After the first npm publish, these commands will work:
 
 ```powershell
 npm install is-ai-native
-npx is-ai-native --help
+is-ai-native --help
 ```
 
 This package requires Node.js 22 or newer.
+
+If you want an ephemeral npm run without a prior install, `npx is-ai-native` will still prompt before downloading the package because that behavior comes from npm itself, not from this CLI.
+
+## Standalone Download
+
+Tagged releases also publish portable standalone bundles that do not require npm installation. Download the bundle for your platform from the GitHub release assets, extract it, and run the executable directly.
+
+On Windows, run:
+
+```powershell
+.\is-ai-native.exe --help
+```
+
+On Linux, run:
+
+```bash
+./is-ai-native --help
+```
+
+Each standalone bundle includes the executable, the bundled CLI module, and the `config/` directory required by the scanner, so keep the extracted files together.
 
 ## Release Checklist
 
@@ -37,9 +57,10 @@ If you need a CLI-focused validation pass before the full release flow, run:
 ```powershell
 npm install
 npm run build:cli
+npm run build:cli:standalone
 npm run test:cli
 npm run pack:cli
-npx .\is-ai-native-<version>.tgz --help
+npx .\artifacts\cli\pack\is-ai-native-<version>.tgz --help
 ```
 
 On npmjs.com, open the `is-ai-native` package settings and add a Trusted Publisher for GitHub Actions with:
@@ -72,9 +93,17 @@ is-ai-native --help
 To verify the packaged artifact locally before publishing:
 
 ```powershell
-npm pack .\packages\cli
-npx .\is-ai-native-0.1.2.tgz --help
+npm run pack:cli
+npx .\artifacts\cli\pack\is-ai-native-0.1.2.tgz --help
 ```
+
+To build the no-install standalone bundle locally:
+
+```powershell
+npm run build:cli:standalone
+```
+
+That command writes a portable bundle to `artifacts/cli/standalone/<platform>-<arch>`.
 
 ## Usage
 

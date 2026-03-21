@@ -11,15 +11,16 @@
   "scripts": {
     "build:brand-assets": "node ./scripts/build-brand-assets.mjs",
     "build:cli": "node ./packages/cli/scripts/build.mjs",
+    "build:cli:standalone": "node ./packages/cli/scripts/build-standalone.mjs",
     "build:gh-extension": "npm --workspace packages/gh-extension run build",
-    "pack:cli": "npm pack ./packages/cli",
+    "pack:cli": "node ./scripts/pack-cli.mjs",
     "publish:cli:dry-run": "npm publish ./packages/cli --dry-run",
     "publish:gh-extension": "node ./scripts/sync-gh-extension.mjs",
     "release:all": "node ./scripts/release-all.mjs",
     "release:all:dry-run": "node ./scripts/release-all.mjs --dry-run",
     "test:frontend": "node --test frontend/tests/unit/*.test.js",
     "test:backend": "npm --workspace backend test",
-    "test:cli": "node --test packages/cli/tests/*.test.js",
+    "test:cli": "node --test packages/cli/tests/cli.test.js packages/cli/tests/formatters.test.js",
     "test:gh-extension": "npm --workspace packages/gh-extension test",
     "test:core": "node --test packages/core/tests/*.test.js",
     "build:vscode-extension": "npm --workspace packages/vscode-extension run build",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.12",
+    "postject": "^1.0.0-alpha.6",
     "sharp": "^0.34.4",
     "to-ico": "^1.1.5"
   }
