@@ -1,4 +1,4 @@
-# Is AI-Native Standalone CLI
+# Is AI-Native CLI
 
 Use the standalone CLI to scan either the current workspace or a GitHub repository from any terminal.
 
