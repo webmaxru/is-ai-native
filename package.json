@@ -26,7 +26,7 @@
     "build:vscode-extension": "npm --workspace packages/vscode-extension run build",
     "test:vscode-extension": "node --test packages/vscode-extension/tests/*.test.js",
     "package:vscode-extension": "cd packages/vscode-extension && npx @vscode/vsce package --no-dependencies -o is-ai-native.vsix",
-    "publish:vscode-extension": "cd packages/vscode-extension && npx @vscode/vsce publish --no-dependencies"
+    "publish:vscode-extension": "node ./scripts/publish-vscode-extension.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.12",

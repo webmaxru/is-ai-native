@@ -2,6 +2,7 @@
 - Put all made screenshots ONLY in a folder named `artifacts` at the root of the repository.
 - For every change of the logic, configuration, user experience make sure you checked and updated web application, vs code extension, and github cli extension.
 - For every change to configuration files or configuration documentation, make sure saved agents and saved prompts under `.github/agents` and `.github/prompts` stay in sync with the current file paths, workflows, and source-of-truth references.
+- Keep `.env.example` structurally aligned with the root `.env`: same keys, same ordering, and same explanatory comments, but never copy real secret values into `.env.example`.
 - For README reviews and updates, prioritize product consumption and end-user workflows before contributor workflows.
 - In the root README, start with the project description and mention the web app, VS Code extension, GitHub CLI extension, and standalone CLI at the beginning.
 - In the root README, list shared cross-surface capabilities before web app specific details.
