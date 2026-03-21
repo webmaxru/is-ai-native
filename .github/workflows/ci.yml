@@ -22,13 +22,13 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: webapp/backend/package-lock.json
 
       - name: Install dependencies
-        run: cd backend && npm ci
+        run: cd webapp/backend && npm ci
 
       - name: Run tests
-        run: cd backend && npm test
+        run: cd webapp/backend && npm test
 
   # ── Build & security scan ─────────────────────────────────────────
   build-and-scan:

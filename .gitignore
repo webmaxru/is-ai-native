@@ -2,12 +2,12 @@
 node_modules/
 
 # Report-sharing storage
-backend/data/reports/
+webapp/backend/data/reports/
 data/reports/
 
 # Build artifacts
 dist/
-frontend/dist/
+webapp/frontend/dist/
 packages/vscode-extension/config/
 coverage/
 .playwright-mcp/

@@ -7,13 +7,14 @@ import { formatResult, scanGitHubTarget, scanLocalTarget } from '../src/index.js
 const HELP_TEXT = `is-ai-native CLI
 
 Usage:
-  is-ai-native scan <target> [--output json|human|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
+  is-ai-native scan [target] [--output human|json|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
   is-ai-native --help
   is-ai-native --version
 
 Examples:
+  is-ai-native scan
   is-ai-native scan microsoft/vscode
-  is-ai-native scan https://github.com/microsoft/vscode --output human
+  is-ai-native scan https://github.com/microsoft/vscode
   is-ai-native scan . --output csv
   is-ai-native scan . --output summary --fail-below 60
 `;
@@ -37,7 +38,7 @@ async function main() {
     options: {
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean' },
-      output: { type: 'string', short: 'o', default: 'json' },
+      output: { type: 'string', short: 'o', default: 'human' },
       branch: { type: 'string', short: 'b' },
       token: { type: 'string', short: 't' },
       'fail-below': { type: 'string' },
@@ -55,7 +56,7 @@ async function main() {
   }
 
   const [command, target] = positionals;
-  if (command !== 'scan' || !target) {
+  if (command !== 'scan') {
     process.stderr.write(HELP_TEXT);
     process.exitCode = 1;
     return;
@@ -74,10 +75,11 @@ async function main() {
     return;
   }
 
-  const useLocal = isLikelyPath(target) || (await exists(target));
+  const resolvedTarget = target ?? '.';
+  const useLocal = isLikelyPath(resolvedTarget) || (await exists(resolvedTarget));
   const result = useLocal
-    ? await scanLocalTarget(target)
-    : await scanGitHubTarget(target, {
+    ? await scanLocalTarget(resolvedTarget)
+    : await scanGitHubTarget(resolvedTarget, {
         branch: values.branch,
         token: values.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN_FOR_SCAN,
       });

@@ -2,7 +2,7 @@ version: 2
 updates:
   # Keep backend npm dependencies up to date
   - package-ecosystem: npm
-    directory: /backend
+    directory: /webapp/backend
     schedule:
       interval: weekly
       day: monday

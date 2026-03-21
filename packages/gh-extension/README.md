@@ -51,22 +51,25 @@ npm run publish:gh-extension
 ## Usage
 
 ```bash
-gh is-ai-native scan <target> [--output json|human|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
+gh is-ai-native scan [target] [--output human|json|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
 ```
+
+If `target` is omitted, the extension scans the current workspace.
 
 Examples:
 
 ```bash
-gh is-ai-native scan . --output human
+gh is-ai-native scan
+gh is-ai-native scan .
 gh is-ai-native scan microsoft/vscode --output summary
-gh is-ai-native scan https://github.com/microsoft/vscode --branch main --output json
+gh is-ai-native scan https://github.com/microsoft/vscode --branch main
 gh is-ai-native scan . --output summary --fail-below 60
 ```
 
 ## Output Modes
 
+- `human`: default readable console report with a preferred-agent headline plus full per-assistant detail
 - `json`: full structured scan result
-- `human`: readable console report with a preferred-agent headline plus full per-assistant detail
 - `csv`: one row per primitive
 - `summary`: one-line CI-friendly output based on the preferred agent
 

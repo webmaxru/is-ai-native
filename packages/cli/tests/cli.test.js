@@ -77,6 +77,47 @@ test('cli returns exit code 2 when --fail-below is not met', () => {
   }
 });
 
+test('cli scans the current workspace when scan target is omitted', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'is-ai-native-cli-default-target-'));
+
+  try {
+    mkdirSync(join(tempDir, '.github'));
+    writeFileSync(join(tempDir, '.github', 'copilot-instructions.md'), 'instructions');
+
+    const cliPath = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
+    const result = spawnSync(process.execPath, [cliPath, 'scan'], {
+      cwd: tempDir,
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Repository:/);
+    assert.match(result.stdout, /Readiness Score: \d+% \((AI-|Traditional)/);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('cli uses human output by default', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'is-ai-native-cli-default-output-'));
+
+  try {
+    mkdirSync(join(tempDir, '.github'));
+    writeFileSync(join(tempDir, '.github', 'copilot-instructions.md'), 'instructions');
+
+    const cliPath = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
+    const result = spawnSync(process.execPath, [cliPath, 'scan', tempDir], {
+      encoding: 'utf-8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Repository:/);
+    assert.doesNotMatch(result.stdout, /^\s*\{/);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('cli reports the package version', () => {
   const cliPath = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
   const result = spawnSync(process.execPath, [cliPath, '--version'], { encoding: 'utf-8' });

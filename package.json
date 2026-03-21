@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "backend",
+    "webapp/backend",
     "packages/core",
     "packages/gh-extension",
     "packages/vscode-extension"
@@ -18,8 +18,8 @@
     "publish:gh-extension": "node ./scripts/sync-gh-extension.mjs",
     "release:all": "node ./scripts/release-all.mjs",
     "release:all:dry-run": "node ./scripts/release-all.mjs --dry-run",
-    "test:frontend": "node --test frontend/tests/unit/*.test.js",
-    "test:backend": "npm --workspace backend test",
+    "test:frontend": "node --test webapp/frontend/tests/unit/*.test.js",
+    "test:backend": "npm --workspace webapp/backend test",
     "test:cli": "node --test packages/cli/tests/cli.test.js packages/cli/tests/formatters.test.js",
     "test:gh-extension": "npm --workspace packages/gh-extension test",
     "test:core": "node --test packages/core/tests/*.test.js",

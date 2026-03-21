@@ -116,7 +116,7 @@ The quickest way to get started — run the Express API on its own:
 For workspace-based development, you can install shared dependencies once from the repository root with `npm install` and then run package-specific scripts. The commands below still work when you prefer operating from the backend package directly.
 
 ```powershell
-cd backend
+cd webapp/backend
 npm install
 npm run dev          # starts with --watch for live reload
 ```
@@ -128,21 +128,21 @@ Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/scan -ContentType 
 ```
 
 > **Tip:** Set a `GH_TOKEN_FOR_SCAN` environment variable to avoid GitHub API rate limits (60 req/h unauthenticated → 5 000 req/h authenticated).
-> The backend `npm` scripts automatically load `../.env` when it exists, so a project-root `.env` file is picked up in local development.
+> The backend `npm` scripts automatically load the repository-root `.env` when it exists, so local overrides are picked up in development.
 
 ### Full Stack Without Docker
 
 Run the backend and frontend together through the Express server:
 
 ```powershell
-cd backend
+cd webapp/backend
 npm install
 npm run dev:full
 ```
 
 Open **http://localhost:3000** in your browser.
 
-This mode serves the SPA directly from the local `frontend/` directory and keeps the backend API on the same origin, so no extra frontend dev server or CORS setup is required.
+This mode serves the SPA directly from the local `webapp/frontend/` directory and keeps the backend API on the same origin, so no extra frontend dev server or CORS setup is required.
 
 To test the WebMCP preview in Chromium-based browser, enable `about://flags/#enable-webmcp-testing`. The page exposes:
 
@@ -228,22 +228,25 @@ is-ai-native --help
 Supported command:
 
 ```powershell
-is-ai-native scan <target> [--output json|human|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
+is-ai-native scan [target] [--output human|json|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
 ```
+
+If `target` is omitted, the CLI scans the current workspace.
 
 Examples:
 
 ```powershell
-is-ai-native scan . --output human
+is-ai-native scan
+is-ai-native scan .
 is-ai-native scan microsoft/vscode --output summary
-is-ai-native scan https://github.com/microsoft/vscode --branch main --output json
+is-ai-native scan https://github.com/microsoft/vscode --branch main
 is-ai-native scan . --output summary --fail-below 60
 ```
 
 CLI output modes:
 
+- `human`: default readable console report with score, verdict, assistant scores, and primitive matches
 - `json`: full machine-readable scan result
-- `human`: readable console report with score, verdict, assistant scores, and primitive matches
 - `csv`: one row per primitive for spreadsheet or pipeline usage
 - `summary`: one-line status output for scripts and CI
 
@@ -365,7 +368,7 @@ That means weekly skills and scanner updates are proposed automatically from mul
 The backend includes unit, contract, and integration tests powered by [Jest](https://jestjs.io/) and [Supertest](https://github.com/ladjs/supertest):
 
 ```powershell
-cd backend
+cd webapp/backend
 npm install
 npm test                # run all tests
 npm run test:unit       # unit tests only
@@ -410,7 +413,7 @@ Client-surface coverage is split this way:
 | `CONTAINER_STARTUP_STRATEGY` | `scale-to-zero` | Deployment metadata exposed by the backend to describe whether Azure Container Apps is allowed to scale to zero or keeps one warm replica |
 | `CONTAINER_MIN_REPLICAS` | `0` | Deployment metadata exposed by the backend to report the configured minimum replica count |
 | `REPORTS_DIR` | `./data/reports` | Directory where shared-report JSON files are stored |
-| `FRONTEND_PATH` | unset | Optional path to the frontend directory when Express should serve a source checkout frontend instead of the bundled container assets |
+| `FRONTEND_PATH` | unset | Optional path to the frontend directory, such as `./webapp/frontend`, when Express should serve a source checkout frontend instead of the bundled container assets |
 | `TRUST_PROXY` | `1` in production, otherwise `false` | Express proxy trust setting used for client IP and rate-limit handling. Set this explicitly when deploying behind a non-default proxy chain. |
 | `SCAN_RATE_LIMIT_WINDOW_MS` | `900000` | Window length in milliseconds for the `/api/scan` limiter |
 | `SCAN_RATE_LIMIT_MAX` | `120` | Maximum requests per client IP within the scan limiter window |
@@ -769,27 +772,28 @@ Health check endpoint. Returns runtime capability flags such as scan token avail
 ## Project Structure
 
 ```
-├── backend/
-│   ├── src/
-│   │   ├── server.js          # Express app entry point
-│   │   ├── routes/
-│   │   │   ├── scan.js        # POST /api/scan
-│   │   │   ├── report.js      # GET/POST /api/report
-│   │   │   └── config.js      # GET /api/config
-│   │   └── services/
-│   │       ├── scanner.js     # GitHub API integration & scoring logic
-│   │       ├── app-insights.js # Azure Application Insights event emission
-│   │       └── storage.js     # File-backed persistence for shared reports
-│   ├── tests/                 # Jest test suites (unit, contract, integration)
-│   └── package.json
-├── frontend/
-│   ├── index.html             # SPA entry point
-│   ├── src/
-│   │   ├── app.js             # Application logic & routing
-│   │   ├── api.js             # API client
-│   │   ├── report.js          # Report rendering
-│   │   └── main.css           # Styles
-│   └── tests/                 # Frontend unit tests
+├── webapp/
+│   ├── backend/
+│   │   ├── src/
+│   │   │   ├── server.js          # Express app entry point
+│   │   │   ├── routes/
+│   │   │   │   ├── scan.js        # POST /api/scan
+│   │   │   │   ├── report.js      # GET/POST /api/report
+│   │   │   │   └── config.js      # GET /api/config
+│   │   │   └── services/
+│   │   │       ├── scanner.js     # GitHub API integration & scoring logic
+│   │   │       ├── app-insights.js # Azure Application Insights event emission
+│   │   │       └── storage.js     # File-backed persistence for shared reports
+│   │   ├── tests/                 # Jest test suites (unit, contract, integration)
+│   │   └── package.json
+│   └── frontend/
+│       ├── index.html             # SPA entry point
+│       ├── src/
+│       │   ├── app.js             # Application logic & routing
+│       │   ├── api.js             # API client
+│       │   ├── report.js          # Report rendering
+│       │   └── main.css           # Styles
+│       └── tests/                 # Frontend unit tests
 ├── packages/
 │   ├── core/
 │   │   ├── config/            # Canonical assistant + primitive definitions

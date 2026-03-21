@@ -9,7 +9,7 @@ const __dirname = dirname(__filename);
 const workspaceRoot = resolve(__dirname, '..');
 
 const sourceLogoPath = resolve(workspaceRoot, 'assets', 'logo.svg');
-const frontendBrandDir = resolve(workspaceRoot, 'frontend', 'assets', 'brand');
+const frontendBrandDir = resolve(workspaceRoot, 'webapp', 'frontend', 'assets', 'brand');
 const ghBrandDir = resolve(workspaceRoot, 'packages', 'cli', 'gh-extension', 'assets', 'brand');
 const vscodeIconPath = resolve(workspaceRoot, 'packages', 'vscode-extension', 'media', 'icon.png');
 const previewHtmlPath = resolve(workspaceRoot, 'artifacts', 'vscode-extension-icon-preview.html');

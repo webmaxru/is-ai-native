@@ -5,8 +5,8 @@ FROM node:24-alpine AS deps
 WORKDIR /app
 
 # Install backend production dependencies, including the linked workspace core package.
-COPY backend/package.json ./backend/package.json
-COPY backend/package-lock.json ./backend/package-lock.json
+COPY webapp/backend/package.json ./backend/package.json
+COPY webapp/backend/package-lock.json ./backend/package-lock.json
 COPY packages/core/package.json ./packages/core/package.json
 COPY packages/core/src ./packages/core/src
 COPY packages/core/config ./packages/core/config
@@ -19,19 +19,19 @@ FROM node:24-alpine
 WORKDIR /app/backend
 
 # Copy package.json so Node recognises the directory as ESM ("type": "module")
-COPY backend/package.json ./package.json
+COPY webapp/backend/package.json ./package.json
 
 # Copy backend node_modules from deps stage together with the linked workspace package target.
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY --from=deps /app/packages ../packages
 
 # Copy backend source
-COPY backend/src ./src
+COPY webapp/backend/src ./src
 
 # Copy runtime frontend assets so Express can serve them in the single-container image
-COPY frontend/index.html ../frontend/index.html
-COPY frontend/assets ../frontend/assets
-COPY frontend/src ../frontend/src
+COPY webapp/frontend/index.html ../frontend/index.html
+COPY webapp/frontend/assets ../frontend/assets
+COPY webapp/frontend/src ../frontend/src
 
 ENV REPORTS_DIR=/app/data/reports
 

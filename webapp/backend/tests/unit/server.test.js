@@ -73,9 +73,9 @@ describe('resolveFrontendPath', () => {
 
 describe('runtime Docker image packaging', () => {
   it('copies the generated frontend brand assets into the runtime image', () => {
-    const dockerfile = readFileSync(join(process.cwd(), '..', 'Dockerfile'), 'utf8');
+    const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
 
-    expect(dockerfile).toContain('COPY frontend/assets ../frontend/assets');
+    expect(dockerfile).toContain('COPY webapp/frontend/assets ../frontend/assets');
   });
 });
 

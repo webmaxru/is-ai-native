@@ -108,7 +108,7 @@ That command writes a portable bundle to `artifacts/cli/standalone/<platform>-<a
 ## Usage
 
 ```powershell
-is-ai-native scan <target> [--output json|human|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
+is-ai-native scan [target] [--output human|json|csv|summary] [--branch <branch>] [--token <token>] [--fail-below <score>]
 ```
 
 Targets can be:
@@ -117,19 +117,22 @@ Targets can be:
 - a GitHub short reference such as `microsoft/vscode`
 - a GitHub URL such as `https://github.com/microsoft/vscode`
 
+If `target` is omitted, the CLI scans the current workspace.
+
 Examples:
 
 ```powershell
-is-ai-native scan . --output human
+is-ai-native scan
+is-ai-native scan .
 is-ai-native scan microsoft/vscode --output summary
-is-ai-native scan https://github.com/microsoft/vscode --branch main --output json
+is-ai-native scan https://github.com/microsoft/vscode --branch main
 is-ai-native scan . --output summary --fail-below 60
 ```
 
 ## Output Modes
 
+- `human`: default readable console report with a preferred-agent headline plus full per-assistant detail
 - `json`: full structured scan result
-- `human`: readable console report with a preferred-agent headline plus full per-assistant detail
 - `csv`: one row per primitive
 - `summary`: one-line CI-friendly output based on the preferred agent
 

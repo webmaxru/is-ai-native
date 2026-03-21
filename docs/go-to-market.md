@@ -49,7 +49,7 @@ These are solid default suggestions you can ship immediately:
 
 Brand assets are now generated from [assets/logo.svg](c:/Users/masalnik/Downloads/projects/is-ai-native/assets/logo.svg) and written into the consumer-specific folders:
 
-- Web app: `frontend/assets/brand/` for favicon, Apple touch icon, manifest PNGs, maskable icon, and social card files.
+- Web app: `webapp/frontend/assets/brand/` for favicon, Apple touch icon, manifest PNGs, maskable icon, and social card files.
 - GitHub CLI extension export: `packages/gh-extension/assets/brand/` for the generated repo README and future repo branding.
 - VS Code extension: `packages/vscode-extension/media/icon.png` for Marketplace packaging.
 
