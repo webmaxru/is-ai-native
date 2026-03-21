@@ -287,9 +287,26 @@ Common issues:
 
 ## Operational Telemetry
 
-The backend can optionally emit custom Azure Application Insights events for operational monitoring. This is configured with the standard `APPLICATIONINSIGHTS_CONNECTION_STRING` environment variable and does not affect the scan result schema.
+The deployment can emit both browser and backend Azure Application Insights telemetry for product analytics and operator monitoring. Backend events use `APPLICATIONINSIGHTS_CONNECTION_STRING`; browser telemetry uses `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` and falls back to the server connection string when that public value is exposed to the frontend.
 
-### Emitted Events
+### Frontend Engagement Events
+
+| Event | When it is sent | Typical dimensions |
+|-------|------------------|--------------------|
+| `session_started` | Browser telemetry starts for a new tab session | `route` |
+| `landing_section_viewed_client` | A marked landing-page section becomes visible | `section`, `page_path` |
+| `cta_clicked_client` | A tracked marketing or product CTA is clicked | `cta_name`, `source`, `cta_type`, `destination_host`, `destination_url`, `page_path` |
+| `outbound_doc_link_clicked_client` | A tracked external documentation link is clicked | `doc_link_kind`, `source`, `assistant_name`, `primitive_name`, `destination_host`, `destination_url` |
+| `scan_requested_client` | A user requests a scan from the browser | `repo_reference`, `source` |
+| `scan_succeeded_client` | A browser-initiated scan completes successfully | `repo_name`, `verdict`, `source` |
+| `scan_failed_client` | A browser-initiated scan fails | `repo_reference`, `error_name`, `reason`, `source` |
+| `report_share_requested_client` | A user presses the share-report control | `repo_name`, `source` |
+| `report_shared_client` | A share action completes through clipboard or native share | `repo_name`, `method`, `source` |
+| `report_share_failed_client` | A share action fails | `repo_name`, `error_name`, `reason`, `source` |
+| `shared_report_loaded_client` | A shared report route is opened successfully in the browser | `report_id`, `repo_name` |
+| `shared_report_load_failed_client` | A shared report route fails to load in the browser | `report_id`, `error_name`, `reason` |
+
+### Backend Operational Events
 
 | Event | When it is sent | Typical dimensions |
 |-------|------------------|--------------------|
@@ -306,10 +323,13 @@ The backend can optionally emit custom Azure Application Insights events for ope
 
 ### Typical Use Cases
 
-- Build Azure Workbooks that show total scan count and total report count.
-- Drill into recent scans by repository, verdict, score, or duration.
+- Build Azure Workbooks that show visitors, sessions, landing section engagement, CTA sources, and repo conversion metrics together.
+- Drill into recent scans by repository, verdict, score, duration, and triggering source.
+- Track which CTAs and outbound documentation links are attracting interest during promo campaigns.
 - Track which shared reports are being viewed and correlate those views back to the originating scan.
 - Track scan failures separately from successful scans.
 - Join `report_created` events back to `scan_completed` events with the shared `scan_key` property.
+
+The shared Azure workbook in `infra/workbooks/is-ai-native-monitoring.workbook.bicep` is designed to query the workspace-based `AppPageViews` and `AppEvents` tables produced by this telemetry.
 
 This telemetry is intended for Azure-side monitoring and operator dashboards. It does not replace the in-app live scan view or the existing shared-report persistence feature.

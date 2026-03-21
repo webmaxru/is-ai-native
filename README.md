@@ -167,6 +167,7 @@ All Azure resources are defined in [infra/main.bicep](infra/main.bicep) with def
 | --- | --- |
 | **Log Analytics Workspace** | Centralized logs and diagnostics |
 | **Application Insights** | Scan, report, view, and rate-limit telemetry |
+| **Shared Azure Workbook** | Growth and engagement dashboard over page views, sessions, CTA clicks, shares, and report activity |
 | **Container Apps Environment** | Consumption-plan hosting environment |
 | **Container App** | Web app runtime with probes, autoscaling, and managed identity |
 | **Azure Storage Account + File Share** | Optional persistence for shared reports |
@@ -179,6 +180,7 @@ Optional deployment features:
 - `secondaryCustomDomainName` and `secondaryManagedCertName` for dual-hostname migrations
 - `containerStartupStrategy=keep-warm` to pin one replica instead of scale-to-zero
 - `monitoringAlertEmail` and `monitoringUrl` for low-cost availability monitoring
+- `enableEngagementWorkbook=false` if you need to skip workbook deployment while keeping Application Insights enabled
 
 ### CI / CD Pipelines
 
@@ -189,13 +191,37 @@ Optional deployment features:
 
 ### Azure Workbook Monitoring
 
-The deployment can emit custom Application Insights events for scan and report activity. Primary custom event names:
+The main Azure deployment now provisions the shared workbook automatically whenever `enableAppInsights=true` and `enableEngagementWorkbook=true`.
 
+The workbook combines workspace-based `AppPageViews` and `AppEvents` telemetry so you can monitor promo traffic and product engagement in one place. Primary custom event names now include:
+
+- `cta_clicked_client`
+- `landing_section_viewed_client`
+- `outbound_doc_link_clicked_client`
+- `scan_requested_client`
+- `scan_succeeded_client`
 - `scan_completed`
 - `scan_failed`
 - `report_created`
+- `report_share_requested_client`
+- `report_shared_client`
+- `shared_report_viewed`
 
-Use the workspace-based `customEvents` table for workbook queries.
+Use the workspace-based `AppPageViews` and `AppEvents` tables for workbook queries.
+
+To deploy the workbook by itself into an existing resource group and workspace, run:
+
+```powershell
+$resourceGroup = '<resource-group>'
+$workspaceId = az monitor log-analytics workspace show --resource-group $resourceGroup --workspace-name is-ai-native-logs --query id -o tsv
+az deployment group create --resource-group $resourceGroup --template-file infra/workbooks/is-ai-native-monitoring.workbook.bicep --parameters workbookSourceId=$workspaceId
+```
+
+To deploy the full stack, including the workbook, with the repo defaults, run:
+
+```powershell
+az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.bicepparam --parameters containerImage=<image> githubToken=<token>
+```
 
 ## Development And Local Deployment
 

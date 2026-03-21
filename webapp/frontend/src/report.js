@@ -93,11 +93,13 @@ function selectPrimitiveDocLink(docLinks, assistantName) {
 function primitivePopoverHtml(prim, assistantName) {
   const docLink = selectPrimitiveDocLink(prim.doc_links, assistantName);
   const assistantLabel = assistantName ? `${escapeHtml(assistantName)} documentation` : 'documentation';
+  const assistantData = escapeHtml(String(assistantName || ''));
+  const primitiveData = escapeHtml(String(prim.name || ''));
   const description = prim.description
     ? `<p class="primitive-popover-text">${escapeHtml(prim.description)}</p>`
     : '<p class="primitive-popover-text">Official documentation for this primitive.</p>';
   const linkHtml = docLink
-    ? `<a class="primitive-popover-link" href="${escapeHtml(docLink)}" target="_blank" rel="noopener noreferrer">${assistantLabel} &rarr;</a>`
+    ? `<a class="primitive-popover-link" href="${escapeHtml(docLink)}" target="_blank" rel="noopener noreferrer" data-doc-link-kind="primitive-documentation" data-doc-link-source="report-primitive-popover" data-assistant-name="${assistantData}" data-primitive-name="${primitiveData}">${assistantLabel} &rarr;</a>`
     : '<span class="primitive-popover-link primitive-popover-link-disabled">documentation unavailable</span>';
 
   return `<span class="primitive-popover" role="tooltip">${description}${linkHtml}</span>`;
@@ -142,9 +144,10 @@ function setPageHeading(text) {
 
 function shareButtonHtml(idSuffix) {
   const disclosureId = `share-disclosure-popover-${idSuffix}`;
+  const shareSource = idSuffix === 'top' ? 'report_top_bar' : 'report_footer_bar';
   return `
     <span class="share-disclosure-wrap">
-      <button type="button" class="share-btn" data-share-report aria-describedby="${disclosureId}">share report</button>
+      <button type="button" class="share-btn" data-share-report data-share-source="${shareSource}" aria-describedby="${disclosureId}">share report</button>
       <span id="${disclosureId}" class="share-disclosure-popover" role="tooltip">
         Shared report links are public and can be opened by anyone with the URL. Do not share private repository information here.
       </span>
@@ -433,7 +436,7 @@ function addShareButton(result) {
     return sharedUrlPromise;
   };
 
-  const copyToClipboard = async (url) => {
+  const copyToClipboard = async (url, source) => {
     if (!navigator.clipboard?.writeText) {
       throw new Error('Clipboard sharing is not available in this browser.');
     }
@@ -443,10 +446,11 @@ function addShareButton(result) {
     trackUiEvent('report_shared_client', {
       repo_name: result.repo_name,
       method: 'clipboard',
+      source,
     });
   };
 
-  const shareWithNativeApi = async (url) => {
+  const shareWithNativeApi = async (url, source) => {
     if (!navigator.share) return false;
     const shareData = {
       title: `${result.repo_name} AI-native report`,
@@ -460,21 +464,30 @@ function addShareButton(result) {
     trackUiEvent('report_shared_client', {
       repo_name: result.repo_name,
       method: 'native_share',
+      source,
     });
     return true;
   };
 
   buttons.forEach((button) => {
     button.addEventListener('click', async () => {
+      const shareSource = button.dataset.shareSource || 'report';
       setButtonState({ disabled: true, text: 'sharing...' });
+      trackUiEvent('cta_clicked_client', {
+        cta_name: 'share-report',
+        source: shareSource,
+        cta_type: 'button',
+        repo_name: result.repo_name,
+      });
       trackUiEvent('report_share_requested_client', {
         repo_name: result.repo_name,
+        source: shareSource,
       });
       try {
         const url = await resolveShareUrl();
-        const shared = await shareWithNativeApi(url);
+        const shared = await shareWithNativeApi(url, shareSource);
         if (!shared) {
-          await copyToClipboard(url);
+          await copyToClipboard(url, shareSource);
         }
       } catch (err) {
         if (err.name === 'AbortError') {
@@ -486,6 +499,7 @@ function addShareButton(result) {
           repo_name: result.repo_name,
           error_name: err.name,
           reason: err.message,
+          source: shareSource,
         });
         resetButtons();
       }

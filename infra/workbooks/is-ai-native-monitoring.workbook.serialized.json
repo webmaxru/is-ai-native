@@ -25,7 +25,7 @@
             "label": "Repository",
             "type": 2,
             "isRequired": true,
-            "query": "let repos = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where isnotempty(repo_name)\n| summarize by value = repo_name, label = repo_name\n| order by label asc\n| extend selected = false;\ndatatable(value:string, label:string, selected:bool)[\"*\", \"All repos\", true]\n| union repos",
+            "query": "let repos = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"scan_completed\", \"report_created\", \"shared_report_viewed\", \"scan_succeeded_client\", \"report_shared_client\", \"shared_report_loaded_client\")\n| extend repo_name = tostring(Properties.repo_name)\n| where isnotempty(repo_name)\n| summarize by value = repo_name, label = repo_name\n| order by label asc\n| extend selected = false;\ndatatable(value:string, label:string, selected:bool)[\"*\", \"All repos\", true]\n| union repos",
             "value": "*",
             "typeSettings": {
               "showDefault": false
@@ -46,45 +46,97 @@
     {
       "type": 1,
       "content": {
-        "json": "# Is AI Native Monitoring\n\nAzure Workbook for scan and report telemetry. These views use the `AppEvents` table populated in the Log Analytics workspace by the backend Application Insights integration.\n\nCurrent window: **{TimeRange:label}**  \nRepository: **{RepoFilter}**"
+        "json": "# Is AI Native Growth and Engagement\n\nCampaign-focused Azure Workbook for the web app's Application Insights telemetry. It combines browser traffic from `AppPageViews` with custom engagement and conversion events from `AppEvents`.\n\nCurrent window: **{TimeRange:label}**  \nRepository drill-in: **{RepoFilter}**\n\nThis project does not emit generic clickstream telemetry yet. In this dashboard, **CTA clicks** are the tracked intent events you already send today, mainly scan requests and report-share requests. Repository filtering applies only to repo-attributed events, not anonymous page traffic."
       },
       "name": "text - intro"
     },
     {
+      "type": 1,
+      "content": {
+        "json": "## Snapshot"
+      },
+      "name": "text - snapshot"
+    },
+    {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_scans = sum(ItemCount)",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize visitors = dcount(UserId)",
         "size": 0,
-        "title": "Total scans",
+        "title": "Unique visitors",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "stat",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - total scans"
+      "name": "query - unique visitors"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_reports = sum(ItemCount)",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize sessions = dcount(SessionId)",
         "size": 0,
-        "title": "Total reports",
+        "title": "Sessions",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "stat",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - total reports"
+      "name": "query - sessions"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| summarize total_report_views = sum(ItemCount)",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize page_views = sum(ItemCount)",
+        "size": 0,
+        "title": "Page views",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - page views"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"cta_clicked_client\", \"scan_requested_client\", \"report_share_requested_client\")\n| summarize cta_clicks = sum(ItemCount)",
+        "size": 0,
+        "title": "CTA clicks",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - cta clicks"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize reports_created = sum(ItemCount)",
+        "size": 0,
+        "title": "Reports created",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - reports created"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize shared_report_views = sum(ItemCount)",
         "size": 0,
         "title": "Shared report views",
         "queryType": 0,
@@ -93,67 +145,260 @@
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - total report views"
+      "name": "query - shared report views"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| where repoFilter == \"*\" or tostring(Properties.repo_name) == repoFilter\n| make-series scans = sum(ItemCount) default = 0 on TimeGenerated from {TimeRange:start} to {TimeRange:end} step {TimeRange:grain}",
+        "query": "let totalSessions = toscalar(AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize dcount(SessionId));\nlet scanSessions = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_requested_client\"\n| summarize dcount(SessionId));\nprint session_to_scan_rate_pct = round(iff(totalSessions == 0, 0.0, todouble(scanSessions) * 100.0 / todouble(totalSessions)), 1)",
+        "size": 0,
+        "title": "Session to scan rate %",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - session to scan rate"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let requested = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_share_requested_client\"\n| summarize sum(ItemCount));\nlet completed = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_shared_client\"\n| summarize sum(ItemCount));\nprint share_completion_rate_pct = round(iff(requested == 0, 0.0, todouble(completed) * 100.0 / todouble(requested)), 1)",
+        "size": 0,
+        "title": "Share completion %",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "stat",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - share completion rate"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Traffic"
+      },
+      "name": "text - traffic"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize Visitors = dcount(UserId), Sessions = dcount(SessionId), PageViews = sum(ItemCount) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
         "size": 1,
-        "title": "Scan volume over time",
+        "title": "Visitors, sessions, and page views over time",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "time",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - scan trend"
+      "name": "query - traffic trend"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project TimeGenerated, repo_name, verdict = tostring(Properties.verdict), score = todouble(Measurements.score), duration_ms = todouble(Measurements.duration_ms)\n| order by TimeGenerated desc",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| extend route = coalesce(tostring(Properties.route), tostring(Properties.path), extract(@\"https?://[^/]+(/[^?#]*)\", 1, Url), \"/\")\n| summarize PageViews = sum(ItemCount) by Route = route\n| top 8 by PageViews desc\n| order by PageViews desc",
+        "size": 0,
+        "title": "Top routes by page views",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - top routes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| extend route = coalesce(tostring(Properties.route), tostring(Properties.path), extract(@\"https?://[^/]+(/[^?#]*)\", 1, Url), \"/\")\n| extend Journey = case(route startswith \"/_/report/\", \"Shared report\", route == \"/\" or isempty(route), \"Homepage\", \"Other\")\n| summarize PageViews = sum(ItemCount) by Journey\n| order by PageViews desc",
+        "size": 0,
+        "title": "Traffic mix by journey",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "pie",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - journey mix"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Engagement and Conversion"
+      },
+      "name": "text - engagement"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"scan_requested_client\", \"scan_succeeded_client\", \"report_created\", \"report_share_requested_client\", \"report_shared_client\", \"shared_report_viewed\")\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or isempty(repo_name) or repo_name == repoFilter\n| summarize ScanRequests = sumif(ItemCount, Name == \"scan_requested_client\"), ScanSucceeded = sumif(ItemCount, Name == \"scan_succeeded_client\"), ReportsCreated = sumif(ItemCount, Name == \"report_created\"), ShareRequested = sumif(ItemCount, Name == \"report_share_requested_client\"), ShareCompleted = sumif(ItemCount, Name == \"report_shared_client\"), SharedReportViews = sumif(ItemCount, Name == \"shared_report_viewed\") by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
         "size": 1,
-        "title": "Recent scans",
+        "title": "High-intent actions over time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "time",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - engagement trend"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"scan_requested_client\", \"scan_succeeded_client\", \"scan_failed_client\", \"report_share_requested_client\", \"report_shared_client\", \"report_share_failed_client\", \"shared_report_loaded_client\", \"shared_report_load_failed_client\", \"report_created\", \"shared_report_viewed\")\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or isempty(repo_name) or repo_name == repoFilter\n| summarize Events = sum(ItemCount) by Action = replace_string(Name, \"_client\", \"\")\n| order by Events desc",
+        "size": 0,
+        "title": "Tracked action mix",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - action mix"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"cta_clicked_client\"\n| extend source = tostring(Properties.source)\n| where isnotempty(source)\n| summarize Clicks = sum(ItemCount) by CTA = source\n| order by Clicks desc",
+        "size": 0,
+        "title": "CTA sources",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - cta sources"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"landing_section_viewed_client\"\n| summarize Views = sum(ItemCount) by Section = tostring(Properties.section)\n| order by Views desc",
+        "size": 0,
+        "title": "Landing section engagement",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - landing section engagement"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"outbound_doc_link_clicked_client\"\n| summarize Clicks = sum(ItemCount) by Destination = tostring(Properties.destination_host)\n| order by Clicks desc",
+        "size": 0,
+        "title": "Outbound documentation clicks",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - outbound documentation clicks"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nlet pageSessions = toscalar(AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize dcount(SessionId));\nlet scanSessions = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_requested_client\"\n| summarize dcount(SessionId));\nlet completedScans = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize sum(ItemCount));\nlet reportsCreated = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize sum(ItemCount));\nlet reportViews = toscalar(AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize sum(ItemCount));\ndatatable(Step:string, Count:long)\n[\n  \"Sessions\", tolong(pageSessions),\n  \"Scan sessions\", tolong(scanSessions),\n  \"Completed scans\", tolong(completedScans),\n  \"Reports created\", tolong(reportsCreated),\n  \"Shared report views\", tolong(reportViews)\n]\n| serialize StepNumber = row_number()\n| extend StepConversionPct = round(iff(StepNumber == 1, 100.0, todouble(Count) * 100.0 / todouble(prev(Count))), 1)\n| extend OverallConversionPct = round(iff(pageSessions == 0, 0.0, todouble(Count) * 100.0 / todouble(pageSessions)), 1)",
+        "size": 0,
+        "title": "Acquisition to sharing funnel",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "table",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - recent scans"
+      "name": "query - conversion funnel"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"shared_report_viewed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project TimeGenerated, repo_name, report_id = tostring(Properties.report_id), verdict = tostring(Properties.verdict), score = todouble(Measurements.score)\n| order by TimeGenerated desc",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"scan_completed\", \"report_created\", \"shared_report_viewed\")\n| extend repo_name = tostring(Properties.repo_name)\n| where isnotempty(repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| summarize CompletedScans = sumif(ItemCount, Name == \"scan_completed\"), ReportsCreated = sumif(ItemCount, Name == \"report_created\"), SharedReportViews = sumif(ItemCount, Name == \"shared_report_viewed\") by Repository = repo_name\n| order by CompletedScans desc",
         "size": 1,
-        "title": "Recent shared report views",
+        "title": "Repository conversion detail",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "table",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - recent shared report views"
+      "name": "query - repository conversion detail"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Audience"
+      },
+      "name": "text - audience"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let repoFilter = \"{RepoFilter}\";\nlet scans = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"scan_completed\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project scan_key = tostring(Properties.scan_key), scan_time = TimeGenerated, repo_name, score = todouble(Measurements.score), verdict = tostring(Properties.verdict);\nlet reports = AppEvents\n| where TimeGenerated {TimeRange}\n| where Name == \"report_created\"\n| extend repo_name = tostring(Properties.repo_name)\n| where repoFilter == \"*\" or repo_name == repoFilter\n| project scan_key = tostring(Properties.scan_key), report_time = TimeGenerated, report_id = tostring(Properties.report_id);\nscans\n| join kind=leftouter reports on scan_key\n| order by scan_time desc",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize PageViews = sum(ItemCount) by Country = iff(isempty(ClientCountryOrRegion), \"Unknown\", ClientCountryOrRegion)\n| top 10 by PageViews desc\n| order by PageViews desc",
+        "size": 0,
+        "title": "Top countries by page views",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "bar",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - top countries"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppPageViews\n| where TimeGenerated {TimeRange}\n| summarize PageViews = sum(ItemCount) by Browser = iff(isempty(ClientBrowser), \"Unknown\", ClientBrowser)\n| top 8 by PageViews desc\n| order by PageViews desc",
+        "size": 0,
+        "title": "Browser mix",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "pie",
+        "showAnalytics": false,
+        "exportToExcelOptions": "visible"
+      },
+      "name": "query - browser mix"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Recent signal"
+      },
+      "name": "text - recent signal"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let repoFilter = \"{RepoFilter}\";\nAppEvents\n| where TimeGenerated {TimeRange}\n| where Name in (\"cta_clicked_client\", \"outbound_doc_link_clicked_client\", \"landing_section_viewed_client\", \"scan_requested_client\", \"scan_succeeded_client\", \"scan_failed_client\", \"report_share_requested_client\", \"report_shared_client\", \"report_share_failed_client\", \"shared_report_loaded_client\", \"shared_report_load_failed_client\", \"scan_completed\", \"scan_failed\", \"report_created\", \"shared_report_viewed\")\n| extend repo_name = tostring(Properties.repo_name), report_id = tostring(Properties.report_id), verdict = tostring(Properties.verdict), method = tostring(Properties.method), reason = tostring(Properties.reason), score = todouble(Measurements.score), source = tostring(Properties.source), section = tostring(Properties.section), destination_host = tostring(Properties.destination_host)\n| where repoFilter == \"*\" or isempty(repo_name) or repo_name == repoFilter\n| project TimeGenerated, event = Name, surface = AppRoleName, source, section, destination_host, repo_name, report_id, method, verdict, score, reason, browser = ClientBrowser, country = ClientCountryOrRegion, session_id = SessionId, user_id = UserId\n| order by TimeGenerated desc",
         "size": 1,
-        "title": "Recent reports joined to scans",
+        "title": "Recent engagement and conversion events",
         "queryType": 0,
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "table",
         "showAnalytics": false,
         "exportToExcelOptions": "visible"
       },
-      "name": "query - reports joined"
+      "name": "query - recent engagement events"
     }
   ],
   "isLocked": false,

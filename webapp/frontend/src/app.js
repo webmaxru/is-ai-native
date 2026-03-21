@@ -1,6 +1,7 @@
 import { scanRepo, fetchSharedReport, fetchConfig } from './api.js';
 import { renderReport } from './report.js';
 import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
+import { classifyScanSource, getTrackedLinkTelemetry } from './engagement-telemetry.js';
 import {
   buildRepoScanErrorPayload,
   buildRepoScanPayload,
@@ -38,6 +39,7 @@ let progressTimer = null;
 let telemetryConfig = null;
 let hasScanStarted = false;
 let activeScanPromise = null;
+const seenLandingSections = new Set();
 
 function setTopbarScope(text) {
   const topbarScope = document.getElementById('topbar-scope');
@@ -202,6 +204,90 @@ function syncViewState() {
 
   body.classList.toggle('landing-view', !isShowingReport && !hasScanStarted);
   body.classList.toggle('results-view', isShowingReport);
+}
+
+function installOutboundLinkTelemetry() {
+  document.addEventListener('click', (event) => {
+    const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+    if (!link) {
+      return;
+    }
+
+    const payload = getTrackedLinkTelemetry(link, {
+      origin: window.location.origin,
+      pathname: window.location.pathname,
+    });
+
+    if (!payload) {
+      return;
+    }
+
+    if (payload.ctaName) {
+      trackUiEvent('cta_clicked_client', {
+        cta_name: payload.ctaName,
+        source: payload.source,
+        cta_type: payload.ctaType || 'link',
+        destination_host: payload.host,
+        destination_url: payload.href,
+        page_path: payload.pagePath,
+        link_text: payload.linkText,
+      });
+    }
+
+    if (payload.docKind) {
+      trackUiEvent('outbound_doc_link_clicked_client', {
+        source: payload.source || payload.docKind,
+        doc_link_kind: payload.docKind,
+        assistant_name: payload.assistantName,
+        primitive_name: payload.primitiveName,
+        destination_host: payload.host,
+        destination_url: payload.href,
+        page_path: payload.pagePath,
+        link_text: payload.linkText,
+      });
+    }
+  });
+}
+
+function installLandingSectionTelemetry() {
+  const sections = [...document.querySelectorAll('[data-landing-section]')];
+  if (sections.length === 0) {
+    return;
+  }
+
+  const trackSection = (element) => {
+    const section = element.getAttribute('data-landing-section');
+    if (!section || seenLandingSections.has(section)) {
+      return;
+    }
+
+    seenLandingSections.add(section);
+    trackUiEvent('landing_section_viewed_client', {
+      section,
+      page_path: window.location.pathname,
+    });
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    sections.forEach(trackSection);
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          trackSection(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: [0.6],
+    }
+  );
+
+  sections.forEach((section) => observer.observe(section));
 }
 
 function playFlipAnimation(element, firstRect, { scale = false } = {}) {
@@ -396,7 +482,7 @@ async function loadSharedReport(id, sharingEnabled) {
   }
 }
 
-async function executeScan(repoUrl, sharingEnabled) {
+async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } = {}) {
   const trimmedRepoUrl = repoUrl.trim();
   if (!trimmedRepoUrl) {
     throw new Error('GitHub repository is required. Provide owner/repository or a full GitHub URL.');
@@ -432,6 +518,7 @@ async function executeScan(repoUrl, sharingEnabled) {
     try {
       trackUiEvent('scan_requested_client', {
         repo_reference: repoReference,
+        source,
       });
       const result = await scanRepo(repoReference, controller.signal);
       hideProgress();
@@ -443,6 +530,7 @@ async function executeScan(repoUrl, sharingEnabled) {
         {
           repo_name: result.repo_name,
           verdict: result.verdict,
+          source,
         },
         {
           score: Number(result.score),
@@ -457,6 +545,7 @@ async function executeScan(repoUrl, sharingEnabled) {
           repo_reference: repoReference,
           error_name: err.name,
           reason: err.message,
+          source,
         });
       }
       throw err;
@@ -476,10 +565,10 @@ async function executeScan(repoUrl, sharingEnabled) {
   }
 }
 
-async function handleScan(repoUrl, sharingEnabled) {
+async function handleScan(repoUrl, sharingEnabled, options = {}) {
   hideError();
   try {
-    return await executeScan(repoUrl, sharingEnabled);
+    return await executeScan(repoUrl, sharingEnabled, options);
   } catch (err) {
     if (err.name === 'AbortError') {
       return null;
@@ -492,6 +581,8 @@ async function handleScan(repoUrl, sharingEnabled) {
 document.addEventListener('DOMContentLoaded', async () => {
   initThemeSwitcher();
   syncViewState();
+  installOutboundLinkTelemetry();
+  installLandingSectionTelemetry();
   // Apply centering on landing page only (not for auto-scan URLs or shared reports)
   const isAutoScanPage = !!(
     getRepoFromPath(window.location.pathname) ||
@@ -542,7 +633,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     repoInput.value = normalizeRepoInputValue(repoUrl);
 
-    const runPromise = executeScan(repoInput.value, sharingEnabled);
+    const runPromise = executeScan(repoInput.value, sharingEnabled, {
+      source: classifyScanSource({
+        agentInvoked: Boolean(e.agentInvoked),
+        hasPriorScan: hasScanStarted,
+      }),
+    });
 
     if (e.agentInvoked && typeof e.respondWith === 'function') {
       e.respondWith(
@@ -560,7 +656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     registerRepoScanTool({
       async executeScan(repoUrl) {
         repoInput.value = normalizeRepoInputValue(repoUrl);
-        return executeScan(repoInput.value, sharingEnabled);
+        return executeScan(repoInput.value, sharingEnabled, { source: 'webmcp_form' });
       },
     });
 
@@ -581,7 +677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const repoFromPath = getRepoFromPath(window.location.pathname);
   if (repoFromPath) {
     repoInput.value = repoFromPath;
-    void handleScan(repoFromPath, sharingEnabled);
+    void handleScan(repoFromPath, sharingEnabled, { source: 'path_autoscan' });
     return;
   }
 
@@ -592,7 +688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sanitized = normalizeRepoReference(repoParam);
     if (sanitized) {
       repoInput.value = sanitized;
-      void handleScan(sanitized, sharingEnabled);
+      void handleScan(sanitized, sharingEnabled, { source: 'query_autoscan' });
     } else {
       showError('Invalid repo parameter. Expected format: owner/repository');
     }

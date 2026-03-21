@@ -34,7 +34,7 @@ function installBrowserStubs() {
     matches: false,
     addEventListener() {},
     removeEventListener() {},
-  });
+  }, { sharingEnabled: true });
 
   globalThis.window = {
     matchMedia,
@@ -101,6 +101,8 @@ test('renderPrimitiveRow keeps disclosure markup when matched files exist', () =
   assert.match(html, /primitive-entry-chevron/);
   assert.match(html, /1 file found/);
   assert.match(html, /matched-file-item/);
+  assert.match(html, /data-doc-link-kind="primitive-documentation"/);
+  assert.match(html, /data-doc-link-source="report-primitive-popover"/);
 });
 
 test('selectPreferredAssistant returns the highest scoring assistant and keeps first tie', () => {
@@ -149,7 +151,7 @@ test('renderReport keeps preferred agent summary while retaining all assistant c
         ],
       },
     ],
-  });
+  }, { sharingEnabled: true });
 
   const html = browserStubs.reportElement.innerHTML;
 
@@ -162,6 +164,8 @@ test('renderReport keeps preferred agent summary while retaining all assistant c
   assert.match(html, /Claude Code: 0%/);
   assert.match(html, /id="section-github-copilot"/);
   assert.match(html, /id="section-claude-code"/);
+  assert.match(html, /data-share-source="report_top_bar"/);
+  assert.match(html, /data-share-source="report_footer_bar"/);
   assert.match(html, /<span class="lh-title">Claude Code<\/span>/);
   assert.doesNotMatch(html, />34<span class="si-denom">\/100</);
   assert.equal(browserStubs.repoLink.href, 'https://github.com/octo/demo');

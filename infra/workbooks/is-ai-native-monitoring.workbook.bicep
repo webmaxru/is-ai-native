@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 @description('Display name shown in the Azure Workbook gallery.')
-param workbookDisplayName string = 'Is AI Native Monitoring'
+param workbookDisplayName string = 'Is AI Native Growth and Engagement'
 
 @description('Source resource ID to associate the workbook with. Use the Log Analytics workspace or Azure Monitor.')
 param workbookSourceId string

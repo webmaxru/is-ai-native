@@ -28,6 +28,9 @@ param enableSharing bool = false
 @description('Enable Azure Application Insights telemetry for scan/report monitoring.')
 param enableAppInsights bool = true
 
+@description('Deploy the shared Azure Workbook for growth and engagement analysis when Application Insights is enabled.')
+param enableEngagementWorkbook bool = true
+
 @description('Enable low-cost external website availability monitoring. Requires Application Insights and a monitoring alert email address.')
 param enableAvailabilityMonitoring bool = true
 
@@ -93,6 +96,16 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (enableAppI
     WorkspaceResourceId: logAnalytics.id
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+module engagementWorkbook './workbooks/is-ai-native-monitoring.workbook.bicep' = if (enableAppInsights && enableEngagementWorkbook) {
+  name: '${namePrefix}-growth-engagement-workbook'
+  params: {
+    location: location
+    workbookDisplayName: 'Is AI Native Growth and Engagement'
+    workbookId: guid(subscription().subscriptionId, resourceGroup().name, namePrefix, 'growth-engagement-workbook')
+    workbookSourceId: logAnalytics.id
   }
 }
 
@@ -413,6 +426,9 @@ output containerAppName string = containerApp.name
 
 @description('Name of the Application Insights component used for telemetry.')
 output appInsightsName string = enableAppInsights ? appInsights.name : ''
+
+@description('Resource ID of the shared growth and engagement workbook.')
+output engagementWorkbookResourceId string = enableAppInsights && enableEngagementWorkbook ? engagementWorkbook!.outputs.workbookResourceId : ''
 
 @description('True when external website availability monitoring resources were deployed.')
 output availabilityMonitoringConfigured bool = availabilityMonitoringEnabled

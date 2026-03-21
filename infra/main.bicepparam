@@ -13,6 +13,9 @@ param enableSharing = true
 // Application Insights is enabled by default for scan/report telemetry and Azure Workbook monitoring.
 param enableAppInsights = true
 
+// Deploy the shared growth and engagement workbook alongside the Application Insights resources.
+param enableEngagementWorkbook = true
+
 // Low-cost public website monitoring is created when you pass monitoringAlertEmail at deploy time.
 param enableAvailabilityMonitoring = true
 
