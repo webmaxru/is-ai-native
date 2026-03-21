@@ -39,7 +39,7 @@ describe('site metadata', () => {
     const page = buildPageMetadata(runtime, '/webmaxru/is-ai-native');
 
     expect(page.robots).toBe('noindex, nofollow, noarchive');
-    expect(page.title).toBe('webmaxru/is-ai-native | IsAINative');
+    expect(page.title).toBe('webmaxru/is-ai-native | Is AI Native');
   });
 
   it('emits an allow-list robots.txt and sitemap in production', () => {

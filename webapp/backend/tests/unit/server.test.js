@@ -77,6 +77,13 @@ describe('runtime Docker image packaging', () => {
 
     expect(dockerfile).toContain('COPY webapp/frontend/assets ../frontend/assets');
   });
+
+  it('copies the linked core workspace package to the runtime path expected by npm file dependencies', () => {
+    const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
+
+    expect(dockerfile).toContain('COPY --from=deps /app/packages /packages');
+    expect(dockerfile).not.toContain('COPY --from=deps /app/packages ../packages');
+  });
 });
 
 describe('resolveTrustProxyValue', () => {

@@ -79,7 +79,7 @@ describe('frontend path configured', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
     expect(res.text).toContain('frontend');
-    expect(res.text).toContain('<title>Shared report | IsAINative</title>');
+    expect(res.text).toContain('<title>Shared report | Is AI Native</title>');
     expect(res.text).toContain('content="noindex, nofollow, noarchive"');
   });
 
@@ -95,8 +95,8 @@ describe('frontend path configured', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/application\/manifest\+json/);
     expect(res.body).toMatchObject({
-      name: 'IsAINative',
-      short_name: 'IsAINative',
+      name: 'Is AI Native',
+      short_name: 'Is AI Native',
       id: '/',
       start_url: '/',
     });

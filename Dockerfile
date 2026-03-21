@@ -22,8 +22,10 @@ WORKDIR /app/backend
 COPY webapp/backend/package.json ./package.json
 
 # Copy backend node_modules from deps stage together with the linked workspace package target.
+# npm installs @is-ai-native/core as ../../../../packages/core from /app/backend/node_modules/@is-ai-native,
+# so the runtime image must expose that package at /packages/core.
 COPY --from=deps /app/backend/node_modules ./node_modules
-COPY --from=deps /app/packages ../packages
+COPY --from=deps /app/packages /packages
 
 # Copy backend source
 COPY webapp/backend/src ./src
