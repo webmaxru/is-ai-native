@@ -11,17 +11,36 @@ const packageFiles = [
   resolve(workspaceRoot, 'packages', 'gh-extension', 'package.json'),
 ];
 const packageLockPath = resolve(workspaceRoot, 'package-lock.json');
+const versionPattern = /^(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$/;
+
+function loadWorkspaceEnv() {
+  if (typeof process.loadEnvFile !== 'function') {
+    return;
+  }
+
+  try {
+    process.loadEnvFile(resolve(workspaceRoot, '.env'));
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
 
 function usage() {
   return [
     'Usage:',
-    '  npm run release:all -- <version> [--dry-run] [--commit] [--push] [--publish]',
-    '  npm run release:all:dry-run -- <version>',
+    '  npm run release:all -- [<version>] [--dry-run] [--commit] [--push] [--publish]',
+    '  npm run release:all:dry-run -- [<version>]',
+    '',
+    'If <version> is omitted, the script bumps the next unified patch version across the CLI, VS Code extension, and GH extension manifests. When versions differ, it starts from the highest current version and increments once.',
     '',
     'Examples:',
+    '  npm run release:all -- --dry-run',
     '  npm run release:all -- 0.1.4 --dry-run',
-    '  npm run release:all:dry-run -- 0.1.4',
+    '  npm run release:all:dry-run',
     '  npm run release:all -- 0.1.4 --commit',
+    '  npm run release:all -- --publish --push',
     '  npm run release:all -- 0.1.4 --publish --push',
   ].join('\n');
 }
@@ -35,11 +54,7 @@ function parseArgs(argv) {
   const flags = new Set(argv.filter((value) => value.startsWith('--')));
   const version = argv.find((value) => !value.startsWith('--')) ?? process.env.npm_config_version;
 
-  if (!version) {
-    throw new Error(usage());
-  }
-
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+  if (version && !versionPattern.test(version)) {
     throw new Error(`Invalid version: ${version}`);
   }
 
@@ -49,6 +64,72 @@ function parseArgs(argv) {
     publish: flags.has('--publish') || readBooleanFlag('npm_config_publish'),
     push: flags.has('--push') || readBooleanFlag('npm_config_push'),
     commit: flags.has('--commit') || readBooleanFlag('npm_config_commit') || flags.has('--publish') || readBooleanFlag('npm_config_publish'),
+  };
+}
+
+function parseVersion(version) {
+  const match = versionPattern.exec(version);
+
+  if (!match) {
+    throw new Error(`Invalid version: ${version}`);
+  }
+
+  return {
+    major: Number.parseInt(match[1], 10),
+    minor: Number.parseInt(match[2], 10),
+    patch: Number.parseInt(match[3], 10),
+  };
+}
+
+function compareVersions(left, right) {
+  const leftVersion = parseVersion(left);
+  const rightVersion = parseVersion(right);
+
+  if (leftVersion.major !== rightVersion.major) {
+    return leftVersion.major - rightVersion.major;
+  }
+
+  if (leftVersion.minor !== rightVersion.minor) {
+    return leftVersion.minor - rightVersion.minor;
+  }
+
+  return leftVersion.patch - rightVersion.patch;
+}
+
+function incrementPatch(version) {
+  const parsed = parseVersion(version);
+  return `${parsed.major}.${parsed.minor}.${parsed.patch + 1}`;
+}
+
+async function readCurrentPackageVersions() {
+  const versions = [];
+
+  for (const filePath of packageFiles) {
+    const manifest = JSON.parse(await readFile(filePath, 'utf8'));
+    versions.push(manifest.version);
+  }
+
+  return versions;
+}
+
+function determineReleaseVersion(explicitVersion, currentVersions) {
+  if (explicitVersion) {
+    return {
+      version: explicitVersion,
+      inferred: false,
+    };
+  }
+
+  if (currentVersions.length === 0) {
+    throw new Error(usage());
+  }
+
+  const highestVersion = [...currentVersions].sort(compareVersions).at(-1);
+
+  return {
+    version: incrementPatch(highestVersion),
+    inferred: true,
+    highestVersion,
   };
 }
 
@@ -124,8 +205,16 @@ async function updateVersions(version, dryRun) {
 }
 
 async function main() {
-  const { version, dryRun, publish, push, commit } = parseArgs(process.argv.slice(2));
+  loadWorkspaceEnv();
+
+  const { version: requestedVersion, dryRun, publish, push, commit } = parseArgs(process.argv.slice(2));
+  const currentVersions = await readCurrentPackageVersions();
+  const { version, inferred, highestVersion } = determineReleaseVersion(requestedVersion, currentVersions);
   const tagName = `cli-v${version}`;
+
+  if (inferred) {
+    process.stdout.write(`No version provided. Using next unified version ${version} from highest current version ${highestVersion}.\n`);
+  }
 
   if (publish && !push) {
     throw new Error('--publish requires --push so the CLI tag can trigger trusted publishing.');

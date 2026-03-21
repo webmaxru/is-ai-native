@@ -8,8 +8,31 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(scriptDir, '..');
 const outputDir = resolve(workspaceRoot, 'artifacts', 'gh-extension', 'repo');
 
-function run(command, args, { cwd = workspaceRoot, env = process.env, dryRun = false, allowNonZero = false } = {}) {
-  const rendered = `${command} ${args.join(' ')}`.trim();
+function loadWorkspaceEnv() {
+  if (typeof process.loadEnvFile !== 'function') {
+    return;
+  }
+
+  try {
+    process.loadEnvFile(resolve(workspaceRoot, '.env'));
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+function run(command, args, { cwd = workspaceRoot, env = process.env, dryRun = false, allowNonZero = false, redactValues = [] } = {}) {
+  let rendered = `${command} ${args.join(' ')}`.trim();
+
+  for (const value of redactValues) {
+    if (!value) {
+      continue;
+    }
+
+    rendered = rendered.split(value).join('***');
+  }
+
   process.stdout.write(`${dryRun ? '[dry-run] ' : ''}${rendered}\n`);
 
   if (dryRun) {
@@ -39,6 +62,8 @@ function run(command, args, { cwd = workspaceRoot, env = process.env, dryRun = f
 }
 
 async function main() {
+  loadWorkspaceEnv();
+
   const dryRun = process.argv.includes('--dry-run');
   const targetRepository = process.env.GH_EXTENSION_REPOSITORY;
   const pushToken = process.env.GH_EXTENSION_SYNC_TOKEN;
@@ -61,7 +86,7 @@ async function main() {
   const cloneUrl = `https://x-access-token:${pushToken}@github.com/${targetRepository}.git`;
 
   try {
-    run('git', ['clone', cloneUrl, tempDir], { dryRun });
+    run('git', ['clone', cloneUrl, tempDir], { dryRun, redactValues: [pushToken] });
 
     if (!dryRun) {
       for (const entry of await readdir(tempDir)) {

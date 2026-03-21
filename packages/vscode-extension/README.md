@@ -73,8 +73,10 @@ npm run publish:vscode-extension
 For the coordinated release flow, run:
 
 ```powershell
-npm run release:all -- 0.1.4 --publish --push
+npm run release:all -- --publish --push
 ```
+
+If you omit the version, the release script reads the CLI, VS Code extension, and GitHub CLI extension manifests, takes the highest current version, and bumps the patch once to create the next unified release version.
 
 Run the extension from source:
 

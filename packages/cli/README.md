@@ -125,8 +125,10 @@ npx .\artifacts\cli\pack\is-ai-native-<version>.tgz --help
 Coordinated release from the repository root:
 
 ```powershell
-npm run release:all -- 0.1.4 --publish --push
+npm run release:all -- --publish --push
 ```
+
+If you omit the version, the release script reads the CLI, VS Code extension, and GitHub CLI extension manifests, takes the highest current version, and bumps the patch once to create the next unified release version.
 
 Trusted publishing on npm should be configured for GitHub Actions OIDC with:
 
