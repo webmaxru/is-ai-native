@@ -137,19 +137,6 @@ function resolveTrustProxyValue(env = process.env) {
   return configured;
 }
 
-function resolveContainerStartupStrategy(env = process.env) {
-  return env.CONTAINER_STARTUP_STRATEGY === 'keep-warm' ? 'keep-warm' : 'scale-to-zero';
-}
-
-function resolveContainerMinReplicas(env = process.env) {
-  const parsed = Number.parseInt(env.CONTAINER_MIN_REPLICAS ?? '', 10);
-  if (Number.isInteger(parsed) && parsed >= 0) {
-    return parsed;
-  }
-
-  return resolveContainerStartupStrategy(env) === 'keep-warm' ? 1 : 0;
-}
-
 function resolvePositiveInteger(value, fallback) {
   const parsed = Number.parseInt(value ?? '', 10);
   if (Number.isInteger(parsed) && parsed > 0) {
@@ -304,12 +291,6 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     get appInsightsWebConnectionString() {
       return env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING || env.APPLICATIONINSIGHTS_CONNECTION_STRING || '';
     },
-    get containerStartupStrategy() {
-      return resolveContainerStartupStrategy(env);
-    },
-    get containerMinReplicas() {
-      return resolveContainerMinReplicas(env);
-    },
     get scanRateLimit() {
       return resolveRateLimitPolicy(env, {
         windowMsKey: 'SCAN_RATE_LIMIT_WINDOW_MS',
@@ -358,14 +339,12 @@ export function createApp(runtime = createRuntime()) {
   app.use('/api/scan', scanLimiter, express.json({ limit: '10kb' }), createScanRouter(runtime));
   app.use('/api/report', reportLimiter, express.json({ limit: '100kb' }), createReportRouter(runtime));
 
-  app.get('/health', (_req, res) =>
+  app.get('/api/health', (_req, res) =>
     res.json({
       status: 'ok',
       githubTokenProvided: runtime.githubTokenProvided,
       sharingEnabled: runtime.sharingEnabled,
       appInsightsEnabled: runtime.appInsightsEnabled,
-      containerStartupStrategy: runtime.containerStartupStrategy,
-      containerMinReplicas: runtime.containerMinReplicas,
     })
   );
 
@@ -459,8 +438,6 @@ export {
   runtime,
   server,
   cleanupScheduler,
-  resolveContainerMinReplicas,
-  resolveContainerStartupStrategy,
   resolveFrontendPath,
   resolveRateLimitPolicy,
   resolveTrustProxyValue,

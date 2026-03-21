@@ -21,8 +21,6 @@ process.env.REPORTS_DIR = ':memory:';
 process.env.ENABLE_SHARING = 'false';
 process.env.FRONTEND_PATH = tmpDir;
 process.env.SITE_ORIGIN = 'https://example.com';
-process.env.CONTAINER_STARTUP_STRATEGY = 'keep-warm';
-process.env.CONTAINER_MIN_REPLICAS = '1';
 process.env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING =
   'InstrumentationKey=test-key;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/';
 
@@ -173,13 +171,11 @@ describe('frontend path configured', () => {
     expect(res.body).toHaveProperty('error');
   });
 
-  it('GET /health still returns JSON status', async () => {
-    const res = await request(app).get('/health');
+  it('GET /api/health still returns JSON status', async () => {
+    const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       status: 'ok',
-      containerStartupStrategy: 'keep-warm',
-      containerMinReplicas: 1,
     });
   });
 

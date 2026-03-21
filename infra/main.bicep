@@ -194,8 +194,6 @@ var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
   { name: 'PORT', value: '3000' }
   { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
-  { name: 'CONTAINER_STARTUP_STRATEGY', value: containerStartupStrategy }
-  { name: 'CONTAINER_MIN_REPLICAS', value: containerStartupStrategy == 'keep-warm' ? '1' : '0' }
 ]
 
 var siteOriginEnv = siteOrigin != '' ? [
@@ -303,7 +301,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           probes: [
             {
               type: 'Liveness'
-              httpGet: { path: '/health', port: 3000 }
+              httpGet: { path: '/api/health', port: 3000 }
               initialDelaySeconds: 10
               periodSeconds: 30
               timeoutSeconds: 5
@@ -311,7 +309,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               type: 'Readiness'
-              httpGet: { path: '/health', port: 3000 }
+              httpGet: { path: '/api/health', port: 3000 }
               initialDelaySeconds: 5
               periodSeconds: 10
               timeoutSeconds: 5
@@ -323,7 +321,9 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       volumes: appVolumes
       scale: {
-        // Keep one replica warm when requested to reduce cold-start latency.
+        // Scale settings are infrastructure concerns. Change the startup behavior
+        // via the containerStartupStrategy parameter, and edit maxReplicas here
+        // when you need a different ceiling.
         minReplicas: containerStartupStrategy == 'keep-warm' ? 1 : 0
         maxReplicas: 4
         rules: [

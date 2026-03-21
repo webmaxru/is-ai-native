@@ -13,7 +13,7 @@ beforeAll(async () => {
   app = serverModule.default;
 });
 
-describe('GET /health', () => {
+describe('GET /api/health', () => {
   describe('when GH_TOKEN_FOR_SCAN is not set and sharing is disabled', () => {
     beforeEach(() => {
       delete process.env.GH_TOKEN_FOR_SCAN;
@@ -22,33 +22,24 @@ describe('GET /health', () => {
     });
 
     it('returns status ok', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ok');
     });
 
     it('reports githubTokenProvided as false', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.githubTokenProvided).toBe(false);
     });
 
     it('reports sharingEnabled as false', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.sharingEnabled).toBe(false);
     });
 
     it('reports appInsightsEnabled as false', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.appInsightsEnabled).toBe(false);
-    });
-
-    it('defaults container startup strategy to scale-to-zero', async () => {
-      delete process.env.CONTAINER_STARTUP_STRATEGY;
-      delete process.env.CONTAINER_MIN_REPLICAS;
-
-      const res = await request(app).get('/health');
-      expect(res.body.containerStartupStrategy).toBe('scale-to-zero');
-      expect(res.body.containerMinReplicas).toBe(0);
     });
   });
 
@@ -62,38 +53,27 @@ describe('GET /health', () => {
     afterEach(() => {
       delete process.env.GH_TOKEN_FOR_SCAN;
       delete process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
-      delete process.env.CONTAINER_STARTUP_STRATEGY;
-      delete process.env.CONTAINER_MIN_REPLICAS;
       process.env.ENABLE_SHARING = 'false';
     });
 
     it('reports githubTokenProvided as true', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.githubTokenProvided).toBe(true);
     });
 
     it('reports sharingEnabled as true', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.sharingEnabled).toBe(true);
     });
 
     it('reports appInsightsEnabled as true', async () => {
-      const res = await request(app).get('/health');
+      const res = await request(app).get('/api/health');
       expect(res.body.appInsightsEnabled).toBe(true);
-    });
-
-    it('reports keep-warm startup strategy when configured', async () => {
-      process.env.CONTAINER_STARTUP_STRATEGY = 'keep-warm';
-      process.env.CONTAINER_MIN_REPLICAS = '1';
-
-      const res = await request(app).get('/health');
-      expect(res.body.containerStartupStrategy).toBe('keep-warm');
-      expect(res.body.containerMinReplicas).toBe(1);
     });
 
     it('does not rate limit health probes', async () => {
       const responses = await Promise.all(
-        Array.from({ length: 110 }, () => request(app).get('/health'))
+        Array.from({ length: 110 }, () => request(app).get('/api/health'))
       );
 
       expect(responses.every((response) => response.status === 200)).toBe(true);

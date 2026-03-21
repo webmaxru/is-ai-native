@@ -140,9 +140,9 @@ Save a scan result for sharing when `ENABLE_SHARING=true`.
 
 Retrieve a shared report by ID when `ENABLE_SHARING=true`.
 
-### `GET /health`
+### `GET /api/health`
 
-Health check endpoint returning runtime capability flags such as scan token availability, report sharing status, and Application Insights telemetry status.
+Health check endpoint returning only the runtime capability flags needed for liveness checks and lightweight diagnostics: scan token availability, report sharing status, and Application Insights telemetry status.
 
 ## Supporting Automation
 
@@ -178,9 +178,15 @@ Optional deployment features:
 - `acrName` for Azure Container Registry image pulls
 - `customDomainName` and `managedCertName` for managed TLS on a custom hostname
 - `secondaryCustomDomainName` and `secondaryManagedCertName` for dual-hostname migrations
-- `containerStartupStrategy=keep-warm` to pin one replica instead of scale-to-zero
 - `monitoringAlertEmail` and `monitoringUrl` for low-cost availability monitoring
 - `enableEngagementWorkbook=false` if you need to skip workbook deployment while keeping Application Insights enabled
+
+Container scale settings are configured in infrastructure, not via the public API:
+
+- For manual deployments, set `containerStartupStrategy` in [infra/main.bicepparam](infra/main.bicepparam) or pass `--parameters containerStartupStrategy=keep-warm` when running `az deployment group create`.
+- For the GitHub Actions production deployment, set the inline `containerStartupStrategy=...` override in [.github/workflows/cd.yml](.github/workflows/cd.yml).
+- `minReplicas` is derived from `containerStartupStrategy` in [infra/main.bicep](infra/main.bicep).
+- `maxReplicas` is set directly in the `template.scale.maxReplicas` block in [infra/main.bicep](infra/main.bicep).
 
 ### CI / CD Pipelines
 
@@ -311,8 +317,6 @@ npm run build:vscode-extension
 | `ENABLE_SHARING` | `false` | Enable shared reports |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Server-side Application Insights connection string |
 | `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Frontend telemetry connection string |
-| `CONTAINER_STARTUP_STRATEGY` | `scale-to-zero` | Startup strategy metadata |
-| `CONTAINER_MIN_REPLICAS` | `0` | Minimum replica metadata |
 | `REPORTS_DIR` | `./data/reports` | Shared report storage directory |
 | `FRONTEND_PATH` | unset | Path to a source-checkout frontend directory |
 | `TRUST_PROXY` | `1` in production, otherwise `false` | Express trust proxy setting |
