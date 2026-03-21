@@ -2,9 +2,23 @@
 
 ![Is AI-Native GitHub CLI extension social card](./assets/brand/social-card.png)
 
-GitHub CLI extension for scanning local repositories and GitHub repositories for AI-native development primitives.
+Use the GitHub CLI extension to scan the current workspace or a GitHub repository through `gh is-ai-native`.
 
-This folder contains the source-of-truth assets and export tooling for the generated `gh-is-ai-native` repository. The standalone `is-ai-native` CLI lives in `../cli/` and is bundled into the generated extension.
+The extension bundles the same shared scan engine used by the web app, VS Code extension, and standalone CLI.
+
+## Overview
+
+- **Command**: `gh is-ai-native scan`
+- **Scope**: local filesystem scans and GitHub repository scans
+- **Runtime**: GitHub CLI plus Node.js 22 or newer
+- **Distribution**: generated repository export built from this workspace
+
+## What You Get
+
+- **Shared scoring model** with the rest of the project surfaces
+- **Per-assistant results** for GitHub Copilot, Claude Code, and OpenAI Codex
+- **Primitive-level detection** for instructions, prompts, agents, skills, MCP config, and agent hooks
+- **Native GitHub CLI workflow** for terminal users already working in `gh`
 
 ## Install
 
@@ -13,40 +27,6 @@ gh extension install webmaxru/gh-is-ai-native
 ```
 
 On Windows, GitHub CLI runs script-based extensions through `sh.exe`. Install Git for Windows if `gh` reports that `sh.exe` is missing.
-
-This extension requires Node.js 22 or newer because the generated launcher executes a bundled Node runtime entrypoint.
-
-## Build Export From Workspace
-
-From the repository root:
-
-```powershell
-npm install
-npm run build:gh-extension
-npm run test:gh-extension
-```
-
-This writes a standalone script-based GitHub CLI extension layout to `artifacts/gh-extension/repo` with:
-
-- a root launcher named `gh-is-ai-native`
-- a bundled Node entrypoint named `gh-is-ai-native.mjs`
-- a bundled `config/` directory copied from `packages/core/config`
-- a branded `assets/brand/` directory with the extension icon and social card
-- a dedicated extension README and the project license
-
-For the normal coordinated release path, run this from the repository root:
-
-```powershell
-npm run release:all -- 0.1.4 --publish --push
-```
-
-That command aligns the GitHub CLI extension version with the standalone CLI and VS Code extension, rebuilds the export artifact, and syncs the generated repository by invoking `npm run publish:gh-extension`.
-
-If you need to sync the generated extension repository directly, make sure `GH_EXTENSION_REPOSITORY` and `GH_EXTENSION_SYNC_TOKEN` are set, then run:
-
-```powershell
-npm run publish:gh-extension
-```
 
 ## Usage
 
@@ -68,7 +48,7 @@ gh is-ai-native scan . --output summary --fail-below 60
 
 ## Output Modes
 
-- `human`: default readable console report with a preferred-agent headline plus full per-assistant detail
+- `human`: readable console report with a preferred-agent headline plus full per-assistant detail
 - `json`: full structured scan result
 - `csv`: one row per primitive
 - `summary`: one-line CI-friendly output based on the preferred agent
@@ -87,6 +67,34 @@ For remote GitHub scans, token resolution order is:
 2. `GITHUB_TOKEN`
 3. `GH_TOKEN_FOR_SCAN`
 
-## Source of Truth
+## Related Components
 
-This repository is generated from `packages/cli`, `packages/gh-extension`, and `packages/core` in the main `is-ai-native` workspace. Do not edit generated files here manually unless you also update the source workspace.
+- [../../README.md](../../README.md) for the project overview and web app
+- [../cli/README.md](../cli/README.md) for the standalone CLI
+- [../vscode-extension/README.md](../vscode-extension/README.md) for the VS Code extension
+
+## Development And Release
+
+Build the generated GitHub CLI extension export from the repository root:
+
+```powershell
+npm install
+npm run build:gh-extension
+npm run test:gh-extension
+```
+
+This writes a standalone extension layout to `artifacts/gh-extension/repo` with the launcher, bundled entrypoint, copied scanner config, brand assets, README, and license.
+
+For the coordinated release flow, run:
+
+```powershell
+npm run release:all -- 0.1.4 --publish --push
+```
+
+To sync the generated extension repository directly, set `GH_EXTENSION_REPOSITORY` and `GH_EXTENSION_SYNC_TOKEN`, then run:
+
+```powershell
+npm run publish:gh-extension
+```
+
+This repository export is generated from `packages/cli`, `packages/gh-extension`, and `packages/core` in the main workspace. Do not edit generated files without updating the source workspace as well.
