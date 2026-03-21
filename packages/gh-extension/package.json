@@ -1,6 +1,6 @@
 {
   "name": "@is-ai-native/gh-extension",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "GitHub CLI extension export tooling for Is AI-Native",
   "private": true,
   "type": "module",
