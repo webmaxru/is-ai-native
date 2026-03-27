@@ -102,7 +102,7 @@ Patterns use [minimatch](https://github.com/isaacs/minimatch) syntax with `dot: 
 
 ## Official Resource Matrix
 
-This section maps the six currently evaluated primitives to the exact repository-scoped resources documented by each assistant vendor as of 2026-03-10.
+This section maps the six currently evaluated primitives to the exact repository-scoped resources documented by each assistant vendor as of 2026-03-27.
 
 Use this section when updating `packages/core/config/primitives.json` so the scanner follows vendor-documented file locations instead of relying on guessed globs.
 
@@ -132,7 +132,7 @@ Important interpretation rules:
 
 | Assistant | Official availability | Official repo-scoped resources | Current scanner patterns | Notes | Sources |
 |------|------|-------------|-------------|-------|---------|
-| GitHub Copilot | Yes | `.github/agents/*.agent.md` (formal format); VS Code also detects other `.md` files in `.github/agents` | `.github/agents/*.agent.md` | The scanner now prefers the documented `.agent.md` suffix over a broad folder glob. This follows the formal file format even though VS Code will also detect generic Markdown files in that folder. | [Custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) |
+| GitHub Copilot | Yes | `.github/agents/*.agent.md` (formal format); VS Code also detects other `.md` files in `.github/agents`; `.claude/agents/*.md` (Claude-format workspace agents, now also loaded by VS Code) | `.github/agents/*.agent.md`; `.claude/agents/*.md` | The scanner uses the documented `.agent.md` suffix for the native format and also scans `.claude/agents/*.md` because VS Code now explicitly documents the `.claude/agents` folder as a "Workspace (Claude format)" custom agent location. | [Custom agents — Custom agent file locations](https://code.visualstudio.com/docs/copilot/customization/custom-agents#_custom-agent-file-locations) |
 | Claude Code | Yes | `.claude/agents/*.md` | `.claude/agents/*.md` | Claude project subagents are now counted directly from the documented project-scoped folder. | [Subagents](https://code.claude.com/docs/en/sub-agents) |
 | OpenAI Codex | Yes, config-based rather than Markdown-file based | `.codex/config.toml` with `[agents.<name>]` tables and optional `agents.<name>.config_file` references | `.codex/config.toml` | The scanner now treats project-scoped `.codex/config.toml` as the repo-scoped custom-agent artifact for Codex. This is a file-presence proxy only; the scanner does not parse whether `[agents.<name>]` is present. | [Config basics](https://developers.openai.com/codex/config-basic), [Config reference](https://developers.openai.com/codex/config-reference) |
 
@@ -156,7 +156,7 @@ Important interpretation rules:
 
 | Assistant | Official availability | Official repo-scoped resources | Current scanner patterns | Notes | Sources |
 |------|------|-------------|-------------|-------|---------|
-| GitHub Copilot | Yes | `.github/hooks/*.json`; agent-scoped `hooks` field in `.agent.md` files | `.github/hooks/*.json` | The scanner now follows the documented JSON hook-file suffix exactly. Agent-scoped hooks in `.agent.md` are documented, but the current scanner intentionally does not count generic agent files as hooks because it does not parse frontmatter. | [Hooks](https://code.visualstudio.com/docs/copilot/customization/hooks), [Custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) |
+| GitHub Copilot | Yes | `.github/hooks/*.json`; `.claude/settings.json` (Claude-format workspace hooks, now also loaded by VS Code); agent-scoped `hooks` field in `.agent.md` files | `.github/hooks/*.json`; `.claude/settings.json` | The scanner follows the documented JSON hook-file suffix for the native format and also scans `.claude/settings.json` because VS Code now explicitly documents it as a "Workspace (Claude format)" hook location. Agent-scoped hooks in `.agent.md` frontmatter are documented but intentionally not counted because the scanner does not parse frontmatter. `.claude/settings.local.json` is gitignored (user-local only) and is excluded from `github-copilot` patterns. | [Hooks — Hook file locations](https://code.visualstudio.com/docs/copilot/customization/hooks#_hook-file-locations), [Custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) |
 | Claude Code | Yes | `.claude/settings.json`; `.claude/settings.local.json` with a top-level `hooks` setting | `.claude/settings.json`; `.claude/settings.local.json` | This remains aligned with Claude’s documented project-scoped and local settings files. `~/.claude/settings.json` is user-scoped and should not be treated as repository evidence. | [Settings](https://code.claude.com/docs/en/settings), [Hooks](https://code.claude.com/docs/en/hooks) |
 | OpenAI Codex | No equivalent lifecycle hook file documented in current Codex docs | No repo-scoped hook file documented; the closest adjacent feature is `notify` in `config.toml`, which is not equivalent to lifecycle hooks | Not evaluated | This remains intentionally unsupported until OpenAI publishes a first-class repo-scoped lifecycle hook mechanism. | [Config reference](https://developers.openai.com/codex/config-reference) |
 

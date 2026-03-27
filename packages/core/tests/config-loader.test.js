@@ -18,5 +18,6 @@ test('core config loader reads documented primitive patterns', () => {
   ]);
   assert.deepEqual(byName.get('Agent Hooks').assistants['github-copilot'].patterns, [
     '.github/hooks/*.json',
+    '.claude/settings.json',
   ]);
 });
