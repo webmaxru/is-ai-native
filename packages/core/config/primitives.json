@@ -33,7 +33,7 @@
       "description": "Reusable prompt templates stored in the repository that encapsulate common workflows, code generation patterns, or specialized tasks. Saved prompts enable team members to reuse proven AI interactions consistently across the project.",
       "docLinks": [
         "https://code.visualstudio.com/docs/copilot/customization/prompt-files",
-        "https://code.claude.com/docs/en/slash-commands"
+        "https://code.claude.com/docs/en/skills"
       ],
       "assistants": {
         "github-copilot": {
@@ -51,7 +51,7 @@
       "docLinks": [
         "https://code.visualstudio.com/docs/copilot/customization/custom-agents",
         "https://code.claude.com/docs/en/sub-agents",
-        "https://developers.openai.com/codex/config-reference"
+        "https://developers.openai.com/codex/subagents"
       ],
       "assistants": {
         "github-copilot": {
@@ -61,7 +61,7 @@
           "patterns": [".claude/agents/*.md"]
         },
         "openai-codex": {
-          "patterns": [".codex/config.toml"]
+          "patterns": [".codex/agents/*.toml"]
         }
       }
     },
@@ -71,7 +71,7 @@
       "description": "Packaged domain knowledge and expertise files that AI assistants can reference to provide specialized guidance. Skills encode best practices, architectural patterns, and domain-specific rules that improve AI-generated code quality.",
       "docLinks": [
         "https://code.visualstudio.com/docs/copilot/customization/agent-skills",
-        "https://code.claude.com/docs/en/slash-commands",
+        "https://code.claude.com/docs/en/skills",
         "https://developers.openai.com/codex/skills"
       ],
       "assistants": {
@@ -118,7 +118,8 @@
       "docLinks": [
         "https://code.visualstudio.com/docs/copilot/customization/hooks",
         "https://code.claude.com/docs/en/hooks",
-        "https://code.claude.com/docs/en/settings"
+        "https://code.claude.com/docs/en/settings",
+        "https://developers.openai.com/codex/hooks"
       ],
       "assistants": {
         "github-copilot": {
@@ -126,6 +127,9 @@
         },
         "claude-code": {
           "patterns": [".claude/settings.json", ".claude/settings.local.json"]
+        },
+        "openai-codex": {
+          "patterns": [".codex/hooks.json"]
         }
       }
     }

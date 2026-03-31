@@ -33,7 +33,7 @@ describe('config-loader', () => {
       '.github/prompts/*.prompt.md',
     ]);
     expect(byName.get('Custom Agent Definitions').assistants['openai-codex'].patterns).toEqual([
-      '.codex/config.toml',
+      '.codex/agents/*.toml',
     ]);
     expect(byName.get('Skills').assistants['openai-codex'].patterns).toEqual([
       '.agents/skills/**/SKILL.md',

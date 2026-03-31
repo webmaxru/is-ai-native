@@ -12,6 +12,8 @@ describe('scanner', () => {
         '.claude/skills/review/SKILL.md',
         '.agents/skills/refactor/SKILL.md',
         '.codex/config.toml',
+        '.codex/agents/reviewer.toml',
+        '.codex/hooks.json',
         '.github/hooks/security.json',
       ],
       primitives
@@ -34,13 +36,16 @@ describe('scanner', () => {
       expect.objectContaining({ detected: true })
     );
     expect(byName.get('Custom Agent Definitions').assistant_results['openai-codex']).toEqual(
-      expect.objectContaining({ detected: true, matched_files: ['.codex/config.toml'] })
+      expect.objectContaining({ detected: true, matched_files: ['.codex/agents/reviewer.toml'] })
     );
     expect(byName.get('MCP Server Configurations').assistant_results['openai-codex']).toEqual(
       expect.objectContaining({ detected: true, matched_files: ['.codex/config.toml'] })
     );
     expect(byName.get('Agent Hooks').assistant_results['github-copilot']).toEqual(
       expect.objectContaining({ detected: true, matched_files: ['.github/hooks/security.json'] })
+    );
+    expect(byName.get('Agent Hooks').assistant_results['openai-codex']).toEqual(
+      expect.objectContaining({ detected: true, matched_files: ['.codex/hooks.json'] })
     );
   });
 

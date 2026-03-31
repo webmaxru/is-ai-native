@@ -102,7 +102,7 @@ Patterns use [minimatch](https://github.com/isaacs/minimatch) syntax with `dot: 
 
 ## Official Resource Matrix
 
-This section maps the six currently evaluated primitives to the exact repository-scoped resources documented by each assistant vendor as of 2026-03-10.
+This section maps the six currently evaluated primitives to the exact repository-scoped resources documented by each assistant vendor as of 2026-04-01.
 
 Use this section when updating `packages/core/config/primitives.json` so the scanner follows vendor-documented file locations instead of relying on guessed globs.
 
@@ -125,7 +125,7 @@ Important interpretation rules:
 | Assistant | Official availability | Official repo-scoped resources | Current scanner patterns | Notes | Sources |
 |------|------|-------------|-------------|-------|---------|
 | GitHub Copilot | Yes | `.github/prompts/*.prompt.md` | `.github/prompts/*.prompt.md` | The VS Code prompt-file docs specify the `.prompt.md` suffix in the `.github/prompts` workspace folder. The scanner now follows that exact suffix instead of the looser folder glob. | [Prompt files](https://code.visualstudio.com/docs/copilot/customization/prompt-files) |
-| Claude Code | Yes, with legacy and current formats | Legacy command files in `.claude/commands/*.md`; current reusable slash-command workflows in `.claude/skills/<name>/SKILL.md` | `.claude/commands/*.md`; `.claude/skills/**/SKILL.md` | Claude’s docs now state that custom commands have been merged into skills, while older `.claude/commands/*.md` files still work. The scanner counts both and the docs call out the legacy-vs-current distinction explicitly. | [Skills / slash commands](https://code.claude.com/docs/en/slash-commands) |
+| Claude Code | Yes, with legacy and current formats | Legacy command files in `.claude/commands/*.md`; current reusable skill workflows in `.claude/skills/<name>/SKILL.md` | `.claude/commands/*.md`; `.claude/skills/**/SKILL.md` | Claude's docs now state that custom commands have been merged into skills, while older `.claude/commands/*.md` files still work. The scanner counts both and the docs call out the legacy-vs-current distinction explicitly. | [Skills](https://code.claude.com/docs/en/skills) |
 | OpenAI Codex | No standalone prompt-file format documented | No dedicated prompt-file path documented; the closest reusable task mechanism is `.agents/skills/<name>/SKILL.md` | Not evaluated | This remains intentionally unsupported for the Saved Prompts primitive. Codex skills are tracked under the Skills primitive instead of being double-interpreted as a dedicated prompt-file feature. | [Skills](https://developers.openai.com/codex/skills) |
 
 ### Custom Agent Definitions
@@ -134,14 +134,14 @@ Important interpretation rules:
 |------|------|-------------|-------------|-------|---------|
 | GitHub Copilot | Yes | `.github/agents/*.agent.md` (formal format); VS Code also detects other `.md` files in `.github/agents` | `.github/agents/*.agent.md` | The scanner now prefers the documented `.agent.md` suffix over a broad folder glob. This follows the formal file format even though VS Code will also detect generic Markdown files in that folder. | [Custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) |
 | Claude Code | Yes | `.claude/agents/*.md` | `.claude/agents/*.md` | Claude project subagents are now counted directly from the documented project-scoped folder. | [Subagents](https://code.claude.com/docs/en/sub-agents) |
-| OpenAI Codex | Yes, config-based rather than Markdown-file based | `.codex/config.toml` with `[agents.<name>]` tables and optional `agents.<name>.config_file` references | `.codex/config.toml` | The scanner now treats project-scoped `.codex/config.toml` as the repo-scoped custom-agent artifact for Codex. This is a file-presence proxy only; the scanner does not parse whether `[agents.<name>]` is present. | [Config basics](https://developers.openai.com/codex/config-basic), [Config reference](https://developers.openai.com/codex/config-reference) |
+| OpenAI Codex | Yes | Standalone TOML files under `.codex/agents/` (one file per custom agent with `name`, `description`, and `developer_instructions`); legacy inline `[agents.<name>]` tables in `.codex/config.toml` | `.codex/agents/*.toml` | The scanner now targets the documented standalone custom-agent TOML files instead of the umbrella `config.toml`. Codex docs explicitly state "add standalone TOML files under `.codex/agents/`" as the way to define project-scoped custom agents. | [Subagents — Custom agents](https://developers.openai.com/codex/subagents#custom-agents), [Config reference](https://developers.openai.com/codex/config-reference) |
 
 ### Skills
 
 | Assistant | Official availability | Official repo-scoped resources | Current scanner patterns | Notes | Sources |
 |------|------|-------------|-------------|-------|---------|
 | GitHub Copilot | Yes | `.github/skills/<name>/SKILL.md`; `.claude/skills/<name>/SKILL.md`; `.agents/skills/<name>/SKILL.md` | `.github/skills/**/SKILL.md`; `.claude/skills/**/SKILL.md`; `.agents/skills/**/SKILL.md` | VS Code’s Agent Skills docs explicitly recognize all three project skill roots. The scanner now looks for the `SKILL.md` entrypoint rather than any file under those folders. | [Agent Skills](https://code.visualstudio.com/docs/copilot/customization/agent-skills) |
-| Claude Code | Yes | `.claude/skills/<name>/SKILL.md` | `.claude/skills/**/SKILL.md` | Claude project skills are now counted directly from the documented skill entrypoint. Legacy `.claude/commands/*.md` files are tracked in Saved Prompts, not here. | [Skills / slash commands](https://code.claude.com/docs/en/slash-commands) |
+| Claude Code | Yes | `.claude/skills/<name>/SKILL.md` | `.claude/skills/**/SKILL.md` | Claude project skills are now counted directly from the documented skill entrypoint. Legacy `.claude/commands/*.md` files are tracked in Saved Prompts, not here. | [Skills](https://code.claude.com/docs/en/skills) |
 | OpenAI Codex | Yes | `.agents/skills/<name>/SKILL.md`, scanned from the current working directory up to the repository root | `.agents/skills/**/SKILL.md` | The scanner now counts the documented Codex repository skill entrypoint. | [Skills](https://developers.openai.com/codex/skills) |
 
 ### MCP Server Configurations
@@ -158,7 +158,7 @@ Important interpretation rules:
 |------|------|-------------|-------------|-------|---------|
 | GitHub Copilot | Yes | `.github/hooks/*.json`; agent-scoped `hooks` field in `.agent.md` files | `.github/hooks/*.json` | The scanner now follows the documented JSON hook-file suffix exactly. Agent-scoped hooks in `.agent.md` are documented, but the current scanner intentionally does not count generic agent files as hooks because it does not parse frontmatter. | [Hooks](https://code.visualstudio.com/docs/copilot/customization/hooks), [Custom agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) |
 | Claude Code | Yes | `.claude/settings.json`; `.claude/settings.local.json` with a top-level `hooks` setting | `.claude/settings.json`; `.claude/settings.local.json` | This remains aligned with Claude’s documented project-scoped and local settings files. `~/.claude/settings.json` is user-scoped and should not be treated as repository evidence. | [Settings](https://code.claude.com/docs/en/settings), [Hooks](https://code.claude.com/docs/en/hooks) |
-| OpenAI Codex | No equivalent lifecycle hook file documented in current Codex docs | No repo-scoped hook file documented; the closest adjacent feature is `notify` in `config.toml`, which is not equivalent to lifecycle hooks | Not evaluated | This remains intentionally unsupported until OpenAI publishes a first-class repo-scoped lifecycle hook mechanism. | [Config reference](https://developers.openai.com/codex/config-reference) |
+| OpenAI Codex | Yes (experimental, behind `features.codex_hooks = true`) | `.codex/hooks.json` (project-scoped); `~/.codex/hooks.json` (user-scoped, not scanned) | `.codex/hooks.json` | Codex docs now document `hooks.json` as the hook configuration file, discovered next to active config layers. The feature is experimental and behind a feature flag; Windows support is temporarily disabled. The scanner counts the file as a presence proxy only and does not validate hook event contents. | [Hooks](https://developers.openai.com/codex/hooks), [Hooks — Where Codex looks for hooks](https://developers.openai.com/codex/hooks#where-codex-looks-for-hooks), [Config basics — Feature flags](https://developers.openai.com/codex/config-basic#supported-features) |
 
 ## URLs To Monitor
 
@@ -178,7 +178,7 @@ Use these URLs when reviewing whether the app configuration should change.
 
 - `https://code.claude.com/docs/en/memory`
 - `https://code.claude.com/docs/en/settings`
-- `https://code.claude.com/docs/en/slash-commands`
+- `https://code.claude.com/docs/en/skills`
 - `https://code.claude.com/docs/en/sub-agents`
 - `https://code.claude.com/docs/en/mcp`
 - `https://code.claude.com/docs/en/hooks`
@@ -190,6 +190,8 @@ Use these URLs when reviewing whether the app configuration should change.
 - `https://developers.openai.com/codex/config-reference`
 - `https://developers.openai.com/codex/mcp`
 - `https://developers.openai.com/codex/skills`
+- `https://developers.openai.com/codex/hooks`
+- `https://developers.openai.com/codex/subagents`
 
 ## Review Checklist
 
