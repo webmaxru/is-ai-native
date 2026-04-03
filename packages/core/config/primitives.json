@@ -55,7 +55,7 @@
       ],
       "assistants": {
         "github-copilot": {
-          "patterns": [".github/agents/*.agent.md"]
+          "patterns": [".github/agents/*.agent.md", ".claude/agents/*.md"]
         },
         "claude-code": {
           "patterns": [".claude/agents/*.md"]

@@ -25,3 +25,20 @@ test('core scanner detects documented repository-scoped files', () => {
     '.github/hooks/security.json',
   ]);
 });
+
+test('.claude/agents/*.md counts for both github-copilot and claude-code custom agents', () => {
+  const { primitives } = loadPrimitives();
+  const results = scanPrimitives(['.claude/agents/explorer.md'], primitives);
+  const byName = new Map(results.map((result) => [result.name, result]));
+
+  assert.equal(
+    byName.get('Custom Agent Definitions').assistant_results['github-copilot'].detected,
+    true,
+    'github-copilot should detect .claude/agents/*.md (VS Code Claude format location)'
+  );
+  assert.equal(
+    byName.get('Custom Agent Definitions').assistant_results['claude-code'].detected,
+    true,
+    'claude-code should detect .claude/agents/*.md'
+  );
+});
