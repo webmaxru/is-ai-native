@@ -1,6 +1,10 @@
 ---
 name: prompt-api
 description: Implements and debugs browser Prompt API integrations in JavaScript or TypeScript web apps. Use when adding LanguageModel availability checks, session creation, prompt or promptStreaming flows, structured output, download progress UX, or iframe permission-policy handling. Don't use for server-side LLM SDKs, REST AI APIs, or non-browser providers.
+license: MIT
+metadata:
+  author: webmaxru
+  version: "1.3"
 ---
 
 # Prompt API
@@ -31,7 +35,7 @@ description: Implements and debugs browser Prompt API integrations in JavaScript
 3. Create sessions only after user activation when model download or instantiation may begin.
 4. Use `AbortController` for cancelable prompts and call `destroy()` when the session is no longer needed.
 5. If the feature runs in a cross-origin iframe, require `allow="language-model"` on the embedding iframe.
-6. Do not depend on `params()`, `topK`, or `temperature`; current integrations must work without them.
+6. Do not depend on `params()`, `topK`, or `temperature`; the spec marks them EXPERIMENTAL and extension-only, so portable web page integrations must not require them.
 7. Treat `availability()` as a passive capability check: if it reports `downloading` before user activation, do not assume the current page initiated that download or lock the UI into an app-started busy state.
 
 **Step 4: Wire UX and fallback behavior**

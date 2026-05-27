@@ -1,28 +1,40 @@
 lockfile_version: '1'
-generated_at: '2026-03-16T11:11:06.133893+00:00'
-apm_version: 0.7.9
+generated_at: '2026-05-27T18:34:36.705533+00:00'
+apm_version: 0.15.0
 dependencies:
-- repo_url: webmaxru/agent-skills
+- repo_url: webmaxru/ai-native-dev
   host: github.com
-  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
+  resolved_commit: 0d4e7ff5b8433db5d7d3635ef9a3c241bf94486e
+  virtual_path: skills/agent-package-manager
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/agent-package-manager
+  content_hash: sha256:fefded96e1e5fe11a68a4e964d90a5b39f4b29705e5b8d700bfe745cf1f05b05
+- repo_url: webmaxru/ai-native-dev
+  host: github.com
+  resolved_commit: 0d4e7ff5b8433db5d7d3635ef9a3c241bf94486e
   virtual_path: skills/github-agentic-workflows
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/github-agentic-workflows
-- repo_url: webmaxru/agent-skills
+  - .agents/skills/github-agentic-workflows
+  content_hash: sha256:e586dc3ab9647d261d8c94dd7a03f7508ab447771afcd68dd4ca82bdad4b2c38
+- repo_url: webmaxru/web-ai-agent-skills
   host: github.com
-  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
+  resolved_commit: 36b056335e03b51dd63d08ea9910973684894160
   virtual_path: skills/prompt-api
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/prompt-api
-- repo_url: webmaxru/agent-skills
+  - .agents/skills/prompt-api
+  content_hash: sha256:c6cc8a2d4f07c5f80c6e8e8a6f2738ad90d02c0006295c85db61ee615264bfe6
+- repo_url: webmaxru/web-ai-agent-skills
   host: github.com
-  resolved_commit: a92e252072226da282c3396020c8916e02d8be0e
+  resolved_commit: 36b056335e03b51dd63d08ea9910973684894160
   virtual_path: skills/webmcp
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .github/skills/webmcp
+  - .agents/skills/webmcp
+  content_hash: sha256:fbb8b66546ff7fe95ed442cab3e8e7913c6ce3bfec3b2ef60060f00bd82cc831

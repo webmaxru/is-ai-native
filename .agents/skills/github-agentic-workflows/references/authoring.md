@@ -56,6 +56,7 @@ Useful frontmatter fields for professional workflows:
 4. `dependencies` for APM-managed skills and prompts.
 5. `runtimes` when tool or script versions matter.
 6. `concurrency` and `timeout-minutes` for operational control.
+7. `mcp:` when the workflow needs custom tools or integrations via Model Context Protocol servers.
 
 Practical default: use `engine: copilot` unless the repository explicitly needs another model provider and is already wired for that provider's secret and runtime expectations.
 
@@ -122,7 +123,7 @@ When the task needs dynamic fan-out over a discovered set of files or records, d
 
 For authoring with agents:
 
-1. Use `gh aw init` to prepare the repository.
+1. Use `gh aw init` to prepare the repository. For agent-assisted setup, use `https://raw.githubusercontent.com/github/gh-aw/main/install.md`.
 2. Use the debugging prompt at `https://raw.githubusercontent.com/github/gh-aw/main/debug.md` for failed runs.
 3. Use the planner or dictation prompts from the official docs when task shaping is the bottleneck rather than workflow syntax.
 4. If strict mode rejects external-source domains that are still required for the task, add deterministic pre-steps that fetch those sources to local files and instruct the agent to use the local copies.

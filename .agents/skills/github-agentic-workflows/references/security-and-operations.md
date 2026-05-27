@@ -4,11 +4,13 @@ Use this reference when a workflow needs security review, authentication design,
 
 ## Security Model Summary
 
-GitHub Agentic Workflows uses layered controls:
+GitHub Agentic Workflows uses five named security layers that work together to contain a confused or compromised agent:
 
-1. Substrate trust: GitHub Actions runners, container isolation, AWF, API proxy, and MCP gateway isolation.
-2. Configuration trust: validated frontmatter, permissions, tool wiring, network rules, and token placement.
-3. Plan trust: staged execution and safe outputs so the agent does not write directly to repository state.
+1. **Read-only tokens**: The agent receives a GitHub token scoped to read-only permissions. Even if the agent attempts to create a pull request, push code, or delete a file, the underlying token does not allow it.
+2. **Zero secrets in the agent**: The agent process never receives write tokens, API keys, or other sensitive credentials. Those secrets exist only in separate, isolated jobs that run after the agent has finished and its output has passed review.
+3. **Network firewall**: The agent runs inside an isolated container. The Agent Workflow Firewall (AWF) routes all outbound traffic through a Squid proxy that enforces an explicit domain allowlist. Traffic to any other destination is dropped at the kernel level.
+4. **Safe outputs**: The agent cannot write to GitHub directly. It produces a structured artifact describing its intended actions. A separate job with scoped write permissions reads that artifact and applies only what the workflow explicitly permits.
+5. **Agentic threat detection**: Before any output is applied, a dedicated threat detection job runs an AI-powered scan of the agent's proposed changes, checking for prompt injection, leaked credentials, and malicious code patterns.
 
 Professional use starts by assuming prompts, tools, and repository content can be adversarial or misleading.
 
@@ -30,11 +32,12 @@ Safe outputs are the core professional pattern for repository writes.
 
 Key points:
 
-1. The agent runs read-only and emits structured actions.
-2. Separate permission-controlled jobs apply those actions after validation.
-3. Common outputs include `create-issue`, `add-comment`, `add-labels`, `create-pull-request`, `dispatch-workflow`, `call-workflow`, `assign-to-agent`, and `create-agent-session`.
-4. `noop`, `missing-tool`, and `missing-data` are critical truthfulness and reliability tools.
-5. `staged: true` is the safest rollout mode for new write-heavy workflows.
+1. The agent runs read-only and emits a structured artifact describing its intended actions.
+2. Before any output is applied, a dedicated threat detection job runs an AI-powered scan of the agent's proposed changes. It checks for prompt injection attacks, leaked credentials, and malicious code patterns. If anything looks suspicious, the workflow fails immediately and nothing is written to the repository.
+3. After the threat detection gate, a separate job with scoped write permissions applies only what the workflow explicitly permits: hard limits per operation (such as a maximum of one issue per run), required title prefixes, and label constraints. The agent requests; a gated job decides.
+4. Common outputs include `create-issue`, `add-comment`, `add-labels`, `create-pull-request`, `dispatch-workflow`, `call-workflow`, `assign-to-agent`, and `create-agent-session`.
+5. `noop`, `missing-tool`, and `missing-data` are critical truthfulness and reliability tools.
+6. `staged: true` is the safest rollout mode for new write-heavy workflows.
 
 Professional prompt rule:
 

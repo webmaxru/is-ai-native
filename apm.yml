@@ -4,8 +4,9 @@ description: APM project for is-ai-native
 author: Maxim Salnikov
 dependencies:
   apm:
-  - webmaxru/agent-skills/skills/webmcp
-  - webmaxru/agent-skills/skills/github-agentic-workflows
-  - webmaxru/agent-skills/skills/prompt-api
+  - webmaxru/web-ai-agent-skills/skills/webmcp
+  - webmaxru/ai-native-dev/skills/github-agentic-workflows
+  - webmaxru/web-ai-agent-skills/skills/prompt-api
+  - webmaxru/ai-native-dev/skills/agent-package-manager
   mcp: []
 scripts: {}

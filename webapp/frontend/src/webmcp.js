@@ -9,9 +9,29 @@ function getLocationHref() {
   }
 }
 
-export function supportsWebMcp(navigatorLike = globalThis.navigator) {
-  return typeof navigatorLike?.modelContext?.registerTool === 'function'
-    && typeof navigatorLike?.modelContext?.unregisterTool === 'function';
+// Per the current WebMCP spec, `modelContext` lives on `Document`. The current
+// Chrome preview still exposes it on `Navigator`, so we accept either host and
+// prefer the spec-aligned `document.modelContext` when present.
+export function resolveModelContext({
+  documentLike = globalThis.document,
+  navigatorLike = globalThis.navigator,
+} = {}) {
+  const candidates = [documentLike?.modelContext, navigatorLike?.modelContext];
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate.registerTool === 'function') {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+export function supportsWebMcp(host = undefined) {
+  // Back-compat: when called with a single object that has `modelContext`,
+  // treat it as either a document-like or navigator-like host.
+  if (host && typeof host === 'object' && 'modelContext' in host) {
+    return resolveModelContext({ documentLike: host, navigatorLike: host }) !== null;
+  }
+  return resolveModelContext() !== null;
 }
 
 export function coerceRepoScanInput(input) {
@@ -84,6 +104,9 @@ export function createRepoScanToolDefinition(executeScan) {
       },
       required: ['repo_url'],
     },
+    annotations: {
+      readOnlyHint: true,
+    },
     async execute(input) {
       const repoUrl = coerceRepoScanInput(input);
       if (!repoUrl) {
@@ -96,24 +119,64 @@ export function createRepoScanToolDefinition(executeScan) {
   };
 }
 
-export function registerRepoScanTool({ executeScan, navigatorLike = globalThis.navigator }) {
-  if (!supportsWebMcp(navigatorLike)) {
+export function registerRepoScanTool({
+  executeScan,
+  documentLike = globalThis.document,
+  navigatorLike = globalThis.navigator,
+} = {}) {
+  const modelContext = resolveModelContext({ documentLike, navigatorLike });
+  if (!modelContext) {
     return () => {};
   }
 
-  try {
-    navigatorLike.modelContext.unregisterTool(IMPERATIVE_TOOL_NAME);
-  } catch {
-    // Ignore missing registrations so reloads can register cleanly.
+  // Spec-aligned unregistration is driven by an AbortSignal passed via
+  // ModelContextRegisterToolOptions. The current Chrome preview still ships
+  // the legacy `unregisterTool(name)` method, so we fall back to that when
+  // AbortController is unavailable or the implementation ignores the signal.
+  const supportsSignal = typeof globalThis.AbortController === 'function';
+  const controller = supportsSignal ? new globalThis.AbortController() : null;
+  const supportsLegacyUnregister = typeof modelContext.unregisterTool === 'function';
+
+  // Clear any stale registration from a prior page load / hot reload so a
+  // duplicate `registerTool()` call does not throw InvalidStateError.
+  if (supportsLegacyUnregister) {
+    try {
+      modelContext.unregisterTool(IMPERATIVE_TOOL_NAME);
+    } catch {
+      // Ignore missing registrations so reloads can register cleanly.
+    }
   }
 
-  navigatorLike.modelContext.registerTool(createRepoScanToolDefinition(executeScan));
+  const definition = createRepoScanToolDefinition(executeScan);
+
+  try {
+    modelContext.registerTool(
+      definition,
+      controller ? { signal: controller.signal } : undefined,
+    );
+  } catch (error) {
+    // Some preview builds may not accept the options argument; retry without it.
+    if (controller) {
+      modelContext.registerTool(definition);
+    } else {
+      throw error;
+    }
+  }
 
   return () => {
-    try {
-      navigatorLike.modelContext.unregisterTool(IMPERATIVE_TOOL_NAME);
-    } catch {
-      // Ignore cleanup failures during teardown.
+    if (controller) {
+      try {
+        controller.abort();
+      } catch {
+        // Ignore cleanup failures during teardown.
+      }
+    }
+    if (supportsLegacyUnregister) {
+      try {
+        modelContext.unregisterTool(IMPERATIVE_TOOL_NAME);
+      } catch {
+        // Ignore cleanup failures during teardown.
+      }
     }
   };
 }

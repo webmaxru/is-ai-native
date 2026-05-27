@@ -8,6 +8,8 @@ import {
   createRepoScanToolDefinition,
   getDeclarativeToolName,
   getImperativeToolName,
+  registerRepoScanTool,
+  resolveModelContext,
   supportsWebMcp,
 } from '../../src/webmcp.js';
 
@@ -20,10 +22,85 @@ const sampleResult = {
   paths_scanned: 18,
 };
 
-test('supportsWebMcp detects navigator.modelContext tool support', () => {
+test('supportsWebMcp detects document.modelContext and the legacy navigator.modelContext fallback', () => {
+  assert.equal(supportsWebMcp({ modelContext: { registerTool() {} } }), true);
   assert.equal(supportsWebMcp({ modelContext: { registerTool() {}, unregisterTool() {} } }), true);
-  assert.equal(supportsWebMcp({ modelContext: { registerTool() {} } }), false);
+  assert.equal(supportsWebMcp({ modelContext: {} }), false);
   assert.equal(supportsWebMcp({}), false);
+
+  assert.equal(
+    resolveModelContext({
+      documentLike: { modelContext: { registerTool() {} } },
+      navigatorLike: null,
+    }) !== null,
+    true,
+    'prefers document.modelContext when available',
+  );
+  assert.equal(
+    resolveModelContext({
+      documentLike: {},
+      navigatorLike: { modelContext: { registerTool() {} } },
+    }) !== null,
+    true,
+    'falls back to navigator.modelContext for the current Chrome preview',
+  );
+});
+
+test('registerRepoScanTool registers via document.modelContext with an AbortSignal and unregisters when called', () => {
+  let registeredTool = null;
+  let registeredOptions = null;
+  let aborted = false;
+  const documentLike = {
+    modelContext: {
+      registerTool(tool, options) {
+        registeredTool = tool;
+        registeredOptions = options;
+        options?.signal?.addEventListener?.('abort', () => {
+          aborted = true;
+        });
+      },
+    },
+  };
+
+  const unregister = registerRepoScanTool({
+    executeScan: async () => sampleResult,
+    documentLike,
+    navigatorLike: null,
+  });
+
+  assert.equal(registeredTool?.name, getImperativeToolName());
+  assert.ok(registeredOptions?.signal, 'passes an AbortSignal via ModelContextRegisterToolOptions');
+  assert.equal(registeredOptions.signal.aborted, false);
+
+  unregister();
+  assert.equal(aborted, true, 'aborts the registration signal during teardown');
+});
+
+test('registerRepoScanTool falls back to navigator.modelContext.unregisterTool for the legacy preview', () => {
+  const calls = [];
+  const navigatorLike = {
+    modelContext: {
+      registerTool(tool) {
+        calls.push({ type: 'register', name: tool.name });
+      },
+      unregisterTool(name) {
+        calls.push({ type: 'unregister', name });
+      },
+    },
+  };
+
+  const unregister = registerRepoScanTool({
+    executeScan: async () => sampleResult,
+    documentLike: {},
+    navigatorLike,
+  });
+
+  // Initial cleanup call + registration.
+  assert.deepEqual(calls.shift(), { type: 'unregister', name: getImperativeToolName() });
+  assert.deepEqual(calls.shift(), { type: 'register', name: getImperativeToolName() });
+
+  unregister();
+  assert.deepEqual(calls.pop(), { type: 'unregister', name: getImperativeToolName() });
 });
 
 test('coerceRepoScanInput accepts supported aliases', () => {

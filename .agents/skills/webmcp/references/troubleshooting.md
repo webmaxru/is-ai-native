@@ -1,19 +1,39 @@
 # WebMCP Troubleshooting
 
-## `navigator.modelContext` is undefined
+## `document.modelContext` (and `navigator.modelContext`) is undefined
 
-1. Confirm the code runs in a browser window context, not on the server.
-2. Confirm the page is in a secure context.
-3. Confirm the target Chrome build meets the preview version requirement.
-4. Confirm `chrome://flags/#enable-webmcp-testing` is enabled when using the preview.
-5. If the feature must run in a worker or headlessly, stop and redirect the design because WebMCP does not support that mode.
+1. Resolve the context with the feature-detection pattern `const modelContext = document.modelContext || navigator.modelContext;` instead of reading either property directly.
+2. Confirm the code runs in a browser window context, not on the server.
+3. Confirm the page is in a secure context.
+4. Confirm the target Chrome build meets the preview version requirement.
+5. Confirm `chrome://flags/#enable-webmcp-testing` is enabled when using the preview.
+6. If only `navigator.modelContext` is present, the page is running on Chrome 146\u2013149; the deprecated `navigator.modelContext` fallback in the pattern above will pick it up. On Chrome 150+, prefer `document.modelContext`.
+7. If the feature must run in a worker or headlessly, stop and redirect the design because WebMCP does not support that mode.
 
 ## `registerTool()` throws `InvalidStateError`
 
 1. Check whether the tool name is already registered.
 2. Check whether `name` is an empty string.
-3. Check whether `description` is an empty string.
-4. If the route or page state changes, unregister stale tools before registering replacements.
+3. Check whether `name` exceeds 128 characters or contains characters other than ASCII alphanumeric, `_`, `-`, or `.`.
+4. Check whether `description` is an empty string.
+5. If the route or page state changes, unregister stale tools before registering replacements.
+
+## `registerTool()` throws `NotAllowedError`
+
+1. Check whether the page is running in a cross-origin iframe that has not been granted the `tools` Permissions Policy feature.
+2. The `tools` feature defaults to `'self'`; the embedding document must include `allow="tools"` on the iframe for cross-origin frames to call `registerTool()`.
+3. Verify that the registering document is the expected top-level origin or a same-origin frame.
+
+## `registerTool()` throws `SecurityError`
+
+1. Check the `exposedTo` array for origins that are not potentially trustworthy (e.g., `http://` addresses other than localhost, or malformed URLs).
+2. Replace any non-trustworthy origin strings with valid HTTPS origins or remove the `exposedTo` option to default to same-origin visibility only.
+
+## Tool registered with `AbortSignal` does not appear
+
+1. Check that the `AbortController` has not been aborted before `registerTool()` is called.
+2. When the signal is already aborted at registration time, the browser silently skips registration without throwing an error; the tool will not appear in the registered tool set.
+3. Create a fresh `AbortController` after any prior cleanup, and only abort it when removing the tool, not before registration.
 
 ## `registerTool()` throws `TypeError` or serialization errors
 

@@ -16,6 +16,7 @@
 2. Remove unsupported tools or modalities before retrying.
 3. Confirm that the browser implementation supports the Prompt API features the app is requesting.
 4. Confirm that the device meets the current browser's hardware and storage requirements.
+5. If `expectedInputs` includes `{ type: "audio" }` on Chrome, confirm the device has a GPU with strictly more than 4 GB of VRAM; Chrome does not support audio input on CPU-only configurations.
 
 ## `availability()` returns `downloadable`
 
@@ -66,13 +67,14 @@
 
 ## Removed model parameters
 
-1. User-supplied override for this skill: remove any dependence on `LanguageModel.params()` entirely for current integrations.
-2. User-supplied override for this skill: remove any feature logic that expects `topK` or `temperature` passed to `create()` to affect session behavior.
-3. If preview docs, demos, or extension builds still show those properties, treat them as obsolete or browser-specific and non-portable.
-4. Keep app-level behavior aligned to the portable API surface even if a browser preview page still documents these fields.
+1. The spec now officially marks `LanguageModel.params()` as EXPERIMENTAL: extension and experimental contexts only. Remove any dependence on it entirely for web page integrations.
+2. The spec now officially marks `topK` and `temperature` in `create()` and as session attributes as EXPERIMENTAL: extension and experimental contexts only. Remove any feature logic that expects these to affect session behavior in web page contexts.
+3. Chrome docs confirm these are "Only available when using the Prompt API for Chrome Extensions." Edge still documents them as web page options, but the spec-normative EXPERIMENTAL/extension-only classification takes precedence for portable code.
+4. Keep app-level behavior aligned to the portable API surface even if a browser preview page or extension build still documents these fields.
 
 ## Polyfill and extension mismatches
 
 1. If a web page lacks `LanguageModel` but an extension page or offscreen page exposes it, keep the page integration on progressive enhancement instead of assuming extension-only behavior is portable.
 2. If Task APIs are polyfilled but Prompt API is native in the current execution context, preserve the native Prompt API and only load the missing Task API polyfills.
 3. If the polyfill backend needs production credentials, prefer the approved backend posture instead of embedding raw provider secrets in page code.
+4. Chrome extension developers should remove the now-expired `"aiLanguageModelOriginTrial"` entry from the `"permissions"` array in their extension manifest if it is still present.
