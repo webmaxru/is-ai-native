@@ -20,7 +20,12 @@
           ]
         },
         "claude-code": {
-          "patterns": ["CLAUDE.md", ".claude/CLAUDE.md", ".claude/rules/**/*.md"]
+          "patterns": [
+            "CLAUDE.md",
+            "CLAUDE.local.md",
+            ".claude/CLAUDE.md",
+            ".claude/rules/**/*.md"
+          ]
         },
         "openai-codex": {
           "patterns": ["**/AGENTS.md", "**/AGENTS.override.md"]
