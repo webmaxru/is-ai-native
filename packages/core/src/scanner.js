@@ -1,4 +1,22 @@
-import { minimatch } from 'minimatch';
+import { Minimatch } from 'minimatch';
+
+const MINIMATCH_OPTIONS = { dot: true };
+
+// Pattern compilation is the hottest part of scanning: every call to
+// `minimatch(file, pattern, opts)` reparses the glob into a regex. For a
+// repo with N files and P patterns that's N*P recompilations per scan.
+// We compile each unique pattern once and reuse the matcher across all
+// paths and across repeated scans (config patterns are static strings).
+const matcherCache = new Map();
+
+function getMatcher(pattern) {
+  let matcher = matcherCache.get(pattern);
+  if (!matcher) {
+    matcher = new Minimatch(pattern, MINIMATCH_OPTIONS);
+    matcherCache.set(pattern, matcher);
+  }
+  return matcher;
+}
 
 /**
  * Scans a list of file paths against configured primitive definitions.
@@ -11,38 +29,41 @@ import { minimatch } from 'minimatch';
 export function scanPrimitives(paths, primitiveDefs) {
   return primitiveDefs.map((primitive) => {
     const assistantResults = {};
-    const allMatchedFiles = [];
+    // Sets give O(1) dedup (was O(n) Array.includes) and preserve insertion
+    // order, so downstream consumers still see files in first-match order.
+    const allMatchedFiles = new Set();
 
     for (const [assistantId, config] of Object.entries(primitive.assistants)) {
-      const matchedFiles = [];
+      const matchedFiles = new Set();
 
       for (const pattern of config.patterns) {
+        const matcher = getMatcher(pattern);
         for (const filePath of paths) {
-          if (minimatch(filePath, pattern, { dot: true })) {
-            if (!matchedFiles.includes(filePath)) {
-              matchedFiles.push(filePath);
-            }
+          if (matchedFiles.has(filePath)) {
+            continue;
+          }
+          if (matcher.match(filePath)) {
+            matchedFiles.add(filePath);
           }
         }
       }
 
+      const matchedFilesList = [...matchedFiles];
       assistantResults[assistantId] = {
-        detected: matchedFiles.length > 0,
-        matched_files: matchedFiles,
+        detected: matchedFilesList.length > 0,
+        matched_files: matchedFilesList,
       };
 
       for (const filePath of matchedFiles) {
-        if (!allMatchedFiles.includes(filePath)) {
-          allMatchedFiles.push(filePath);
-        }
+        allMatchedFiles.add(filePath);
       }
     }
 
     return {
       name: primitive.name,
       category: primitive.category,
-      detected: allMatchedFiles.length > 0,
-      matched_files: allMatchedFiles,
+      detected: allMatchedFiles.size > 0,
+      matched_files: [...allMatchedFiles],
       description: primitive.description,
       doc_links: primitive.docLinks,
       assistant_results: assistantResults,
