@@ -42,6 +42,26 @@ describe('site metadata', () => {
     expect(page.title).toBe('webmaxru/is-ai-native | Is AI Native');
   });
 
+  it('gives the WebMCP demo page a dedicated noindex title and canonical', () => {
+    const runtime = {
+      env: {
+        NODE_ENV: 'production',
+        SITE_ORIGIN: 'https://scan.example.com',
+      },
+      siteMetadata: createSiteMetadata({
+        NODE_ENV: 'production',
+        SITE_ORIGIN: 'https://scan.example.com',
+      }),
+    };
+
+    const page = buildPageMetadata(runtime, '/_webmcp_/');
+
+    expect(page.robots).toBe('noindex, nofollow, noarchive');
+    expect(page.title).toBe('WebMCP demo | Is AI Native');
+    expect(page.description).toContain('WebMCP');
+    expect(page.canonicalUrl).toBe('https://scan.example.com/_webmcp_/');
+  });
+
   it('emits an allow-list robots.txt and sitemap in production', () => {
     const runtime = {
       env: {
@@ -58,6 +78,7 @@ describe('site metadata', () => {
 
     expect(robots).toContain('Allow: /');
     expect(robots).toContain('Disallow: /api/');
+    expect(robots).toContain('Disallow: /_webmcp_/');
     expect(robots).toContain('Sitemap: https://scan.example.com/sitemap.xml');
   });
 

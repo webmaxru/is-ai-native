@@ -102,13 +102,13 @@ function resolveFrontendPath(
   return null;
 }
 
-function loadFrontendTemplate(frontendPath) {
+function loadFrontendTemplate(frontendPath, fileName = 'index.html') {
   if (!frontendPath) {
     return null;
   }
 
   try {
-    return readFileSync(join(frontendPath, 'index.html'), 'utf-8');
+    return readFileSync(join(frontendPath, fileName), 'utf-8');
   } catch {
     return null;
   }
@@ -275,6 +275,7 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
     trustProxy: resolveTrustProxyValue(env),
     frontendPath,
     frontendTemplate: loadFrontendTemplate(frontendPath),
+    webmcpTemplate: loadFrontendTemplate(frontendPath, 'webmcp.html'),
     siteMetadata: createSiteMetadata(env),
     get githubToken() {
       return env.GH_TOKEN_FOR_SCAN || '';
@@ -367,6 +368,18 @@ export function createApp(runtime = createRuntime()) {
   for (const [aliasPath, targetPath] of STATIC_ASSET_ALIASES) {
     app.get(aliasPath, (_req, res) => {
       sendFrontendAsset(runtime, res, targetPath);
+    });
+  }
+
+  if (runtime.frontendPath && runtime.webmcpTemplate) {
+    // Non-strict routing means a single registration also matches the
+    // trailing-slash variant; the canonical URL is fixed to `/_webmcp_/`.
+    app.get('/_webmcp_/', (_req, res) => {
+      const pageMetadata = buildPageMetadata(runtime, '/_webmcp_/');
+      res
+        .set('X-Robots-Tag', pageMetadata.robots)
+        .type('html')
+        .send(renderIndexHtml(runtime.webmcpTemplate, pageMetadata));
     });
   }
 

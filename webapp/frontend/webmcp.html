@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- WebMCP origin trial tokens for https://isainative.dev (feature: WebMCP) -->
+  <meta http-equiv="origin-trial" content="A+8MtLza+iX15J0aRQgKaB+ijjRv0dTK0YwxJRfEEOIsJqydseZQd0uIr9x66FQhjz3r0NRWw1yMFyt9KwkfBQsAAAB1eyJvcmlnaW4iOiJodHRwczovL2lzYWluYXRpdmUuZGV2OjQ0MyIsImZlYXR1cmUiOiJXZWJNQ1AiLCJleHBpcnkiOjE3OTQ4NzM2MDAsImlzU3ViZG9tYWluIjp0cnVlLCJpc1RoaXJkUGFydHkiOnRydWV9" />
+  <meta http-equiv="origin-trial" content="AzkI266lR4nxmogFtx+AdbZDeqotS4dgWdcN21vyw20AyvGmVkqpmlxJXJdzG4yzQpCKXpMnKBlZozfwRFpbUpEAAAB1eyJvcmlnaW4iOiJodHRwczovL2lzYWluYXRpdmUuZGV2OjQ0MyIsImZlYXR1cmUiOiJXZWJNQ1AiLCJleHBpcnkiOjE3ODQ5MTk1NTAsImlzU3ViZG9tYWluIjp0cnVlLCJpc1RoaXJkUGFydHkiOnRydWV9" />
+  <title>__PAGE_TITLE__</title>
+  <meta name="description" content="__PAGE_DESCRIPTION__" />
+  <meta name="robots" content="__PAGE_ROBOTS__" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="application-name" content="__SITE_NAME__" />
+  <meta name="apple-mobile-web-app-title" content="__SITE_SHORT_NAME__" />
+  <meta name="theme-color" content="__THEME_COLOR__" />
+  <meta name="background-color" content="__BACKGROUND_COLOR__" />
+  <link rel="canonical" href="__PAGE_CANONICAL__" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+  <link rel="shortcut icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+  <link rel="mask-icon" href="/mask-icon.svg" color="__MASK_ICON_COLOR__" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="__SITE_NAME__" />
+  <meta property="og:locale" content="__SITE_LOCALE__" />
+  <meta property="og:title" content="__PAGE_TITLE__" />
+  <meta property="og:description" content="__PAGE_DESCRIPTION__" />
+  <meta property="og:url" content="__PAGE_CANONICAL__" />
+  <meta property="og:image" content="__OG_IMAGE_URL__" />
+  <meta property="og:image:alt" content="__SOCIAL_IMAGE_ALT__" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="__PAGE_TITLE__" />
+  <meta name="twitter:description" content="__PAGE_DESCRIPTION__" />
+  <meta name="twitter:image" content="__OG_IMAGE_URL__" />
+  <meta name="twitter:image:alt" content="__SOCIAL_IMAGE_ALT__" />
+  <meta name="twitter:site" content="__TWITTER_HANDLE__" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="/src/theme-init.js"></script>
+  <link rel="stylesheet" href="/src/main.css" />
+</head>
+<body class="doc-view">
+  <a href="#doc-body" class="skip-link">Skip to main content</a>
+
+  <header class="term-topbar">
+    <a href="/" class="app-name">Is AI-Native?</a>
+    <span class="topbar-sep" aria-hidden="true">/</span>
+    <span class="topbar-scope">webmcp demo</span>
+    <div class="tbar-right">
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch to dark theme" title="Switch theme"></button>
+      <a href="/">&larr; Back to scanner</a>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <main id="doc-body" class="doc-body">
+      <section class="doc-hero">
+        <p class="doc-kicker">WebMCP &middot; live demo</p>
+        <h1 class="doc-title">This page is an MCP server your browser exposes to AI agents</h1>
+        <p class="doc-lead">
+          <strong>WebMCP</strong> lets a web page register tools directly on the page so that an AI
+          agent — running in your browser, an extension, or an MCP client — can call them with your
+          live session and permissions. This demo page registers the same repository-scanner tools
+          used across <a href="/">Is&nbsp;AI-Native?</a>, so you can inspect and invoke them right here.
+        </p>
+      </section>
+
+      <section class="doc-status-row" aria-live="polite">
+        <span id="webmcp-status" class="webmcp-status webmcp-status-pending">
+          <span class="webmcp-status-dot" aria-hidden="true"></span>
+          <span id="webmcp-status-text">Checking for WebMCP runtime…</span>
+        </span>
+        <p id="webmcp-status-help" class="webmcp-status-help"></p>
+      </section>
+
+      <section class="doc-section" aria-labelledby="tools-heading">
+        <h2 id="tools-heading" class="doc-h2">Available tools</h2>
+        <p class="doc-p">
+          Two tools are registered on this page. Inspect them in your WebMCP client of choice, then
+          call them with a GitHub repository such as <code>facebook/react</code> or
+          <code>microsoft/vscode</code>.
+        </p>
+
+        <div class="tool-grid">
+          <article class="tool-card">
+            <header class="tool-card-head">
+              <code class="tool-name">scan_repository</code>
+              <span class="tool-tag tool-tag-imperative">imperative</span>
+            </header>
+            <p class="tool-desc">
+              Scans a GitHub repository for AI-native development primitives and updates the visible
+              report. Registered in JavaScript via
+              <code>modelContext.registerTool()</code> with a <code>readOnlyHint</code> annotation.
+            </p>
+            <dl class="tool-schema">
+              <dt>Input</dt>
+              <dd><code>repo_url</code> <span class="tool-req">string · required</span></dd>
+              <dd class="tool-schema-note">Accepts <code>owner/repository</code> or a full
+                <code>https://github.com/owner/repository</code> URL.</dd>
+            </dl>
+          </article>
+
+          <article class="tool-card">
+            <header class="tool-card-head">
+              <code class="tool-name">scan_repository_form</code>
+              <span class="tool-tag tool-tag-declarative">declarative</span>
+            </header>
+            <p class="tool-desc">
+              The same scan, exposed declaratively by annotating the on-page form below with
+              <code>toolname</code>, <code>tooldescription</code>, <code>toolautosubmit</code>, and a
+              <code>toolparamdescription</code> on the input. The agent fills the field and the form
+              submits itself.
+            </p>
+            <dl class="tool-schema">
+              <dt>Input</dt>
+              <dd><code>repo_url</code> <span class="tool-req">string · required</span></dd>
+              <dd class="tool-schema-note">Bound to the live form field — try it below.</dd>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="doc-section" aria-labelledby="try-heading">
+        <h2 id="try-heading" class="doc-h2">Try the declarative tool</h2>
+        <p class="doc-p">
+          Type a repository and run a scan, or let an agent drive this form through the
+          <code>scan_repository_form</code> tool. Results render below and link to the full report.
+        </p>
+
+        <div class="scan-line doc-scan-line">
+          <div class="scan-line-content">
+            <span class="scan-prompt" aria-hidden="true">&#10024;</span>
+            <form
+              id="webmcp-demo-form"
+              class="scan-form-inner"
+              toolname="scan_repository_form"
+              tooldescription="Scan a GitHub repository for AI-native development primitives by submitting the page form and updating the visible result. Accepts owner/repository or a full GitHub URL."
+              toolautosubmit
+            >
+              <span class="scan-cmd" aria-hidden="true">github.com/</span>
+              <input
+                type="text"
+                id="webmcp-demo-repo"
+                name="repo_url"
+                placeholder="owner/repository or full URL"
+                required
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="GitHub repository (owner/repository or full https://github.com/owner/repository URL)"
+                aria-description="GitHub repository to scan. Accept owner/repository or a full https://github.com/owner/repository URL."
+                toolparamdescription="GitHub repository to scan. Accept owner/repository or a full https://github.com/owner/repository URL."
+              />
+              <button type="submit" id="webmcp-demo-btn">scan</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="webmcp-demo-progress" class="webmcp-demo-progress hidden" role="status" aria-live="polite">
+          <span class="webmcp-demo-progress-dot" aria-hidden="true"></span>
+          <span id="webmcp-demo-progress-text">Scanning…</span>
+        </div>
+
+        <div id="webmcp-demo-error" class="banner banner-error hidden" role="alert"></div>
+
+        <div id="webmcp-demo-result" class="webmcp-demo-result hidden" aria-live="polite"></div>
+      </section>
+
+      <section class="doc-section" aria-labelledby="test-heading">
+        <h2 id="test-heading" class="doc-h2">How to test it</h2>
+        <p class="doc-p">
+          WebMCP is shipping behind an experimental flag and origin trial. Pick whichever client
+          fits your demo — both detect the tools registered on whatever page is in the foreground.
+        </p>
+
+        <div class="method-grid">
+          <article class="method-card">
+            <header class="method-card-head">
+              <span class="method-num">1</span>
+              <h3 class="method-title">WebMCP Model Context Tools extension</h3>
+            </header>
+            <p class="method-desc">
+              A Chrome extension that surfaces a page's WebMCP tools and bridges them to an MCP
+              client so any compatible agent can call them.
+            </p>
+            <ol class="method-steps">
+              <li>Install the
+                <a href="https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd" target="_blank" rel="noopener noreferrer" data-cta-name="webmcp-extension" data-cta-type="install-link">WebMCP Model Context Tools</a>
+                extension from the Chrome Web Store.</li>
+              <li>Keep this page open and pin the extension, then open its popup.</li>
+              <li>Confirm <code>scan_repository</code> and <code>scan_repository_form</code> are listed
+                for this tab.</li>
+              <li>Connect the extension to your MCP client and ask the agent to scan a repository.</li>
+            </ol>
+            <a class="method-link" href="https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd" target="_blank" rel="noopener noreferrer">Open the extension &rarr;</a>
+          </article>
+
+          <article class="method-card">
+            <header class="method-card-head">
+              <span class="method-num">2</span>
+              <h3 class="method-title">Chrome DevTools WebMCP panel</h3>
+            </header>
+            <p class="method-desc">
+              Chrome DevTools includes a WebMCP panel that lists the tools on the inspected page and
+              lets you invoke them with sample input — no extension required.
+            </p>
+            <ol class="method-steps">
+              <li>Use a recent Chrome (Canary/Dev) with WebMCP enabled, then open DevTools
+                (<kbd>F12</kbd>).</li>
+              <li>Open the <strong>WebMCP</strong> panel (under <strong>Application</strong>, or via the
+                <kbd>&raquo;</kbd> overflow / Command Menu).</li>
+              <li>Select <code>scan_repository</code>, provide a <code>repo_url</code>, and run it.</li>
+              <li>Watch the form fill and the result render on this page.</li>
+            </ol>
+            <a class="method-link" href="https://developer.chrome.com/docs/devtools/application/webmcp" target="_blank" rel="noopener noreferrer">Read the DevTools docs &rarr;</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="doc-section" aria-labelledby="prompts-heading">
+        <h2 id="prompts-heading" class="doc-h2">Example agent prompts</h2>
+        <p class="doc-p">Once a client is connected to this page, try prompts like:</p>
+        <ul class="prompt-list">
+          <li><span class="prompt-quote">"Scan <strong>facebook/react</strong> for AI-native readiness and tell me the verdict."</span></li>
+          <li><span class="prompt-quote">"Use the repository scanner tool on <strong>microsoft/vscode</strong> and summarize the score."</span></li>
+          <li><span class="prompt-quote">"Compare <strong>vercel/next.js</strong> and <strong>remix-run/remix</strong> using the scan tool."</span></li>
+        </ul>
+      </section>
+
+      <section class="doc-section doc-section-links" aria-labelledby="learn-heading">
+        <h2 id="learn-heading" class="doc-h2">Learn more</h2>
+        <ul class="doc-links">
+          <li><a href="https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd" target="_blank" rel="noopener noreferrer">WebMCP Model Context Tools (Chrome Web Store)</a></li>
+          <li><a href="https://developer.chrome.com/docs/devtools/application/webmcp" target="_blank" rel="noopener noreferrer">WebMCP in Chrome DevTools (developer.chrome.com)</a></li>
+          <li><a href="https://webmachinelearning.github.io/webmcp/" target="_blank" rel="noopener noreferrer">WebMCP specification (Web Machine Learning CG)</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <footer class="log-footer">
+    <span>Made in &#127475;&#127476; Norway by <a href="https://www.linkedin.com/in/webmax" target="_blank" rel="noopener noreferrer">Maxim Salnikov</a></span>
+    <a href="https://github.com/webmaxru/is-ai-native" target="_blank" rel="noopener noreferrer">GitHub</a>
+  </footer>
+
+  <script type="module" src="/src/webmcp-page.js"></script>
+</body>
+</html>

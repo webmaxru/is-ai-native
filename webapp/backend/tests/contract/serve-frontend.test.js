@@ -10,6 +10,10 @@ writeFileSync(
   join(tmpDir, 'index.html'),
   '<!DOCTYPE html><html><head><title>__PAGE_TITLE__</title><meta name="robots" content="__PAGE_ROBOTS__"><link rel="canonical" href="__PAGE_CANONICAL__"></head><body>frontend</body></html>'
 );
+writeFileSync(
+  join(tmpDir, 'webmcp.html'),
+  '<!DOCTYPE html><html><head><title>__PAGE_TITLE__</title><meta name="robots" content="__PAGE_ROBOTS__"><link rel="canonical" href="__PAGE_CANONICAL__"></head><body>webmcp demo</body></html>'
+);
 writeFileSync(join(brandDir, 'favicon.ico'), 'placeholder-icon');
 writeFileSync(join(brandDir, 'social-card.png'), 'placeholder-social-card');
 writeFileSync(join(brandDir, 'social-card.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
@@ -79,6 +83,25 @@ describe('frontend path configured', () => {
     expect(res.text).toContain('frontend');
     expect(res.text).toContain('<title>Shared report | Is AI Native</title>');
     expect(res.text).toContain('content="noindex, nofollow, noarchive"');
+  });
+
+  it('GET /_webmcp_/ serves the dedicated WebMCP demo page as noindex', async () => {
+    const res = await request(app).get('/_webmcp_/');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.headers['x-robots-tag']).toBe('noindex, nofollow, noarchive');
+    expect(res.text).toContain('webmcp demo');
+    expect(res.text).toContain('<title>WebMCP demo | Is AI Native</title>');
+    expect(res.text).toContain('content="noindex, nofollow, noarchive"');
+    expect(res.text).toContain('href="https://example.com/_webmcp_/"');
+  });
+
+  it('GET /_webmcp_ (no trailing slash) also serves the WebMCP demo page', async () => {
+    const res = await request(app).get('/_webmcp_');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.text).toContain('webmcp demo');
+    expect(res.text).toContain('href="https://example.com/_webmcp_/"');
   });
 
   it('GET /robots.txt serves crawl directives', async () => {

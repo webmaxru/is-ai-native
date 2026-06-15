@@ -2,6 +2,7 @@ const HOME_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max
 const NO_INDEX_ROBOTS = 'noindex, nofollow, noarchive';
 const REPO_PATH_RE = /^\/[^/]+\/[^/]+\/?$/;
 const SHARED_REPORT_RE = /^\/_\/report\/[^/]+\/?$/;
+const WEBMCP_DEMO_RE = /^\/_webmcp_\/?$/;
 
 function normalizeOrigin(value) {
   if (!value || typeof value !== 'string') {
@@ -128,6 +129,7 @@ export function buildPageMetadata(runtime, pathname = '/') {
   const siteMetadata = runtime.siteMetadata || createSiteMetadata(runtime.env);
   const isHome = pathname === '/';
   const isSharedReport = SHARED_REPORT_RE.test(pathname);
+  const isWebmcpDemo = WEBMCP_DEMO_RE.test(pathname);
   const isRepoPath = REPO_PATH_RE.test(pathname);
 
   let title = siteMetadata.title;
@@ -143,6 +145,12 @@ export function buildPageMetadata(runtime, pathname = '/') {
   if (isSharedReport) {
     title = `Shared report | ${siteMetadata.siteName}`;
     description = 'Shared AI-native readiness snapshot for a scanned GitHub repository.';
+  }
+
+  if (isWebmcpDemo) {
+    title = `WebMCP demo | ${siteMetadata.siteName}`;
+    description =
+      'Live WebMCP demo: explore the repository-scanner tools this site exposes to AI agents and learn how to test them with the WebMCP Chrome extension and Chrome DevTools.';
   }
 
   const canonicalUrl = resolveUrl(siteMetadata.siteOrigin, isHome ? '/' : pathname);
@@ -199,6 +207,7 @@ export function getRobotsTxt(runtime) {
     'Allow: /',
     'Disallow: /api/',
     'Disallow: /_/report/',
+    'Disallow: /_webmcp_/',
     `Sitemap: ${resolveUrl(siteMetadata.siteOrigin, '/sitemap.xml')}`,
     '',
   ].join('\n');
