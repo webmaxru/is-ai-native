@@ -78,6 +78,12 @@ describe('runtime Docker image packaging', () => {
     expect(dockerfile).toContain('COPY webapp/frontend/assets ../frontend/assets');
   });
 
+  it('copies the standalone WebMCP demo page into the runtime image', () => {
+    const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
+
+    expect(dockerfile).toContain('COPY webapp/frontend/webmcp.html ../frontend/webmcp.html');
+  });
+
   it('copies the linked core workspace package to the runtime path expected by npm file dependencies', () => {
     const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
 

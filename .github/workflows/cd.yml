@@ -267,6 +267,17 @@ jobs:
 
           grep -q "github.com/" /tmp/homepage.html
 
+          echo "WebMCP demo page check: $APP_URL/_webmcp_/"
+          curl --fail --show-error --silent \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            "$APP_URL/_webmcp_/" > /tmp/webmcp.html
+
+          # The demo page loads its own module and form; the SPA fallback would not.
+          grep -q "webmcp-page.js" /tmp/webmcp.html
+          grep -q "webmcp-demo-form" /tmp/webmcp.html
+
           for asset in /favicon.ico /favicon.svg /favicon-32x32.png /favicon-16x16.png /social-card.png /social-card.svg; do
             echo "Asset check: $APP_URL$asset"
             headers=$(curl --fail --show-error --silent --head \

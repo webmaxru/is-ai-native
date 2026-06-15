@@ -32,6 +32,7 @@ COPY webapp/backend/src ./src
 
 # Copy runtime frontend assets so Express can serve them in the single-container image
 COPY webapp/frontend/index.html ../frontend/index.html
+COPY webapp/frontend/webmcp.html ../frontend/webmcp.html
 COPY webapp/frontend/assets ../frontend/assets
 COPY webapp/frontend/src ../frontend/src
 
