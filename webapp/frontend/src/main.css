@@ -76,6 +76,15 @@
   --summary-row-even: transparent;
 }
 
+/*
+ * ── Z-INDEX LADDER ──
+ *   20  : in-flow overlays / popovers (primitive details)
+ *   30  : sticky in-content bars
+ *   50  : confetti canvas (decorative, above report content, below toast)
+ *   100 : toast notifications
+ *   200 : skip link (always-on-top a11y affordance)
+ */
+
 /* ── Skip link ── */
 .skip-link {
   position: absolute;
