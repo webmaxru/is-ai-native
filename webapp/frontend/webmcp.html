@@ -64,7 +64,7 @@
         <p class="doc-lead">
           <strong>WebMCP</strong> lets a web page register tools directly on the page so that an AI
           agent — running in your browser, an extension, or an MCP client — can call them with your
-          live session and permissions. This demo page registers the same repository-scanner tools
+          live session and permissions. This demo page registers a repository-scanner tool and a tool-discovery tool
           used across <a href="/">Is&nbsp;AI-Native?</a>, so you can inspect and invoke them right here.
         </p>
       </section>
@@ -81,26 +81,24 @@
         <h2 id="tools-heading" class="doc-h2">Available tools</h2>
         <p class="doc-p">
           Two tools are registered on this page. Inspect them in your WebMCP client of choice, then
-          call them with a GitHub repository such as <code>facebook/react</code> or
+          try a scan with a GitHub repository such as <code>facebook/react</code> or
           <code>microsoft/vscode</code>.
         </p>
 
         <div class="tool-grid">
           <article class="tool-card">
             <header class="tool-card-head">
-              <code class="tool-name">scan_repository</code>
+              <code class="tool-name">list_available_tools</code>
               <span class="tool-tag tool-tag-imperative">imperative</span>
             </header>
             <p class="tool-desc">
-              Scans a GitHub repository for AI-native development primitives and updates the visible
-              report. Registered in JavaScript via
-              <code>modelContext.registerTool()</code> with a <code>readOnlyHint</code> annotation.
+              Lists the WebMCP tools this page exposes to agents &mdash; their names, descriptions, and input and result schemas. Registered in JavaScript via <code>modelContext.registerTool()</code> with a <code>readOnlyHint</code> annotation.
             </p>
             <dl class="tool-schema">
               <dt>Input</dt>
-              <dd><code>repo_url</code> <span class="tool-req">string · required</span></dd>
-              <dd class="tool-schema-note">Accepts <code>owner/repository</code> or a full
-                <code>https://github.com/owner/repository</code> URL.</dd>
+              <dd class="tool-schema-note">None &mdash; call it with no arguments.</dd>
+              <dt>Result</dt>
+              <dd class="tool-schema-note">A <code>tools[]</code> catalog; each entry includes <code>name</code>, <code>description</code>, <code>input_schema</code>, and <code>output_schema</code>.</dd>
             </dl>
           </article>
 
@@ -110,15 +108,14 @@
               <span class="tool-tag tool-tag-declarative">declarative</span>
             </header>
             <p class="tool-desc">
-              The same scan, exposed declaratively by annotating the on-page form below with
-              <code>toolname</code>, <code>tooldescription</code>, <code>toolautosubmit</code>, and a
-              <code>toolparamdescription</code> on the input. The agent fills the field and the form
-              submits itself.
+              Scans a GitHub repository, exposed declaratively by annotating the on-page form below with <code>toolname</code>, <code>tooldescription</code>, <code>toolautosubmit</code>, and a <code>toolparamdescription</code> on the input. The agent fills the field and the form submits itself.
             </p>
             <dl class="tool-schema">
               <dt>Input</dt>
               <dd><code>repo_url</code> <span class="tool-req">string · required</span></dd>
               <dd class="tool-schema-note">Bound to the live form field — try it below.</dd>
+              <dt>Result</dt>
+              <dd class="tool-schema-note">A scan result with <code>repo_name</code>, <code>score</code>, <code>verdict</code>, <code>paths_scanned</code>, and a <code>summary</code> (or an <code>error</code> when <code>ok</code> is false).</dd>
             </dl>
           </article>
         </div>
@@ -191,7 +188,7 @@
                 <a href="https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd" target="_blank" rel="noopener noreferrer" data-cta-name="webmcp-extension" data-cta-type="install-link">WebMCP Model Context Tools</a>
                 extension from the Chrome Web Store.</li>
               <li>Keep this page open and pin the extension, then open its popup.</li>
-              <li>Confirm <code>scan_repository</code> and <code>scan_repository_form</code> are listed
+              <li>Confirm <code>list_available_tools</code> and <code>scan_repository_form</code> are listed
                 for this tab.</li>
               <li>Connect the extension to your MCP client and ask the agent to scan a repository.</li>
             </ol>
@@ -212,7 +209,7 @@
                 (<kbd>F12</kbd>).</li>
               <li>Open the <strong>WebMCP</strong> panel (under <strong>Application</strong>, or via the
                 <kbd>&raquo;</kbd> overflow / Command Menu).</li>
-              <li>Select <code>scan_repository</code>, provide a <code>repo_url</code>, and run it.</li>
+              <li>Select <code>scan_repository_form</code>, provide a <code>repo_url</code>, and run it.</li>
               <li>Watch the form fill and the result render on this page.</li>
             </ol>
             <a class="method-link" href="https://developer.chrome.com/docs/devtools/application/webmcp" target="_blank" rel="noopener noreferrer">Read the DevTools docs &rarr;</a>

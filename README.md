@@ -64,8 +64,8 @@ Web app capabilities:
 
 WebMCP preview tools:
 
-- `scan_repository` via `navigator.modelContext.registerTool(...)`
-- `scan_repository_form` via the annotated repo scan form
+- `list_available_tools` via `modelContext.registerTool(...)` — a read-only discovery tool that lists every WebMCP tool the page exposes, including each tool's input and result schema
+- `scan_repository_form` via the annotated repo scan form — scans a GitHub repository and returns a structured result described by a published result schema
 
 Architecture:
 
