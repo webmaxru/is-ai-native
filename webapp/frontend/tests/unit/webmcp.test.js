@@ -1,14 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildImperativeToolResult,
+  REPO_SCAN_INPUT_SCHEMA,
+  REPO_SCAN_RESULT_SCHEMA,
+  TOOL_CATALOG_INPUT_SCHEMA,
+  TOOL_CATALOG_RESULT_SCHEMA,
+  buildListToolsResult,
   buildRepoScanErrorPayload,
   buildRepoScanPayload,
-  coerceRepoScanInput,
-  createRepoScanToolDefinition,
+  buildToolCatalogPayload,
+  createListToolsToolDefinition,
   getDeclarativeToolName,
   getImperativeToolName,
-  registerRepoScanTool,
+  getToolSurfaces,
+  registerListToolsTool,
   resolveModelContext,
   supportsWebMcp,
 } from '../../src/webmcp.js';
@@ -46,7 +51,7 @@ test('supportsWebMcp detects document.modelContext and the legacy navigator.mode
   );
 });
 
-test('registerRepoScanTool registers via document.modelContext with an AbortSignal and unregisters when called', () => {
+test('registerListToolsTool registers via document.modelContext with an AbortSignal and unregisters when called', () => {
   let registeredTool = null;
   let registeredOptions = null;
   let aborted = false;
@@ -62,13 +67,14 @@ test('registerRepoScanTool registers via document.modelContext with an AbortSign
     },
   };
 
-  const unregister = registerRepoScanTool({
-    executeScan: async () => sampleResult,
+  const unregister = registerListToolsTool({
     documentLike,
     navigatorLike: null,
   });
 
   assert.equal(registeredTool?.name, getImperativeToolName());
+  assert.equal(registeredTool?.annotations?.readOnlyHint, true);
+  assert.ok(registeredTool?.outputSchema, 'registers an outputSchema so agents can anticipate the result');
   assert.ok(registeredOptions?.signal, 'passes an AbortSignal via ModelContextRegisterToolOptions');
   assert.equal(registeredOptions.signal.aborted, false);
 
@@ -76,7 +82,7 @@ test('registerRepoScanTool registers via document.modelContext with an AbortSign
   assert.equal(aborted, true, 'aborts the registration signal during teardown');
 });
 
-test('registerRepoScanTool falls back to navigator.modelContext.unregisterTool for the legacy preview', () => {
+test('registerListToolsTool falls back to navigator.modelContext.unregisterTool for the legacy preview', () => {
   const calls = [];
   const navigatorLike = {
     modelContext: {
@@ -89,8 +95,7 @@ test('registerRepoScanTool falls back to navigator.modelContext.unregisterTool f
     },
   };
 
-  const unregister = registerRepoScanTool({
-    executeScan: async () => sampleResult,
+  const unregister = registerListToolsTool({
     documentLike: {},
     navigatorLike,
   });
@@ -103,20 +108,19 @@ test('registerRepoScanTool falls back to navigator.modelContext.unregisterTool f
   assert.deepEqual(calls.pop(), { type: 'unregister', name: getImperativeToolName() });
 });
 
-test('coerceRepoScanInput accepts supported aliases', () => {
-  assert.equal(coerceRepoScanInput('  owner/repo  '), 'owner/repo');
-  assert.equal(coerceRepoScanInput({ repo_url: 'owner/repo' }), 'owner/repo');
-  assert.equal(coerceRepoScanInput({ repository: 'https://github.com/octo/demo' }), 'https://github.com/octo/demo');
-  assert.equal(coerceRepoScanInput({ repo: 'octo/demo' }), 'octo/demo');
-  assert.equal(coerceRepoScanInput(null), '');
-});
-
-test('buildRepoScanPayload returns structured tool data', () => {
+test('buildRepoScanPayload returns structured tool data with the success result keys', () => {
   const payload = buildRepoScanPayload(sampleResult);
   assert.equal(payload.ok, true);
   assert.equal(payload.repo_name, 'octo/demo');
   assert.equal(payload.score, 72);
   assert.match(payload.summary, /Scanned octo\/demo/);
+
+  const successVariant = REPO_SCAN_RESULT_SCHEMA.oneOf.find(
+    (variant) => variant.title === 'RepositoryScanSuccess',
+  );
+  for (const key of successVariant.required) {
+    assert.ok(key in payload, `payload includes required key ${key}`);
+  }
 });
 
 test('buildRepoScanErrorPayload returns descriptive tool errors', () => {
@@ -130,30 +134,71 @@ test('buildRepoScanErrorPayload returns descriptive tool errors', () => {
   });
 });
 
-test('buildImperativeToolResult includes summary and JSON payload text', () => {
-  const response = buildImperativeToolResult(sampleResult);
-  assert.equal(response.content.length, 2);
-  assert.equal(response.content[0].type, 'text');
-  assert.match(response.content[0].text, /Verdict: AI-Native/);
-  assert.match(response.content[1].text, /"repo_name": "octo\/demo"/);
+test('getToolSurfaces describes both tools with input and result schemas', () => {
+  const surfaces = getToolSurfaces();
+  const byName = Object.fromEntries(surfaces.map((surface) => [surface.name, surface]));
+
+  assert.ok(byName[getDeclarativeToolName()], 'includes the declarative scan tool');
+  assert.ok(byName[getImperativeToolName()], 'includes the imperative list-tools tool');
+
+  assert.equal(byName[getDeclarativeToolName()].invocation, 'declarative-form');
+  assert.equal(byName[getImperativeToolName()].invocation, 'imperative');
+
+  for (const surface of surfaces) {
+    assert.equal(typeof surface.description, 'string');
+    assert.ok(surface.input_schema && typeof surface.input_schema === 'object', `${surface.name} has an input schema`);
+    assert.ok(surface.output_schema && typeof surface.output_schema === 'object', `${surface.name} has a result schema`);
+  }
+
+  assert.equal(byName[getDeclarativeToolName()].output_schema, REPO_SCAN_RESULT_SCHEMA);
+  assert.equal(byName[getImperativeToolName()].output_schema, TOOL_CATALOG_RESULT_SCHEMA);
 });
 
-test('createRepoScanToolDefinition validates input and executes scans', async () => {
-  const tool = createRepoScanToolDefinition(async (repoUrl) => ({
-    ...sampleResult,
-    repo_name: repoUrl,
-  }));
+test('buildToolCatalogPayload summarizes the exposed tools', () => {
+  const payload = buildToolCatalogPayload();
+  assert.equal(payload.ok, true);
+  assert.equal(payload.tool_count, payload.tools.length);
+  assert.equal(payload.tool_count, 2);
+  assert.match(payload.summary, /scan_repository_form/);
+  assert.match(payload.summary, /list_available_tools/);
+});
+
+test('buildListToolsResult includes a summary, JSON payload text, and structuredContent', () => {
+  const response = buildListToolsResult();
+  assert.equal(response.content.length, 2);
+  assert.equal(response.content[0].type, 'text');
+  assert.match(response.content[1].text, /"tools"/);
+  assert.ok(response.structuredContent, 'includes structuredContent matching the result schema');
+  assert.equal(response.structuredContent.tool_count, 2);
+});
+
+test('createListToolsToolDefinition declares schemas and executes to the catalog', async () => {
+  const tool = createListToolsToolDefinition();
 
   assert.equal(tool.name, getImperativeToolName());
-  assert.deepEqual(tool.inputSchema.required, ['repo_url']);
+  assert.equal(tool.inputSchema, TOOL_CATALOG_INPUT_SCHEMA);
+  assert.equal(tool.outputSchema, TOOL_CATALOG_RESULT_SCHEMA);
+  assert.equal(tool.annotations.readOnlyHint, true);
 
-  const result = await tool.execute({ repo_url: 'microsoft/vscode' });
-  assert.match(result.content[0].text, /microsoft\/vscode/);
+  const result = await tool.execute({});
+  assert.ok(result.structuredContent, 'execute returns structuredContent');
+  assert.equal(result.structuredContent.tool_count, 2);
+  assert.match(result.content[0].text, /WebMCP tools/);
+});
 
-  await assert.rejects(() => tool.execute({}), /repo_url is required/);
+test('result schemas are serializable JSON Schema objects', () => {
+  for (const schema of [
+    REPO_SCAN_INPUT_SCHEMA,
+    REPO_SCAN_RESULT_SCHEMA,
+    TOOL_CATALOG_INPUT_SCHEMA,
+    TOOL_CATALOG_RESULT_SCHEMA,
+  ]) {
+    assert.doesNotThrow(() => JSON.stringify(schema));
+    assert.equal(typeof schema, 'object');
+  }
 });
 
 test('tool names stay stable for imperative and declarative implementations', () => {
-  assert.equal(getImperativeToolName(), 'scan_repository');
+  assert.equal(getImperativeToolName(), 'list_available_tools');
   assert.equal(getDeclarativeToolName(), 'scan_repository_form');
 });

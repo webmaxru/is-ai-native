@@ -1,4 +1,4 @@
-const IMPERATIVE_TOOL_NAME = 'scan_repository';
+const IMPERATIVE_TOOL_NAME = 'list_available_tools';
 const DECLARATIVE_TOOL_NAME = 'scan_repository_form';
 
 function getLocationHref() {
@@ -34,19 +34,177 @@ export function supportsWebMcp(host = undefined) {
   return resolveModelContext() !== null;
 }
 
-export function coerceRepoScanInput(input) {
-  if (typeof input === 'string') {
-    return input.trim();
-  }
+// --- Shared JSON Schemas ---------------------------------------------------
+// The WebMCP `ModelContextTool` dictionary only defines `inputSchema`, so the
+// result schemas below are published as MCP-aligned `outputSchema` metadata.
+// Browsers ignore unknown tool-definition members, and the imperative
+// `list_available_tools` tool surfaces these schemas to agents so they can
+// anticipate each tool's output structure before calling it.
 
-  if (!input || typeof input !== 'object') {
-    return '';
-  }
+// Input accepted by the declarative repository scan form tool.
+export const REPO_SCAN_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    repo_url: {
+      type: 'string',
+      description:
+        'GitHub repository to scan. Accept either owner/repository or a full https://github.com/owner/repository URL.',
+    },
+  },
+  required: ['repo_url'],
+};
 
-  const candidate = input.repo_url ?? input.repository ?? input.repo ?? input.repoUrl ?? '';
-  return typeof candidate === 'string' ? candidate.trim() : '';
-}
+// Structured result produced by the repository scan form tool. Inspect `ok` to
+// tell the success and error variants apart.
+export const REPO_SCAN_RESULT_SCHEMA = {
+  type: 'object',
+  description:
+    'Result of a repository scan. Inspect `ok` to tell the success and error shapes apart.',
+  oneOf: [
+    {
+      title: 'RepositoryScanSuccess',
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'ok',
+        'repo_name',
+        'repo_url',
+        'score',
+        'verdict',
+        'scanned_at',
+        'paths_scanned',
+        'summary',
+      ],
+      properties: {
+        ok: { type: 'boolean', enum: [true] },
+        repo_name: { type: 'string', description: 'Canonical owner/repository that was scanned.' },
+        repo_url: { type: 'string', description: 'Full GitHub URL of the scanned repository.' },
+        score: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100,
+          description: 'AI-native readiness score out of 100.',
+        },
+        verdict: {
+          type: 'string',
+          enum: ['AI-Native', 'AI-Assisted', 'Traditional'],
+          description: 'Overall classification derived from the score.',
+        },
+        scanned_at: {
+          type: 'string',
+          format: 'date-time',
+          description: 'ISO-8601 timestamp of when the scan completed.',
+        },
+        paths_scanned: {
+          type: 'integer',
+          minimum: 0,
+          description: 'Number of repository paths inspected during the scan.',
+        },
+        report_url: {
+          type: ['string', 'null'],
+          description: 'URL of the visible report that was updated, when available.',
+        },
+        summary: {
+          type: 'string',
+          description: 'One-line human-readable summary of the verdict and score.',
+        },
+      },
+    },
+    {
+      title: 'RepositoryScanError',
+      type: 'object',
+      additionalProperties: false,
+      required: ['ok', 'error'],
+      properties: {
+        ok: { type: 'boolean', enum: [false] },
+        repo_url: { type: 'string', description: 'Repository input that failed to scan.' },
+        error: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['message'],
+          properties: {
+            message: { type: 'string', description: 'Corrective, human-readable error message.' },
+          },
+        },
+      },
+    },
+  ],
+};
 
+// `list_available_tools` takes no arguments.
+export const TOOL_CATALOG_INPUT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {},
+};
+
+// Structured result produced by the `list_available_tools` tool.
+export const TOOL_CATALOG_RESULT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['ok', 'page_url', 'tool_count', 'tools', 'summary'],
+  properties: {
+    ok: { type: 'boolean', enum: [true] },
+    page_url: {
+      type: ['string', 'null'],
+      description: 'URL of the page whose tools are described.',
+    },
+    tool_count: {
+      type: 'integer',
+      minimum: 0,
+      description: 'Number of tools currently exposed by this page.',
+    },
+    tools: {
+      type: 'array',
+      description: 'Every WebMCP tool this page exposes to agents.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'name',
+          'title',
+          'description',
+          'invocation',
+          'read_only',
+          'input_schema',
+          'output_schema',
+        ],
+        properties: {
+          name: { type: 'string', description: 'Unique identifier used when calling the tool.' },
+          title: { type: 'string', description: 'Human-readable label for the tool.' },
+          description: {
+            type: 'string',
+            description: 'What the tool does and when to use it.',
+          },
+          invocation: {
+            type: 'string',
+            enum: ['imperative', 'declarative-form'],
+            description: 'How the tool is registered and invoked.',
+          },
+          read_only: {
+            type: 'boolean',
+            description: 'True when the tool does not modify page state.',
+          },
+          input_schema: {
+            type: 'object',
+            description: 'JSON Schema describing the tool input.',
+          },
+          output_schema: {
+            type: 'object',
+            description: 'JSON Schema describing the tool result.',
+          },
+        },
+      },
+    },
+    summary: {
+      type: 'string',
+      description: 'One-line human-readable summary of the available tools.',
+    },
+  },
+};
+
+// --- Declarative repository scan payloads ----------------------------------
 export function buildRepoScanPayload(result) {
   return {
     ok: true,
@@ -71,8 +229,47 @@ export function buildRepoScanErrorPayload(error, repoUrl) {
   };
 }
 
-export function buildImperativeToolResult(result) {
-  const payload = buildRepoScanPayload(result);
+// --- Imperative `list_available_tools` tool --------------------------------
+// Describes every tool surface this page exposes so an agent can discover the
+// available actions (and their input/result schemas) before calling them.
+export function getToolSurfaces() {
+  return [
+    {
+      name: DECLARATIVE_TOOL_NAME,
+      title: 'Scan a GitHub repository',
+      description:
+        'Scan a GitHub repository for AI-native development primitives by submitting the on-page form and updating the visible report. Accepts owner/repository or a full GitHub URL.',
+      invocation: 'declarative-form',
+      read_only: true,
+      input_schema: REPO_SCAN_INPUT_SCHEMA,
+      output_schema: REPO_SCAN_RESULT_SCHEMA,
+    },
+    {
+      name: IMPERATIVE_TOOL_NAME,
+      title: 'List available tools',
+      description:
+        "List the WebMCP tools this page exposes to agents, including each tool's name, description, input schema, and result schema. Call it to discover the available actions before invoking them.",
+      invocation: 'imperative',
+      read_only: true,
+      input_schema: TOOL_CATALOG_INPUT_SCHEMA,
+      output_schema: TOOL_CATALOG_RESULT_SCHEMA,
+    },
+  ];
+}
+
+export function buildToolCatalogPayload() {
+  const tools = getToolSurfaces();
+  return {
+    ok: true,
+    page_url: getLocationHref(),
+    tool_count: tools.length,
+    tools,
+    summary: `This page exposes ${tools.length} WebMCP tools: ${tools.map((tool) => tool.name).join(', ')}.`,
+  };
+}
+
+export function buildListToolsResult() {
+  const payload = buildToolCatalogPayload();
   return {
     content: [
       {
@@ -84,43 +281,28 @@ export function buildImperativeToolResult(result) {
         text: JSON.stringify(payload, null, 2),
       },
     ],
+    structuredContent: payload,
   };
 }
 
-export function createRepoScanToolDefinition(executeScan) {
+export function createListToolsToolDefinition() {
   return {
     name: IMPERATIVE_TOOL_NAME,
+    title: 'List available tools',
     description:
-      'Scan a GitHub repository for AI-native development primitives and update the visible report. Accepts owner/repository or a full GitHub repository URL.',
-    inputSchema: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        repo_url: {
-          type: 'string',
-          description:
-            'GitHub repository to scan. Accept either owner/repository or a full https://github.com/owner/repository URL.',
-        },
-      },
-      required: ['repo_url'],
-    },
+      "List the WebMCP tools this page exposes to agents, including each tool's name, description, input schema, and result schema. Call it to discover the available actions before invoking them.",
+    inputSchema: TOOL_CATALOG_INPUT_SCHEMA,
+    outputSchema: TOOL_CATALOG_RESULT_SCHEMA,
     annotations: {
       readOnlyHint: true,
     },
-    async execute(input) {
-      const repoUrl = coerceRepoScanInput(input);
-      if (!repoUrl) {
-        throw new Error('repo_url is required. Provide owner/repository or a full GitHub URL.');
-      }
-
-      const result = await executeScan(repoUrl);
-      return buildImperativeToolResult(result);
+    async execute() {
+      return buildListToolsResult();
     },
   };
 }
 
-export function registerRepoScanTool({
-  executeScan,
+export function registerListToolsTool({
   documentLike = globalThis.document,
   navigatorLike = globalThis.navigator,
 } = {}) {
@@ -147,7 +329,7 @@ export function registerRepoScanTool({
     }
   }
 
-  const definition = createRepoScanToolDefinition(executeScan);
+  const definition = createListToolsToolDefinition();
 
   try {
     modelContext.registerTool(

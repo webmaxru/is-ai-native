@@ -3,7 +3,7 @@ import {
   buildRepoScanErrorPayload,
   buildRepoScanPayload,
   getDeclarativeToolName,
-  registerRepoScanTool,
+  registerListToolsTool,
   supportsWebMcp,
 } from './webmcp.js';
 import { buildRepoPathname, normalizeRepoInputValue } from './repo-location.js';
@@ -130,7 +130,7 @@ function renderWebMcpStatus() {
     badge.classList.add('webmcp-status-on');
     text.textContent = 'WebMCP runtime detected — tools are registered on this page.';
     help.textContent =
-      'Open your WebMCP client (extension or DevTools panel) to see scan_repository and scan_repository_form.';
+      'Open your WebMCP client (extension or DevTools panel) to see list_available_tools and scan_repository_form.';
   } else {
     badge.classList.add('webmcp-status-off');
     text.textContent = 'WebMCP runtime not detected in this browser.';
@@ -293,11 +293,7 @@ function registerImperativeTool() {
     return;
   }
 
-  registerRepoScanTool({
-    async executeScan(repoUrl) {
-      return runScan(repoUrl);
-    },
-  });
+  registerListToolsTool();
 
   window.addEventListener('toolactivated', (event) => {
     if (event?.toolName === getDeclarativeToolName()) {

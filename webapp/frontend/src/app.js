@@ -6,7 +6,7 @@ import {
   buildRepoScanErrorPayload,
   buildRepoScanPayload,
   getDeclarativeToolName,
-  registerRepoScanTool,
+  registerListToolsTool,
   supportsWebMcp,
 } from './webmcp.js';
 import {
@@ -653,12 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   if (supportsWebMcp()) {
-    registerRepoScanTool({
-      async executeScan(repoUrl) {
-        repoInput.value = normalizeRepoInputValue(repoUrl);
-        return executeScan(repoInput.value, sharingEnabled, { source: 'webmcp_form' });
-      },
-    });
+    registerListToolsTool();
 
     window.addEventListener('toolactivated', (event) => {
       if (event?.toolName === getDeclarativeToolName()) {
