@@ -177,22 +177,35 @@ export function buildPageMetadata(runtime, pathname = '/') {
   };
 }
 
+const TEMPLATE_TOKEN_RE = /__([A-Z_]+)__/g;
+
+function buildTemplateSubstitutions(pageMetadata) {
+  return {
+    PAGE_TITLE: escapeHtml(pageMetadata.title),
+    PAGE_DESCRIPTION: escapeHtml(pageMetadata.description),
+    PAGE_ROBOTS: escapeHtml(pageMetadata.robots),
+    PAGE_CANONICAL: escapeHtml(pageMetadata.canonicalUrl),
+    SITE_NAME: escapeHtml(pageMetadata.siteName),
+    SITE_SHORT_NAME: escapeHtml(pageMetadata.shortName),
+    SITE_LOCALE: escapeHtml(pageMetadata.siteLocale),
+    OG_IMAGE_URL: escapeHtml(pageMetadata.ogImageUrl),
+    SOCIAL_IMAGE_ALT: escapeHtml(pageMetadata.socialImageAlt),
+    THEME_COLOR: escapeHtml(pageMetadata.themeColor),
+    BACKGROUND_COLOR: escapeHtml(pageMetadata.backgroundColor),
+    MASK_ICON_COLOR: escapeHtml(pageMetadata.maskIconColor),
+    TWITTER_HANDLE: escapeHtml(pageMetadata.twitterHandle),
+    STRUCTURED_DATA: escapeJsonForScript(pageMetadata.structuredData),
+  };
+}
+
 export function renderIndexHtml(template, pageMetadata) {
-  return template
-    .replaceAll('__PAGE_TITLE__', escapeHtml(pageMetadata.title))
-    .replaceAll('__PAGE_DESCRIPTION__', escapeHtml(pageMetadata.description))
-    .replaceAll('__PAGE_ROBOTS__', escapeHtml(pageMetadata.robots))
-    .replaceAll('__PAGE_CANONICAL__', escapeHtml(pageMetadata.canonicalUrl))
-    .replaceAll('__SITE_NAME__', escapeHtml(pageMetadata.siteName))
-    .replaceAll('__SITE_SHORT_NAME__', escapeHtml(pageMetadata.shortName))
-    .replaceAll('__SITE_LOCALE__', escapeHtml(pageMetadata.siteLocale))
-    .replaceAll('__OG_IMAGE_URL__', escapeHtml(pageMetadata.ogImageUrl))
-    .replaceAll('__SOCIAL_IMAGE_ALT__', escapeHtml(pageMetadata.socialImageAlt))
-    .replaceAll('__THEME_COLOR__', escapeHtml(pageMetadata.themeColor))
-    .replaceAll('__BACKGROUND_COLOR__', escapeHtml(pageMetadata.backgroundColor))
-    .replaceAll('__MASK_ICON_COLOR__', escapeHtml(pageMetadata.maskIconColor))
-    .replaceAll('__TWITTER_HANDLE__', escapeHtml(pageMetadata.twitterHandle))
-    .replaceAll('__STRUCTURED_DATA__', escapeJsonForScript(pageMetadata.structuredData));
+  // Single regex pass over the template instead of one full scan per token.
+  // The template is ~10 KB and previously required 14 sequential scans; a
+  // single global replace with a token lookup cuts that to one traversal.
+  const substitutions = buildTemplateSubstitutions(pageMetadata);
+  return template.replace(TEMPLATE_TOKEN_RE, (match, key) =>
+    Object.prototype.hasOwnProperty.call(substitutions, key) ? substitutions[key] : match
+  );
 }
 
 export function getRobotsTxt(runtime) {
