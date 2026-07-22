@@ -254,3 +254,69 @@ describe('createCleanupScheduler', () => {
     }
   });
 });
+
+describe('createSpaHtmlRenderer', () => {
+  const buildRuntime = () => ({
+    env: { NODE_ENV: 'test' },
+    siteMetadata: {
+      siteOrigin: 'https://example.com',
+      siteName: 'Is AI Native',
+      shortName: 'Is AI Native',
+      siteLanguage: 'en',
+      siteLocale: 'en_US',
+      title: 'Is AI Native',
+      description: 'test description',
+      themeColor: '#000',
+      backgroundColor: '#000',
+      maskIconColor: '#000',
+      twitterHandle: '@test',
+      allowIndexing: true,
+      homeUrl: 'https://example.com/',
+      socialImageUrl: 'https://example.com/social-card.png',
+      socialImageAlt: 'social card',
+    },
+  });
+
+  const TEMPLATE =
+    '<title>__PAGE_TITLE__</title>' +
+    '<link rel="canonical" href="__PAGE_CANONICAL__">' +
+    '<meta name="robots" content="__PAGE_ROBOTS__">';
+
+  it('memoizes rendered HTML per pathname', async () => {
+    const { createSpaHtmlRenderer } = await import('../../src/server.js');
+    const render = createSpaHtmlRenderer(buildRuntime(), TEMPLATE);
+
+    const first = render('/octocat/hello-world');
+    const second = render('/octocat/hello-world');
+
+    expect(first).toBe(second);
+    expect(first.html).toContain('https://example.com/octocat/hello-world');
+    expect(first.robots).toMatch(/noindex/);
+  });
+
+  it('produces distinct output for different pathnames', async () => {
+    const { createSpaHtmlRenderer } = await import('../../src/server.js');
+    const render = createSpaHtmlRenderer(buildRuntime(), TEMPLATE);
+
+    const home = render('/');
+    const repo = render('/octocat/hello-world');
+
+    expect(home).not.toBe(repo);
+    expect(home.robots).toMatch(/^index/);
+    expect(home.html).toContain('href="https://example.com/"');
+    expect(repo.html).toContain('href="https://example.com/octocat/hello-world"');
+  });
+
+  it('evicts the oldest entry once maxSize is exceeded', async () => {
+    const { createSpaHtmlRenderer } = await import('../../src/server.js');
+    const render = createSpaHtmlRenderer(buildRuntime(), TEMPLATE, { maxSize: 2 });
+
+    const firstA = render('/a');
+    render('/b');
+    render('/c'); // should evict '/a'
+
+    const secondA = render('/a');
+    expect(secondA).not.toBe(firstA); // recomputed after eviction
+    expect(secondA.html).toBe(firstA.html);
+  });
+});
