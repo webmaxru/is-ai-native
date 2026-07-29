@@ -20,6 +20,11 @@ writeFileSync(join(brandDir, 'social-card.svg'), '<svg xmlns="http://www.w3.org/
 writeFileSync(join(brandDir, 'pinned-tab.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 writeFileSync(join(brandDir, 'logo-square.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>');
 
+const srcDir = join(tmpDir, 'src');
+mkdirSync(srcDir, { recursive: true });
+writeFileSync(join(srcDir, 'app.js'), 'export const answer = 42;');
+writeFileSync(join(srcDir, 'main.css'), 'body { color: rebeccapurple; }');
+
 process.env.NODE_ENV = 'test';
 process.env.REPORTS_DIR = ':memory:';
 process.env.ENABLE_SHARING = 'false';
@@ -165,6 +170,23 @@ describe('frontend path configured', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/image\/svg\+xml/);
     expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(res.headers['cache-control']).toBe('public, max-age=86400');
+  });
+
+  it('GET /src/app.js serves frontend JavaScript with a short revalidating cache', async () => {
+    const res = await request(app).get('/src/app.js');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/javascript/);
+    expect(res.headers['cache-control']).toBe('public, max-age=3600, must-revalidate');
+  });
+
+  it('GET /src/main.css serves frontend CSS with a short revalidating cache', async () => {
+    const res = await request(app).get('/src/main.css');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/css/);
+    expect(res.headers['cache-control']).toBe('public, max-age=3600, must-revalidate');
   });
 
   it('GET /mask-icon.svg serves the generated pinned-tab asset directly', async () => {
