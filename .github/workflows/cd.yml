@@ -24,6 +24,7 @@ env:
   # Update these to match your Azure environment
   AZURE_RESOURCE_GROUP: is-ai-native-rg
   AZURE_LOCATION: eastus2
+  STATIC_WEB_APP_NAME: is-ai-native-frontend
 
 jobs:
   # ── Build & push container image to GHCR ──────────────────────────
@@ -127,6 +128,42 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Static Web Apps production cutover
+        shell: bash
+        env:
+          PUBLIC_SITE_ORIGIN: ${{ secrets.SITE_ORIGIN }}
+          STATIC_WEB_APP_CUSTOM_DOMAIN_NAME: ${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$PUBLIC_SITE_ORIGIN" || -z "$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME" ]]; then
+            echo "SITE_ORIGIN and STATIC_WEB_APP_CUSTOM_DOMAIN_NAME must be configured before deploying the API-only backend."
+            exit 1
+          fi
+
+          if [[ "$PUBLIC_SITE_ORIGIN" != "https://$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME" ]]; then
+            echo "SITE_ORIGIN must match the validated Static Web Apps custom domain."
+            exit 1
+          fi
+
+          bound_hostname_count=$(az staticwebapp hostname list \
+            --name "${{ env.STATIC_WEB_APP_NAME }}" \
+            --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+            --query "[?domainName=='$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME'] | length(@)" \
+            --output tsv)
+
+          if [[ "$bound_hostname_count" != "1" ]]; then
+            echo "$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME is not bound to ${{ env.STATIC_WEB_APP_NAME }}."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            "$PUBLIC_SITE_ORIGIN/runtime-config.js" \
+            | grep -F "azurecontainerapps.io"
 
       - name: Ensure resource group exists
         run: |
