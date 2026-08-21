@@ -1,0 +1,13 @@
+{
+  "name": "is-ai-native-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/unit/*.test.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

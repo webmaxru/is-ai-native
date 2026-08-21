@@ -1,5 +1,5 @@
-// is-ai-native — Azure Container Apps deployment
-// Cheapest option: Consumption plan (scales to zero, free monthly grant)
+// is-ai-native — split Azure Static Web Apps + Azure Container Apps deployment
+// Frontend: Static Web Apps Free. Backend: Container Apps Consumption.
 // Run at resource-group scope:
 //   az deployment group create \
 //     --resource-group <rg> \
@@ -37,7 +37,7 @@ param enableAvailabilityMonitoring bool = true
 @description('Email address that receives website availability alerts. Leave empty to skip alert creation.')
 param monitoringAlertEmail string = 'salnikov@gmail.com'
 
-@description('Optional public URL to probe. Leave empty to monitor the default Container App URL.')
+@description('Optional public URL to probe. Leave empty to monitor the configured frontend origin.')
 param monitoringUrl string = ''
 
 @description('Container startup strategy. Use scale-to-zero for lowest cost, or keep-warm to keep one replica ready and reduce cold starts.')
@@ -50,10 +50,10 @@ param containerStartupStrategy string = 'scale-to-zero'
 @description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
 param acrName string = ''
 
-@description('Custom domain name to bind (e.g. scan.example.com). Leave empty to use the default Azure FQDN. Requires a one-time CLI setup: see README.')
+@description('Legacy custom domain name to keep bound to the Container App during frontend DNS migration or rollback.')
 param customDomainName string = ''
 
-@description('Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup.')
+@description('Name of the existing managed certificate for the legacy Container App custom domain.')
 param managedCertName string = ''
 
 @description('Optional secondary custom domain name to keep bound alongside the primary domain during migrations or cutovers.')
@@ -62,8 +62,14 @@ param secondaryCustomDomainName string = ''
 @description('Name of the existing managed certificate for the optional secondary custom domain.')
 param secondaryManagedCertName string = ''
 
-@description('Public site origin used for canonical URLs, sitemap entries, and social card URLs. Leave empty to omit a canonical origin.')
+@description('Public frontend origin used for canonical URLs, sitemap entries, social cards, and backend CORS. Leave empty to use the default Static Web Apps URL.')
 param siteOrigin string = ''
+
+@description('Azure region for the Static Web App. Must be a region supported by Azure Static Web Apps.')
+param staticWebAppLocation string = 'eastus2'
+
+@description('Optional frontend custom domain to bind to Static Web Apps after its DNS TXT validation record exists.')
+param staticWebAppCustomDomainName string = ''
 
 @description('Tags applied to every resource.')
 param tags object = {
@@ -106,6 +112,26 @@ module engagementWorkbook './workbooks/is-ai-native-monitoring.workbook.bicep' =
     workbookDisplayName: 'Is AI Native Growth and Engagement'
     workbookId: guid(subscription().subscriptionId, resourceGroup().name, namePrefix, 'growth-engagement-workbook')
     workbookSourceId: logAnalytics.id
+  }
+}
+
+// ── Static frontend (Free plan) ────────────────────────────────────
+resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
+  name: '${namePrefix}-frontend'
+  location: staticWebAppLocation
+  tags: tags
+  sku: {
+    name: 'Free'
+    tier: 'Free'
+  }
+  properties: {}
+}
+
+resource staticWebAppCustomDomain 'Microsoft.Web/staticSites/customDomains@2023-12-01' = if (staticWebAppCustomDomainName != '') {
+  parent: staticWebApp
+  name: staticWebAppCustomDomainName
+  properties: {
+    validationMethod: 'dns-txt-token'
   }
 }
 
@@ -196,9 +222,27 @@ var baseEnv = [
   { name: 'ENABLE_SHARING', value: enableSharing ? 'true' : 'false' }
 ]
 
-var siteOriginEnv = siteOrigin != '' ? [
-  { name: 'SITE_ORIGIN', value: siteOrigin }
-] : []
+var staticWebAppOrigin = 'https://${staticWebApp.properties.defaultHostname}'
+var staticWebAppCustomOrigin = staticWebAppCustomDomainName != '' ? 'https://${staticWebAppCustomDomainName}' : ''
+var publicSiteOrigin = siteOrigin != ''
+  ? siteOrigin
+  : (staticWebAppCustomOrigin != '' ? staticWebAppCustomOrigin : staticWebAppOrigin)
+var allowedFrontendOrigins = union(
+  [
+    staticWebAppOrigin
+  ],
+  siteOrigin != '' ? [
+    siteOrigin
+  ] : [],
+  staticWebAppCustomOrigin != '' ? [
+    staticWebAppCustomOrigin
+  ] : []
+)
+
+var frontendEnv = [
+  { name: 'ALLOWED_ORIGINS', value: join(allowedFrontendOrigins, ',') }
+  { name: 'SITE_ORIGIN', value: publicSiteOrigin }
+]
 
 var tokenEnv = githubToken != '' ? [
   { name: 'GH_TOKEN_FOR_SCAN', secretRef: 'gh-token-for-scan' }
@@ -208,7 +252,7 @@ var appInsightsEnv = enableAppInsights ? [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', secretRef: 'app-insights-connection-string' }
 ] : []
 
-var appEnv = concat(baseEnv, siteOriginEnv, tokenEnv, appInsightsEnv)
+var appEnv = concat(baseEnv, frontendEnv, tokenEnv, appInsightsEnv)
 
 // ── Secrets ───────────────────────────────────────────────────────
 var appSecrets = githubToken != '' ? [
@@ -232,7 +276,7 @@ var appVolumeMounts = enableSharing ? [
 ] : []
 
 var availabilityMonitoringEnabled = enableAppInsights && enableAvailabilityMonitoring && monitoringAlertEmail != ''
-var monitoringTargetUrl = monitoringUrl != '' ? monitoringUrl : 'https://${containerApp.properties.configuration.ingress.fqdn}'
+var monitoringTargetUrl = monitoringUrl != '' ? monitoringUrl : publicSiteOrigin
 var monitoringActionGroupShortName = take(replace('${namePrefix}mon', '-', ''), 12)
 var monitoringLocationIds = [
   'us-il-ch1-azr'
@@ -418,8 +462,20 @@ resource siteAvailabilityAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if
 }
 
 // ── Outputs ───────────────────────────────────────────────────────
-@description('Public URL of the deployed application.')
-output appUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
+@description('Public URL of the deployed frontend application.')
+output appUrl string = publicSiteOrigin
+
+@description('Default Azure Static Web Apps URL used for deployments and smoke tests.')
+output staticWebAppUrl string = staticWebAppOrigin
+
+@description('Name of the Static Web App.')
+output staticWebAppName string = staticWebApp.name
+
+@description('Resource ID of the Static Web App.')
+output staticWebAppResourceId string = staticWebApp.id
+
+@description('Public URL of the Container Apps backend API.')
+output backendUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
 
 @description('Name of the Container App (used by CD workflow to update the image).')
 output containerAppName string = containerApp.name

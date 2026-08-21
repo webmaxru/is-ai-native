@@ -9,6 +9,28 @@ on:
       - main
 
 jobs:
+  # ── Static frontend tests and build ──────────────────────────────
+  test-frontend:
+    name: Test Static Frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      - name: Build Static Web Apps artifact
+        run: npm run build:frontend
+        env:
+          FRONTEND_API_ORIGIN: https://backend.example.azurecontainerapps.io
+          SITE_ORIGIN: https://frontend.example
+
   # ── Backend tests ─────────────────────────────────────────────────
   test-backend:
     name: Test Backend

@@ -153,6 +153,36 @@ function resolveRateLimitPolicy(env = process.env, { windowMsKey, maxKey, defaul
   };
 }
 
+export function resolveAllowedOrigins(env = process.env) {
+  const configuredValues = [env.ALLOWED_ORIGINS, env.ALLOWED_ORIGIN]
+    .filter((value) => typeof value === 'string' && value.trim())
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [...new Set(configuredValues)].map((value) => {
+    let url;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new Error(`Invalid allowed CORS origin: ${value}`);
+    }
+
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error(`Invalid allowed CORS origin: ${value}`);
+    }
+
+    return url.origin;
+  });
+}
+
 function buildRetryAfterSeconds(rateLimitState, windowMs) {
   const resetTime = rateLimitState?.resetTime;
   if (resetTime instanceof Date) {
@@ -313,6 +343,7 @@ export function createRuntime({ env = process.env, cwd = process.cwd(), baseDir 
 
 export function createApp(runtime = createRuntime()) {
   const app = express();
+  const allowedOrigins = resolveAllowedOrigins(runtime.env);
   const scanLimiter = createApiRateLimiter({
     policyName: 'scan_api',
     route: '/api/scan',
@@ -334,7 +365,7 @@ export function createApp(runtime = createRuntime()) {
       },
     })
   );
-  app.use(cors({ origin: runtime.env.ALLOWED_ORIGIN || false }));
+  app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : false }));
 
   app.use('/api/config', express.json({ limit: '1kb' }), createConfigRouter(runtime));
   app.use('/api/scan', scanLimiter, express.json({ limit: '10kb' }), createScanRouter(runtime));
