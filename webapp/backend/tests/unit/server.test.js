@@ -72,16 +72,10 @@ describe('resolveFrontendPath', () => {
 });
 
 describe('runtime Docker image packaging', () => {
-  it('copies the generated frontend brand assets into the runtime image', () => {
+  it('does not copy frontend assets into the backend runtime image', () => {
     const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
 
-    expect(dockerfile).toContain('COPY webapp/frontend/assets ../frontend/assets');
-  });
-
-  it('copies the standalone WebMCP demo page into the runtime image', () => {
-    const dockerfile = readFileSync(join(process.cwd(), '..', '..', 'Dockerfile'), 'utf8');
-
-    expect(dockerfile).toContain('COPY webapp/frontend/webmcp.html ../frontend/webmcp.html');
+    expect(dockerfile).not.toContain('COPY webapp/frontend');
   });
 
   it('copies the linked core workspace package to the runtime path expected by npm file dependencies', () => {
@@ -89,6 +83,27 @@ describe('runtime Docker image packaging', () => {
 
     expect(dockerfile).toContain('COPY --from=deps /app/packages /packages');
     expect(dockerfile).not.toContain('COPY --from=deps /app/packages ../packages');
+  });
+});
+
+describe('resolveAllowedOrigins', () => {
+  it('combines the comma-separated setting with the legacy single-origin setting', async () => {
+    const { resolveAllowedOrigins } = await import('../../src/server.js');
+
+    expect(
+      resolveAllowedOrigins({
+        ALLOWED_ORIGINS: 'https://frontend.example.com, http://localhost:8080',
+        ALLOWED_ORIGIN: 'https://frontend.example.com',
+      })
+    ).toEqual(['https://frontend.example.com', 'http://localhost:8080']);
+  });
+
+  it('rejects values that are not exact HTTP origins', async () => {
+    const { resolveAllowedOrigins } = await import('../../src/server.js');
+
+    expect(() =>
+      resolveAllowedOrigins({ ALLOWED_ORIGINS: 'https://frontend.example.com/path' })
+    ).toThrow('Invalid allowed CORS origin');
   });
 });
 
@@ -202,6 +217,29 @@ describe('createApp rate limiting', () => {
     }
 
     expect(responses.every((response) => response.status === 400)).toBe(true);
+  });
+
+  it('allows preflight requests from the configured static frontend only', async () => {
+    const request = await buildTestApp({
+      ALLOWED_ORIGINS: 'https://frontend.example.com',
+    });
+    const preflightHeaders = {
+      Origin: 'https://frontend.example.com',
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'content-type',
+    };
+
+    const allowedResponse = await request.options('/api/scan').set(preflightHeaders);
+    expect(allowedResponse.status).toBe(204);
+    expect(allowedResponse.headers['access-control-allow-origin']).toBe(
+      'https://frontend.example.com'
+    );
+
+    const deniedResponse = await request
+      .options('/api/scan')
+      .set({ ...preflightHeaders, Origin: 'https://untrusted.example.com' });
+    expect(deniedResponse.status).toBe(204);
+    expect(deniedResponse.headers['access-control-allow-origin']).toBeUndefined();
   });
 });
 

@@ -110,7 +110,7 @@ jobs:
           path: trivy-results.sarif
           if-no-files-found: ignore
 
-  # ── Deploy to Azure Container Apps via Bicep ──────────────────────
+  # ── Deploy backend to ACA and frontend to Static Web Apps ─────────
   deploy:
     name: Deploy to Azure
     runs-on: ubuntu-latest
@@ -155,14 +155,60 @@ jobs:
             monitoringAlertEmail=${{ secrets.MONITORING_ALERT_EMAIL != '' && secrets.MONITORING_ALERT_EMAIL || env.MONITORING_ALERT_EMAIL }}
             monitoringUrl=${{ secrets.SITE_ORIGIN }}
             siteOrigin=${{ secrets.SITE_ORIGIN }}
+            staticWebAppCustomDomainName=${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
             customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
             managedCertName=${{ secrets.MANAGED_CERT_NAME }}
             secondaryCustomDomainName=${{ secrets.SECONDARY_CUSTOM_DOMAIN_NAME }}
             secondaryManagedCertName=${{ secrets.SECONDARY_MANAGED_CERT_NAME }}
           failOnStdErr: false
 
-      - name: Print application URL
-        run: echo "✅ Deployed to ${{ steps.bicep.outputs.appUrl }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Build static frontend
+        run: npm run build:frontend
+        env:
+          FRONTEND_API_ORIGIN: ${{ steps.bicep.outputs.backendUrl }}
+          SITE_ORIGIN: ${{ steps.bicep.outputs.appUrl }}
+
+      - name: Get Static Web Apps deployment token
+        id: static-web-app-token
+        shell: bash
+        env:
+          STATIC_WEB_APP_RESOURCE_ID: ${{ steps.bicep.outputs.staticWebAppResourceId }}
+        run: |
+          set -euo pipefail
+
+          deployment_token=$(az rest \
+            --method post \
+            --uri "${STATIC_WEB_APP_RESOURCE_ID}/listSecrets?api-version=2023-12-01" \
+            --query properties.apiKey \
+            --output tsv)
+
+          if [[ -z "$deployment_token" || "$deployment_token" == "null" ]]; then
+            echo "Azure returned an empty Static Web Apps deployment token"
+            exit 1
+          fi
+
+          echo "::add-mask::$deployment_token"
+          echo "token=$deployment_token" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy frontend to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ steps.static-web-app-token.outputs.token }}
+          action: upload
+          app_location: webapp/frontend/dist
+          api_location: ''
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+
+      - name: Print application URLs
+        run: |
+          echo "Frontend: ${{ steps.bicep.outputs.staticWebAppUrl }}"
+          echo "Backend:  ${{ steps.bicep.outputs.backendUrl }}"
 
       - name: Install Azure Container Apps CLI extension
         run: |
@@ -247,44 +293,69 @@ jobs:
       - name: Smoke test deployed endpoints
         shell: bash
         env:
-          APP_URL: ${{ steps.bicep.outputs.appUrl }}
+          BACKEND_URL: ${{ steps.bicep.outputs.backendUrl }}
+          FRONTEND_URL: ${{ steps.bicep.outputs.staticWebAppUrl }}
         run: |
           set -euo pipefail
 
-          echo "Health check: $APP_URL/api/health"
+          echo "Backend health check: $BACKEND_URL/api/health"
           curl --fail --show-error --silent \
             --retry 12 \
             --retry-all-errors \
             --retry-delay 10 \
-            "$APP_URL/api/health"
+            "$BACKEND_URL/api/health"
 
-          echo "Homepage check: $APP_URL/"
+          echo "Frontend homepage check: $FRONTEND_URL/"
           curl --fail --show-error --silent \
             --retry 6 \
             --retry-all-errors \
             --retry-delay 10 \
-            "$APP_URL/" > /tmp/homepage.html
+            "$FRONTEND_URL/" > /tmp/homepage.html
 
           grep -q "github.com/" /tmp/homepage.html
 
-          echo "WebMCP demo page check: $APP_URL/_webmcp_/"
+          echo "Frontend runtime configuration check"
           curl --fail --show-error --silent \
             --retry 6 \
             --retry-all-errors \
             --retry-delay 10 \
-            "$APP_URL/_webmcp_/" > /tmp/webmcp.html
+            "$FRONTEND_URL/runtime-config.js" > /tmp/runtime-config.js
+
+          grep -Fq "$BACKEND_URL" /tmp/runtime-config.js
+
+          echo "ACA CORS preflight check"
+          curl --fail --show-error --silent \
+            --request OPTIONS \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --dump-header /tmp/cors-headers.txt \
+            --output /dev/null \
+            --header "Origin: $FRONTEND_URL" \
+            --header "Access-Control-Request-Method: POST" \
+            --header "Access-Control-Request-Headers: content-type" \
+            "$BACKEND_URL/api/scan"
+
+          grep -Fiq "access-control-allow-origin: $FRONTEND_URL" /tmp/cors-headers.txt
+
+          echo "WebMCP demo page check: $FRONTEND_URL/_webmcp_/"
+          curl --fail --show-error --silent \
+            --retry 6 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            "$FRONTEND_URL/_webmcp_/" > /tmp/webmcp.html
 
           # The demo page loads its own module and form; the SPA fallback would not.
           grep -q "webmcp-page.js" /tmp/webmcp.html
           grep -q "webmcp-demo-form" /tmp/webmcp.html
 
           for asset in /favicon.ico /favicon.svg /favicon-32x32.png /favicon-16x16.png /social-card.png /social-card.svg; do
-            echo "Asset check: $APP_URL$asset"
+            echo "Static asset check: $FRONTEND_URL$asset"
             headers=$(curl --fail --show-error --silent --head \
               --retry 6 \
               --retry-all-errors \
               --retry-delay 10 \
-              "$APP_URL$asset")
+              "$FRONTEND_URL$asset")
 
             echo "$headers" | grep -i "^cross-origin-resource-policy: cross-origin"
           done

@@ -1,5 +1,5 @@
 services:
-  app:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,7 +12,8 @@ services:
       - ENABLE_SHARING=true
       - GH_TOKEN_FOR_SCAN=${GH_TOKEN_FOR_SCAN:-}
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
-      - ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080}
+      - SITE_ORIGIN=${SITE_ORIGIN:-http://localhost:8080}
     volumes:
       - ./data:/app/data
     deploy:
@@ -20,4 +21,18 @@ services:
         limits:
           cpus: '1.0'
           memory: 512M
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: webapp/frontend/Dockerfile
+      args:
+        FRONTEND_API_ORIGIN: ${FRONTEND_API_ORIGIN:-http://localhost:3000}
+        SITE_ORIGIN: ${SITE_ORIGIN:-http://localhost:8080}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped

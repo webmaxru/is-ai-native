@@ -4,12 +4,14 @@
   "type": "module",
   "workspaces": [
     "webapp/backend",
+    "webapp/frontend",
     "packages/core",
     "packages/gh-extension",
     "packages/vscode-extension"
   ],
   "scripts": {
     "build:brand-assets": "node ./scripts/build-brand-assets.mjs",
+    "build:frontend": "npm --workspace webapp/frontend run build",
     "build:cli": "node ./packages/cli/scripts/build.mjs",
     "build:cli:standalone": "node ./packages/cli/scripts/build-standalone.mjs",
     "build:gh-extension": "npm --workspace packages/gh-extension run build",
@@ -18,7 +20,7 @@
     "publish:gh-extension": "node ./scripts/sync-gh-extension.mjs",
     "release:all": "node ./scripts/release-all.mjs",
     "release:all:dry-run": "node ./scripts/release-all.mjs --dry-run",
-    "test:frontend": "node --test webapp/frontend/tests/unit/*.test.js",
+    "test:frontend": "npm --workspace webapp/frontend test",
     "test:backend": "npm --workspace webapp/backend test",
     "test:cli": "node --test packages/cli/tests/cli.test.js packages/cli/tests/formatters.test.js",
     "test:gh-extension": "npm --workspace packages/gh-extension test",

@@ -60,7 +60,7 @@ Web app capabilities:
 - **Browser-based scanning** backed by the shared repository scan engine
 - **Shareable reports** under `/_/report/<uuid>` with 90-day expiry when sharing is enabled
 - **WebMCP preview** in Chromium-based browsers when `about://flags/#enable-webmcp-testing` is enabled
-- **Single-container hosting model** where Express serves both the SPA and the API
+- **Split Azure hosting** with the static SPA on Azure Static Web Apps Free and the API on Azure Container Apps
 
 WebMCP preview tools:
 
@@ -70,21 +70,21 @@ WebMCP preview tools:
 Architecture:
 
 ```text
-┌──────────────┐        ┌────────────────┐
-│   Browser    │──3000─▶│ Express App     │
-│  (SPA)       │        │ SPA + API       │
-└──────────────┘        └───────┬────────┘
-                                │
-                       ┌────────▼────────┐
-                       │  GitHub API     │
-                       │  (repo scan)    │
-                       └────────┬────────┘
-                                │
-                       ┌────────▼──────────────┐
-                       │  File-backed report   │
-                       │  store (optional)     │
-                       │  for shared reports   │
-                       └───────────────────────┘
+┌──────────────┐      ┌──────────────────────────┐
+│   Browser    │─────▶│ Azure Static Web Apps    │
+│              │      │ Free: HTML, JS, CSS, CDN │
+└──────┬───────┘      └──────────────────────────┘
+       │ HTTPS API calls with exact-origin CORS
+       ▼
+┌──────────────────────┐      ┌──────────────────┐
+│ Azure Container Apps │─────▶│ GitHub API       │
+│ Express API          │      │ repository scan  │
+└──────────┬───────────┘      └──────────────────┘
+           ▼
+┌──────────────────────┐
+│ Azure Files          │
+│ shared reports       │
+└──────────────────────┘
 ```
 
 ## Related Components
@@ -157,7 +157,7 @@ The workflow:
 
 ## Cloud Deployment (Azure)
 
-The web app is designed to run on **Azure Container Apps** on the Consumption plan.
+The static frontend runs on **Azure Static Web Apps Free**. The Express API remains on **Azure Container Apps Consumption**. Static Web Apps linked backends require the Standard plan, so the Free topology embeds the ACA origin in `runtime-config.js` and allows only the generated SWA origin plus the configured public site origin through backend CORS.
 
 ### Infrastructure as Code
 
@@ -168,16 +168,17 @@ All Azure resources are defined in [infra/main.bicep](infra/main.bicep) with def
 | **Log Analytics Workspace** | Centralized logs and diagnostics |
 | **Application Insights** | Scan, report, view, and rate-limit telemetry |
 | **Shared Azure Workbook** | Growth and engagement dashboard over page views, sessions, CTA clicks, shares, and report activity |
+| **Azure Static Web App** | Free-plan global hosting for the generated frontend artifact |
 | **Container Apps Environment** | Consumption-plan hosting environment |
-| **Container App** | Web app runtime with probes, autoscaling, and managed identity |
+| **Container App** | Backend API runtime with probes, autoscaling, and managed identity |
 | **Azure Storage Account + File Share** | Optional persistence for shared reports |
 | **Action Group + Availability Test + Alert Rule** | Optional email alerting for site availability |
 
 Optional deployment features:
 
 - `acrName` for Azure Container Registry image pulls
-- `customDomainName` and `managedCertName` for managed TLS on a custom hostname
-- `secondaryCustomDomainName` and `secondaryManagedCertName` for dual-hostname migrations
+- `staticWebAppCustomDomainName` for the frontend hostname after its DNS TXT validation record exists
+- `customDomainName`, `managedCertName`, and their secondary equivalents to retain legacy ACA hostnames during DNS migration or rollback
 - `monitoringAlertEmail` and `monitoringUrl` for low-cost availability monitoring
 - `enableEngagementWorkbook=false` if you need to skip workbook deployment while keeping Application Insights enabled
 
@@ -192,8 +193,8 @@ Container scale settings are configured in infrastructure, not via the public AP
 
 | Workflow | File | Trigger | Purpose |
 | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | Push to non-main branches, PRs to `main` | Test, build image, run Trivy scan, upload SARIF |
-| **CD** | `.github/workflows/cd.yml` | Push to `main` | Build and push image, run Trivy, deploy to Azure via OIDC |
+| **CI** | `.github/workflows/ci.yml` | Push to non-main branches, PRs to `main` | Test and build the static frontend, test the backend, scan the backend image |
+| **CD** | `.github/workflows/cd.yml` | Push to `main` | Deploy the backend image and Bicep resources, build the frontend with the ACA origin, then upload it to SWA |
 
 ### Azure Workbook Monitoring
 
@@ -223,11 +224,13 @@ $workspaceId = az monitor log-analytics workspace show --resource-group $resourc
 az deployment group create --resource-group $resourceGroup --template-file infra/workbooks/is-ai-native-monitoring.workbook.bicep --parameters workbookSourceId=$workspaceId
 ```
 
-To deploy the full stack, including the workbook, with the repo defaults, run:
+To provision the Azure resources and deploy the ACA backend manually, run:
 
 ```powershell
 az deployment group create --resource-group <resource-group> --template-file infra/main.bicep --parameters @infra/main.bicepparam --parameters containerImage=<image> githubToken=<token>
 ```
+
+The production CD workflow performs the additional Static Web Apps artifact upload. See [docs/migrations/swa-frontend-migration.md](docs/migrations/swa-frontend-migration.md) for the custom-domain cutover sequence.
 
 ## Development And Local Deployment
 
@@ -262,11 +265,21 @@ npm run dev:full
 
 This serves the SPA from `webapp/frontend/` on the same origin as the API.
 
+Build the standalone static artifact with:
+
+```powershell
+$env:FRONTEND_API_ORIGIN = 'http://localhost:3000'
+$env:SITE_ORIGIN = 'http://localhost:8080'
+npm run build:frontend
+```
+
 #### Full Stack With Docker Compose
 
 ```powershell
 docker compose up --build
 ```
+
+Open the frontend at `http://localhost:8080`; the backend remains available at `http://localhost:3000`.
 
 Stop it with:
 
@@ -274,12 +287,14 @@ Stop it with:
 docker compose down
 ```
 
-#### Single Container
+#### Backend Container
 
 ```powershell
 docker build -t is-ai-native .
 docker run -p 3000:3000 -e NODE_ENV=production is-ai-native
 ```
+
+The production image is API-only and does not contain frontend files.
 
 ### Testing
 
@@ -324,14 +339,16 @@ npm run build:vscode-extension
 | `SCAN_RATE_LIMIT_MAX` | `120` | `/api/scan` rate-limit max requests |
 | `REPORT_RATE_LIMIT_WINDOW_MS` | `900000` | `/api/report` rate-limit window |
 | `REPORT_RATE_LIMIT_MAX` | `240` | `/api/report` rate-limit max unsafe requests |
-| `ALLOWED_ORIGIN` | `false` | Allowed CORS origin |
-| `SITE_ORIGIN` | unset | Public base URL for canonical tags and social cards |
-| `SITE_NAME` | `IsAINative` | Product name used in structured data and manifest |
-| `SITE_SHORT_NAME` | `SITE_NAME` | Short product name used in the manifest |
-| `DEFAULT_PAGE_TITLE` | built-in default | Homepage title |
-| `DEFAULT_META_DESCRIPTION` | built-in default | Homepage meta description |
-| `TWITTER_HANDLE` | unset | Optional social card handle |
-| `ALLOW_SITE_INDEXING` | `true` in production, otherwise `false` | Search indexing control |
+| `ALLOWED_ORIGINS` | unset | Comma-separated exact frontend origins allowed by backend CORS |
+| `ALLOWED_ORIGIN` | unset | Legacy single-origin CORS setting |
+| `FRONTEND_API_ORIGIN` | same origin | ACA origin embedded in the static frontend artifact |
+| `SITE_ORIGIN` | SWA or configured custom-domain URL in Azure | Public frontend origin for canonical tags, static site files, monitoring, and backend CORS |
+| `SITE_NAME` | `IsAINative` | Product name used by the optional Express frontend renderer |
+| `SITE_SHORT_NAME` | `SITE_NAME` | Short product name used by the optional Express frontend renderer |
+| `DEFAULT_PAGE_TITLE` | built-in default | Homepage title used by the optional Express frontend renderer |
+| `DEFAULT_META_DESCRIPTION` | built-in default | Homepage description used by the optional Express frontend renderer |
+| `TWITTER_HANDLE` | unset | Social attribution used by the optional Express frontend renderer |
+| `ALLOW_SITE_INDEXING` | `true` in production, otherwise `false` | Indexing control used by the optional Express frontend renderer |
 
 ### Project Structure
 

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "6857666292213755974"
+      "templateHash": "13905869546232251940"
     }
   },
   "parameters": {
@@ -52,6 +52,13 @@
         "description": "Enable Azure Application Insights telemetry for scan/report monitoring."
       }
     },
+    "enableEngagementWorkbook": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Deploy the shared Azure Workbook for growth and engagement analysis when Application Insights is enabled."
+      }
+    },
     "enableAvailabilityMonitoring": {
       "type": "bool",
       "defaultValue": true,
@@ -70,7 +77,7 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Optional public URL to probe. Leave empty to monitor the default Container App URL."
+        "description": "Optional public URL to probe. Leave empty to monitor the configured frontend origin."
       }
     },
     "containerStartupStrategy": {
@@ -95,14 +102,14 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Custom domain name to bind (e.g. scan.example.com). Leave empty to use the default Azure FQDN. Requires a one-time CLI setup: see README."
+        "description": "Legacy custom domain name to keep bound to the Container App during frontend DNS migration or rollback."
       }
     },
     "managedCertName": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Name of the existing managed certificate in the Container Apps environment. Created during one-time CLI setup."
+        "description": "Name of the existing managed certificate for the legacy Container App custom domain."
       }
     },
     "secondaryCustomDomainName": {
@@ -123,7 +130,21 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Public site origin used for canonical URLs, sitemap entries, and social card URLs. Leave empty to omit a canonical origin."
+        "description": "Public frontend origin used for canonical URLs, sitemap entries, social cards, and backend CORS. Leave empty to use the default Static Web Apps URL."
+      }
+    },
+    "staticWebAppLocation": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Azure region for the Static Web App. Must be a region supported by Azure Static Web Apps."
+      }
+    },
+    "staticWebAppCustomDomainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional frontend custom domain to bind to Static Web Apps after its DNS TXT validation record exists."
       }
     },
     "tags": {
@@ -152,10 +173,9 @@
         "value": "[if(parameters('enableSharing'), 'true', 'false')]"
       }
     ],
-    "siteOriginEnv": "[if(not(equals(parameters('siteOrigin'), '')), createArray(createObject('name', 'SITE_ORIGIN', 'value', parameters('siteOrigin'))), createArray())]",
+    "staticWebAppCustomOrigin": "[if(not(equals(parameters('staticWebAppCustomDomainName'), '')), format('https://{0}', parameters('staticWebAppCustomDomainName')), '')]",
     "tokenEnv": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'GH_TOKEN_FOR_SCAN', 'secretRef', 'gh-token-for-scan')), createArray())]",
     "appInsightsEnv": "[if(parameters('enableAppInsights'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'secretRef', 'app-insights-connection-string')), createArray())]",
-    "appEnv": "[concat(variables('baseEnv'), variables('siteOriginEnv'), variables('tokenEnv'), variables('appInsightsEnv'))]",
     "appSecrets": "[if(not(equals(parameters('githubToken'), '')), createArray(createObject('name', 'gh-token-for-scan', 'value', parameters('githubToken'))), createArray())]",
     "appVolumes": "[if(parameters('enableSharing'), createArray(createObject('name', 'reports-data', 'storageType', 'AzureFile', 'storageName', 'reports-data')), createArray())]",
     "appVolumeMounts": "[if(parameters('enableSharing'), createArray(createObject('mountPath', '/app/data', 'volumeName', 'reports-data')), createArray())]",
@@ -200,6 +220,30 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/staticSites",
+      "apiVersion": "2023-12-01",
+      "name": "[format('{0}-frontend', parameters('namePrefix'))]",
+      "location": "[parameters('staticWebAppLocation')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Free",
+        "tier": "Free"
+      },
+      "properties": {}
+    },
+    {
+      "condition": "[not(equals(parameters('staticWebAppCustomDomainName'), ''))]",
+      "type": "Microsoft.Web/staticSites/customDomains",
+      "apiVersion": "2023-12-01",
+      "name": "[format('{0}/{1}', format('{0}-frontend', parameters('namePrefix')), parameters('staticWebAppCustomDomainName'))]",
+      "properties": {
+        "validationMethod": "dns-txt-token"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix')))]"
       ]
     },
     {
@@ -311,7 +355,7 @@
                 "cpu": "[json('0.25')]",
                 "memory": "0.5Gi"
               },
-              "env": "[variables('appEnv')]",
+              "env": "[concat(variables('baseEnv'), createArray(createObject('name', 'ALLOWED_ORIGINS', 'value', join(union(createArray(format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname)), if(not(equals(parameters('siteOrigin'), '')), createArray(parameters('siteOrigin')), createArray()), if(not(equals(variables('staticWebAppCustomOrigin'), '')), createArray(variables('staticWebAppCustomOrigin')), createArray())), ',')), createObject('name', 'SITE_ORIGIN', 'value', if(not(equals(parameters('siteOrigin'), '')), parameters('siteOrigin'), if(not(equals(variables('staticWebAppCustomOrigin'), '')), variables('staticWebAppCustomOrigin'), format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname))))), variables('tokenEnv'), variables('appInsightsEnv'))]",
               "volumeMounts": "[variables('appVolumeMounts')]",
               "probes": [
                 {
@@ -360,7 +404,8 @@
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
         "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}-env', parameters('namePrefix')), 'reports-data')]",
-        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]"
+        "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]",
+        "[resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix')))]"
       ]
     },
     {
@@ -409,7 +454,7 @@
         "Kind": "standard",
         "RetryEnabled": true,
         "Request": {
-          "RequestUrl": "[if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn))]",
+          "RequestUrl": "[if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), if(not(equals(parameters('siteOrigin'), '')), parameters('siteOrigin'), if(not(equals(variables('staticWebAppCustomOrigin'), '')), variables('staticWebAppCustomOrigin'), format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname))))]",
           "HttpVerb": "GET",
           "ParseDependentRequests": true,
           "FollowRedirects": true
@@ -422,7 +467,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix')))]",
-        "[resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix')))]"
+        "[resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix')))]"
       ]
     },
     {
@@ -460,13 +505,139 @@
         "[resourceId('Microsoft.Insights/actionGroups', format('{0}-site-alerts', parameters('namePrefix')))]",
         "[resourceId('Microsoft.Insights/webtests', format('{0}-site-availability', parameters('namePrefix')))]"
       ]
+    },
+    {
+      "condition": "[and(parameters('enableAppInsights'), parameters('enableEngagementWorkbook'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('{0}-growth-engagement-workbook', parameters('namePrefix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workbookDisplayName": {
+            "value": "Is AI Native Growth and Engagement"
+          },
+          "workbookId": {
+            "value": "[guid(subscription().subscriptionId, resourceGroup().name, parameters('namePrefix'), 'growth-engagement-workbook')]"
+          },
+          "workbookSourceId": {
+            "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "15209461465287098004"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure region for the workbook resource."
+              }
+            },
+            "workbookDisplayName": {
+              "type": "string",
+              "defaultValue": "Is AI Native Growth and Engagement",
+              "metadata": {
+                "description": "Display name shown in the Azure Workbook gallery."
+              }
+            },
+            "workbookSourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Source resource ID to associate the workbook with. Use the Log Analytics workspace or Azure Monitor."
+              }
+            },
+            "workbookId": {
+              "type": "string",
+              "defaultValue": "[guid(subscription().subscriptionId, resourceGroup().name, parameters('workbookDisplayName'))]",
+              "metadata": {
+                "description": "Deterministic workbook resource ID."
+              }
+            }
+          },
+          "variables": {
+            "workbookSerializedData": "{\r\n  \"version\": \"Notebook/1.0\",\r\n  \"items\": [\r\n    {\r\n      \"type\": 9,\r\n      \"content\": {\r\n        \"version\": \"KqlParameterItem/1.0\",\r\n        \"parameters\": [\r\n          {\r\n            \"id\": \"ecf685f5-6c12-49fd-9f6f-4af7f6fd5144\",\r\n            \"version\": \"KqlParameterItem/1.0\",\r\n            \"name\": \"TimeRange\",\r\n            \"label\": \"Time range\",\r\n            \"type\": 4,\r\n            \"isRequired\": true,\r\n            \"isGlobal\": true,\r\n            \"value\": {\r\n              \"durationMs\": 604800000\r\n            }\r\n          },\r\n          {\r\n            \"id\": \"39ab8d9e-cb9e-4f6b-9560-c3a06439f0f7\",\r\n            \"version\": \"KqlParameterItem/1.0\",\r\n            \"name\": \"RepoFilter\",\r\n            \"label\": \"Repository\",\r\n            \"type\": 2,\r\n            \"isRequired\": true,\r\n            \"query\": \"let repos = AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"scan_completed\\\", \\\"report_created\\\", \\\"shared_report_viewed\\\", \\\"scan_succeeded_client\\\", \\\"report_shared_client\\\", \\\"shared_report_loaded_client\\\")\\n| extend repo_name = tostring(Properties.repo_name)\\n| where isnotempty(repo_name)\\n| summarize by value = repo_name, label = repo_name\\n| order by label asc\\n| extend selected = false;\\ndatatable(value:string, label:string, selected:bool)[\\\"*\\\", \\\"All repos\\\", true]\\n| union repos\",\r\n            \"value\": \"*\",\r\n            \"typeSettings\": {\r\n              \"showDefault\": false\r\n            },\r\n            \"timeContext\": {\r\n              \"durationMs\": 604800000\r\n            },\r\n            \"queryType\": 0,\r\n            \"resourceType\": \"microsoft.operationalinsights/workspaces\"\r\n          }\r\n        ],\r\n        \"style\": \"above\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\"\r\n      },\r\n      \"name\": \"parameters - filters\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"# Is AI Native Growth and Engagement\\n\\nCampaign-focused Azure Workbook for the web app's Application Insights telemetry. It combines browser traffic from `AppPageViews` with custom engagement and conversion events from `AppEvents`.\\n\\nCurrent window: **{TimeRange:label}**  \\nRepository drill-in: **{RepoFilter}**\\n\\nThis project does not emit generic clickstream telemetry yet. In this dashboard, **CTA clicks** are the tracked intent events you already send today, mainly scan requests and report-share requests. Repository filtering applies only to repo-attributed events, not anonymous page traffic.\"\r\n      },\r\n      \"name\": \"text - intro\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Snapshot\"\r\n      },\r\n      \"name\": \"text - snapshot\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize visitors = dcount(UserId)\",\r\n        \"size\": 0,\r\n        \"title\": \"Unique visitors\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - unique visitors\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize sessions = dcount(SessionId)\",\r\n        \"size\": 0,\r\n        \"title\": \"Sessions\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - sessions\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize page_views = sum(ItemCount)\",\r\n        \"size\": 0,\r\n        \"title\": \"Page views\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - page views\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"cta_clicked_client\\\", \\\"scan_requested_client\\\", \\\"report_share_requested_client\\\")\\n| summarize cta_clicks = sum(ItemCount)\",\r\n        \"size\": 0,\r\n        \"title\": \"CTA clicks\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - cta clicks\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"report_created\\\"\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize reports_created = sum(ItemCount)\",\r\n        \"size\": 0,\r\n        \"title\": \"Reports created\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - reports created\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"shared_report_viewed\\\"\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize shared_report_views = sum(ItemCount)\",\r\n        \"size\": 0,\r\n        \"title\": \"Shared report views\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - shared report views\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let totalSessions = toscalar(AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize dcount(SessionId));\\nlet scanSessions = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"scan_requested_client\\\"\\n| summarize dcount(SessionId));\\nprint session_to_scan_rate_pct = round(iff(totalSessions == 0, 0.0, todouble(scanSessions) * 100.0 / todouble(totalSessions)), 1)\",\r\n        \"size\": 0,\r\n        \"title\": \"Session to scan rate %\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - session to scan rate\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let requested = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"report_share_requested_client\\\"\\n| summarize sum(ItemCount));\\nlet completed = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"report_shared_client\\\"\\n| summarize sum(ItemCount));\\nprint share_completion_rate_pct = round(iff(requested == 0, 0.0, todouble(completed) * 100.0 / todouble(requested)), 1)\",\r\n        \"size\": 0,\r\n        \"title\": \"Share completion %\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"stat\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - share completion rate\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Traffic\"\r\n      },\r\n      \"name\": \"text - traffic\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize Visitors = dcount(UserId), Sessions = dcount(SessionId), PageViews = sum(ItemCount) by bin(TimeGenerated, {TimeRange:grain})\\n| order by TimeGenerated asc\",\r\n        \"size\": 1,\r\n        \"title\": \"Visitors, sessions, and page views over time\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"time\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - traffic trend\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| extend route = coalesce(tostring(Properties.route), tostring(Properties.path), extract(@\\\"https?://[^/]+(/[^?#]*)\\\", 1, Url), \\\"/\\\")\\n| summarize PageViews = sum(ItemCount) by Route = route\\n| top 8 by PageViews desc\\n| order by PageViews desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Top routes by page views\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - top routes\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| extend route = coalesce(tostring(Properties.route), tostring(Properties.path), extract(@\\\"https?://[^/]+(/[^?#]*)\\\", 1, Url), \\\"/\\\")\\n| extend Journey = case(route startswith \\\"/_/report/\\\", \\\"Shared report\\\", route == \\\"/\\\" or isempty(route), \\\"Homepage\\\", \\\"Other\\\")\\n| summarize PageViews = sum(ItemCount) by Journey\\n| order by PageViews desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Traffic mix by journey\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"pie\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - journey mix\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Engagement and Conversion\"\r\n      },\r\n      \"name\": \"text - engagement\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"scan_requested_client\\\", \\\"scan_succeeded_client\\\", \\\"report_created\\\", \\\"report_share_requested_client\\\", \\\"report_shared_client\\\", \\\"shared_report_viewed\\\")\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or isempty(repo_name) or repo_name == repoFilter\\n| summarize ScanRequests = sumif(ItemCount, Name == \\\"scan_requested_client\\\"), ScanSucceeded = sumif(ItemCount, Name == \\\"scan_succeeded_client\\\"), ReportsCreated = sumif(ItemCount, Name == \\\"report_created\\\"), ShareRequested = sumif(ItemCount, Name == \\\"report_share_requested_client\\\"), ShareCompleted = sumif(ItemCount, Name == \\\"report_shared_client\\\"), SharedReportViews = sumif(ItemCount, Name == \\\"shared_report_viewed\\\") by bin(TimeGenerated, {TimeRange:grain})\\n| order by TimeGenerated asc\",\r\n        \"size\": 1,\r\n        \"title\": \"High-intent actions over time\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"time\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - engagement trend\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"scan_requested_client\\\", \\\"scan_succeeded_client\\\", \\\"scan_failed_client\\\", \\\"report_share_requested_client\\\", \\\"report_shared_client\\\", \\\"report_share_failed_client\\\", \\\"shared_report_loaded_client\\\", \\\"shared_report_load_failed_client\\\", \\\"report_created\\\", \\\"shared_report_viewed\\\")\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or isempty(repo_name) or repo_name == repoFilter\\n| summarize Events = sum(ItemCount) by Action = replace_string(Name, \\\"_client\\\", \\\"\\\")\\n| order by Events desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Tracked action mix\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - action mix\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"cta_clicked_client\\\"\\n| extend source = tostring(Properties.source)\\n| where isnotempty(source)\\n| summarize Clicks = sum(ItemCount) by CTA = source\\n| order by Clicks desc\",\r\n        \"size\": 0,\r\n        \"title\": \"CTA sources\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - cta sources\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"landing_section_viewed_client\\\"\\n| summarize Views = sum(ItemCount) by Section = tostring(Properties.section)\\n| order by Views desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Landing section engagement\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - landing section engagement\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"outbound_doc_link_clicked_client\\\"\\n| summarize Clicks = sum(ItemCount) by Destination = tostring(Properties.destination_host)\\n| order by Clicks desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Outbound documentation clicks\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - outbound documentation clicks\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nlet pageSessions = toscalar(AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize dcount(SessionId));\\nlet scanSessions = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"scan_requested_client\\\"\\n| summarize dcount(SessionId));\\nlet completedScans = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"scan_completed\\\"\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize sum(ItemCount));\\nlet reportsCreated = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"report_created\\\"\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize sum(ItemCount));\\nlet reportViews = toscalar(AppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name == \\\"shared_report_viewed\\\"\\n| extend repo_name = tostring(Properties.repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize sum(ItemCount));\\ndatatable(Step:string, Count:long)\\n[\\n  \\\"Sessions\\\", tolong(pageSessions),\\n  \\\"Scan sessions\\\", tolong(scanSessions),\\n  \\\"Completed scans\\\", tolong(completedScans),\\n  \\\"Reports created\\\", tolong(reportsCreated),\\n  \\\"Shared report views\\\", tolong(reportViews)\\n]\\n| serialize StepNumber = row_number()\\n| extend StepConversionPct = round(iff(StepNumber == 1, 100.0, todouble(Count) * 100.0 / todouble(prev(Count))), 1)\\n| extend OverallConversionPct = round(iff(pageSessions == 0, 0.0, todouble(Count) * 100.0 / todouble(pageSessions)), 1)\",\r\n        \"size\": 0,\r\n        \"title\": \"Acquisition to sharing funnel\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"table\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - conversion funnel\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"scan_completed\\\", \\\"report_created\\\", \\\"shared_report_viewed\\\")\\n| extend repo_name = tostring(Properties.repo_name)\\n| where isnotempty(repo_name)\\n| where repoFilter == \\\"*\\\" or repo_name == repoFilter\\n| summarize CompletedScans = sumif(ItemCount, Name == \\\"scan_completed\\\"), ReportsCreated = sumif(ItemCount, Name == \\\"report_created\\\"), SharedReportViews = sumif(ItemCount, Name == \\\"shared_report_viewed\\\") by Repository = repo_name\\n| order by CompletedScans desc\",\r\n        \"size\": 1,\r\n        \"title\": \"Repository conversion detail\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"table\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - repository conversion detail\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Audience\"\r\n      },\r\n      \"name\": \"text - audience\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize PageViews = sum(ItemCount) by Country = iff(isempty(ClientCountryOrRegion), \\\"Unknown\\\", ClientCountryOrRegion)\\n| top 10 by PageViews desc\\n| order by PageViews desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Top countries by page views\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"bar\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - top countries\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"AppPageViews\\n| where TimeGenerated {TimeRange}\\n| summarize PageViews = sum(ItemCount) by Browser = iff(isempty(ClientBrowser), \\\"Unknown\\\", ClientBrowser)\\n| top 8 by PageViews desc\\n| order by PageViews desc\",\r\n        \"size\": 0,\r\n        \"title\": \"Browser mix\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"pie\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - browser mix\"\r\n    },\r\n    {\r\n      \"type\": 1,\r\n      \"content\": {\r\n        \"json\": \"## Recent signal\"\r\n      },\r\n      \"name\": \"text - recent signal\"\r\n    },\r\n    {\r\n      \"type\": 3,\r\n      \"content\": {\r\n        \"version\": \"KqlItem/1.0\",\r\n        \"query\": \"let repoFilter = \\\"{RepoFilter}\\\";\\nAppEvents\\n| where TimeGenerated {TimeRange}\\n| where Name in (\\\"cta_clicked_client\\\", \\\"outbound_doc_link_clicked_client\\\", \\\"landing_section_viewed_client\\\", \\\"scan_requested_client\\\", \\\"scan_succeeded_client\\\", \\\"scan_failed_client\\\", \\\"report_share_requested_client\\\", \\\"report_shared_client\\\", \\\"report_share_failed_client\\\", \\\"shared_report_loaded_client\\\", \\\"shared_report_load_failed_client\\\", \\\"scan_completed\\\", \\\"scan_failed\\\", \\\"report_created\\\", \\\"shared_report_viewed\\\")\\n| extend repo_name = tostring(Properties.repo_name), report_id = tostring(Properties.report_id), verdict = tostring(Properties.verdict), method = tostring(Properties.method), reason = tostring(Properties.reason), score = todouble(Measurements.score), source = tostring(Properties.source), section = tostring(Properties.section), destination_host = tostring(Properties.destination_host)\\n| where repoFilter == \\\"*\\\" or isempty(repo_name) or repo_name == repoFilter\\n| project TimeGenerated, event = Name, surface = AppRoleName, source, section, destination_host, repo_name, report_id, method, verdict, score, reason, browser = ClientBrowser, country = ClientCountryOrRegion, session_id = SessionId, user_id = UserId\\n| order by TimeGenerated desc\",\r\n        \"size\": 1,\r\n        \"title\": \"Recent engagement and conversion events\",\r\n        \"queryType\": 0,\r\n        \"resourceType\": \"microsoft.operationalinsights/workspaces\",\r\n        \"visualization\": \"table\",\r\n        \"showAnalytics\": false,\r\n        \"exportToExcelOptions\": \"visible\"\r\n      },\r\n      \"name\": \"query - recent engagement events\"\r\n    }\r\n  ],\r\n  \"isLocked\": false,\r\n  \"fallbackResourceIds\": []\r\n}"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/workbooks",
+              "apiVersion": "2023-06-01",
+              "name": "[parameters('workbookId')]",
+              "location": "[parameters('location')]",
+              "kind": "shared",
+              "properties": {
+                "displayName": "[parameters('workbookDisplayName')]",
+                "serializedData": "[variables('workbookSerializedData')]",
+                "version": "Notebook/1.0",
+                "sourceId": "[parameters('workbookSourceId')]",
+                "category": "workbook"
+              }
+            }
+          ],
+          "outputs": {
+            "workbookName": {
+              "type": "string",
+              "value": "[parameters('workbookId')]"
+            },
+            "workbookResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/workbooks', parameters('workbookId'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('namePrefix')))]"
+      ]
     }
   ],
   "outputs": {
     "appUrl": {
       "type": "string",
       "metadata": {
-        "description": "Public URL of the deployed application."
+        "description": "Public URL of the deployed frontend application."
+      },
+      "value": "[if(not(equals(parameters('siteOrigin'), '')), parameters('siteOrigin'), if(not(equals(variables('staticWebAppCustomOrigin'), '')), variables('staticWebAppCustomOrigin'), format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname)))]"
+    },
+    "staticWebAppUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Default Azure Static Web Apps URL used for deployments and smoke tests."
+      },
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname)]"
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Static Web App."
+      },
+      "value": "[format('{0}-frontend', parameters('namePrefix'))]"
+    },
+    "staticWebAppResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the Static Web App."
+      },
+      "value": "[resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix')))]"
+    },
+    "backendUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Public URL of the Container Apps backend API."
       },
       "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn)]"
     },
@@ -484,6 +655,13 @@
       },
       "value": "[if(parameters('enableAppInsights'), format('{0}-appi', parameters('namePrefix')), '')]"
     },
+    "engagementWorkbookResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the shared growth and engagement workbook."
+      },
+      "value": "[if(and(parameters('enableAppInsights'), parameters('enableEngagementWorkbook')), reference(resourceId('Microsoft.Resources/deployments', format('{0}-growth-engagement-workbook', parameters('namePrefix'))), '2025-04-01').outputs.workbookResourceId.value, '')]"
+    },
     "availabilityMonitoringConfigured": {
       "type": "bool",
       "metadata": {
@@ -496,7 +674,7 @@
       "metadata": {
         "description": "URL monitored by the external availability test."
       },
-      "value": "[if(variables('availabilityMonitoringEnabled'), if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('{0}-app', parameters('namePrefix'))), '2024-03-01').configuration.ingress.fqdn)), '')]"
+      "value": "[if(variables('availabilityMonitoringEnabled'), if(not(equals(parameters('monitoringUrl'), '')), parameters('monitoringUrl'), if(not(equals(parameters('siteOrigin'), '')), parameters('siteOrigin'), if(not(equals(variables('staticWebAppCustomOrigin'), '')), variables('staticWebAppCustomOrigin'), format('https://{0}', reference(resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix'))), '2023-12-01').defaultHostname)))), '')]"
     },
     "resourceGroupName": {
       "type": "string",
