@@ -5,10 +5,6 @@
       "rewrite": "/webmcp.html"
     },
     {
-      "route": "/_webmcp_/",
-      "rewrite": "/webmcp.html"
-    },
-    {
       "route": "/_/report/*",
       "rewrite": "/index.html",
       "headers": {
