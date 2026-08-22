@@ -304,9 +304,6 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
   location: location
   tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
   properties: {
     environmentId: containerEnv.id
     configuration: {

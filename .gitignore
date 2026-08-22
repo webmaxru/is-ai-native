@@ -25,6 +25,8 @@ yarn-error.log*
 
 # Azure / Bicep
 *.bicep.json
+.azure/validate-status.json
+.azure/validation.parameters.json
 
 # OS artifacts
 .DS_Store
