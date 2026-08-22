@@ -86,7 +86,6 @@ The root `Dockerfile` now copies only backend code and the shared core package. 
 Backend CORS accepts:
 
 - `ALLOWED_ORIGINS`: comma-separated exact HTTP(S) origins
-- `ALLOWED_ORIGIN`: legacy single-origin fallback
 
 Bicep always includes the generated SWA default origin. It also includes origins derived from `siteOrigin` and `staticWebAppCustomDomainName`, so a validated custom hostname remains usable even if `SITE_ORIGIN` is temporarily omitted.
 
@@ -111,7 +110,7 @@ Important outputs:
 | `backendUrl` | ACA origin embedded in the frontend artifact |
 | `appUrl` | Configured public frontend origin, or the default SWA URL |
 
-The legacy ACA custom-domain parameters remain available during DNS migration and rollback. They can be cleared after traffic is confirmed on SWA.
+The legacy ACA custom-domain parameters and certificates were removed after traffic was confirmed on SWA.
 
 ## CI/CD Flow
 
@@ -139,7 +138,7 @@ Use a staged cutover so the current ACA hostname remains a rollback target.
 5. Deploy again so Bicep binds the SWA custom domain.
 6. Point the hostname CNAME or apex record to SWA.
 7. Validate HTTPS, scans, shared reports, telemetry, and social assets.
-8. Clear the legacy ACA custom-domain secrets after the rollback window.
+8. Remove the legacy ACA custom-domain bindings, certificates, parameters, and secrets after the rollback window.
 
 Do not set `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` until the TXT validation record exists; Azure rejects an unvalidated domain deployment.
 
@@ -167,10 +166,9 @@ docker compose up --build
 
 ## Rollback
 
-If the SWA cutover fails:
+If a production regression occurs:
 
-1. restore DNS to the legacy ACA hostname
-2. retain or restore the ACA custom-domain parameters
-3. redeploy the previous backend image if a full single-container rollback is required
+1. redeploy the previous SWA artifact for frontend regressions
+2. redeploy the previous ACA image digest for API regressions
 
 Shared-report data remains in Azure Files and is unaffected by the frontend host.

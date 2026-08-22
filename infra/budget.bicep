@@ -1,5 +1,5 @@
 // Azure Budget Alert — subscription-scoped deployment
-// Monitors the is-ai-native-rg resource group for monthly spending over ~$5/day ($150/month)
+// Monitors the is-ai-native-rg resource group against a $30 monthly budget (~$1/day)
 // Deploy with: az deployment sub create --location <region> --template-file infra/budget.bicep --parameters rgName=<rg-name> email=<your-email>
 
 targetScope = 'subscription'
@@ -36,7 +36,7 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = {
       }
     }
     notifications: {
-      // Alert at 80% of monthly budget (~$120 = $4/day average)
+      // Alert at 80% of the default monthly budget ($24)
       Alert80Percent: {
         enabled: true
         operator: 'GreaterThan'
@@ -46,7 +46,7 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = {
         ]
         thresholdType: 'Actual'
       }
-      // Alert at 100% of monthly budget ($150 = $5/day average)
+      // Alert at 100% of the default monthly budget ($30)
       Alert100Percent: {
         enabled: true
         operator: 'GreaterThan'
@@ -56,7 +56,7 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = {
         ]
         thresholdType: 'Actual'
       }
-      // Alert at 120% of monthly budget (overage protection)
+      // Alert at 120% of the default monthly budget ($36)
       Alert120Percent: {
         enabled: true
         operator: 'GreaterThan'

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "13905869546232251940"
+      "templateHash": "15890843404527521692"
     }
   },
   "parameters": {
@@ -95,35 +95,7 @@
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity."
-      }
-    },
-    "customDomainName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Legacy custom domain name to keep bound to the Container App during frontend DNS migration or rollback."
-      }
-    },
-    "managedCertName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Name of the existing managed certificate for the legacy Container App custom domain."
-      }
-    },
-    "secondaryCustomDomainName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Optional secondary custom domain name to keep bound alongside the primary domain during migrations or cutovers."
-      }
-    },
-    "secondaryManagedCertName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Name of the existing managed certificate for the optional secondary custom domain."
+        "description": "Azure Container Registry name. When provided, the Container App pulls from ACR using registry credentials."
       }
     },
     "siteOrigin": {
@@ -183,8 +155,7 @@
     "monitoringActionGroupShortName": "[take(replace(format('{0}mon', parameters('namePrefix')), '-', ''), 12)]",
     "monitoringLocationIds": [
       "us-il-ch1-azr"
-    ],
-    "customDomainBindings": "[concat(if(and(not(equals(parameters('customDomainName'), '')), not(equals(parameters('managedCertName'), ''))), createArray(createObject('name', parameters('customDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('managedCertName')))), createArray()), if(and(not(equals(parameters('secondaryCustomDomainName'), '')), not(equals(parameters('secondaryManagedCertName'), ''))), createArray(createObject('name', parameters('secondaryCustomDomainName'), 'bindingType', 'SniEnabled', 'certificateId', resourceId('Microsoft.App/managedEnvironments/managedCertificates', format('{0}-env', parameters('namePrefix')), parameters('secondaryManagedCertName')))), createArray()))]"
+    ]
   },
   "resources": [
     {
@@ -330,9 +301,6 @@
       "name": "[format('{0}-app', parameters('namePrefix'))]",
       "location": "[parameters('location')]",
       "tags": "[parameters('tags')]",
-      "identity": {
-        "type": "SystemAssigned"
-      },
       "properties": {
         "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-env', parameters('namePrefix')))]",
         "configuration": {
@@ -340,8 +308,7 @@
             "external": true,
             "targetPort": 3000,
             "transport": "http",
-            "allowInsecure": false,
-            "customDomains": "[variables('customDomainBindings')]"
+            "allowInsecure": false
           },
           "secrets": "[concat(variables('appSecrets'), if(parameters('enableAppInsights'), createArray(createObject('name', 'app-insights-connection-string', 'value', reference(resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('namePrefix'))), '2020-02-02').ConnectionString)), createArray()), if(not(equals(parameters('acrName'), '')), createArray(createObject('name', 'acr-password', 'value', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').passwords[0].value)), createArray()))]",
           "registries": "[if(not(equals(parameters('acrName'), '')), createArray(createObject('server', format('{0}.azurecr.io', parameters('acrName')), 'username', listCredentials(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').username, 'passwordSecretRef', 'acr-password')), createArray())]"
