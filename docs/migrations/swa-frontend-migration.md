@@ -143,6 +143,8 @@ Use a staged cutover so the current ACA hostname remains a rollback target.
 
 Do not set `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` until the TXT validation record exists; Azure rejects an unvalidated domain deployment.
 
+The production workflow also refuses to deploy the API-only backend until the custom hostname is already bound to SWA and its public `runtime-config.js` is reachable. This guard keeps the existing ACA-served frontend live during the initial DNS migration.
+
 The WebMCP origin-trial tokens are issued for `isainative.dev`, so WebMCP activation must be validated on that custom domain rather than on the default `*.azurestaticapps.net` hostname.
 
 ## Local Development
