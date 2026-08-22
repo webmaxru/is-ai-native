@@ -28,7 +28,9 @@ jobs:
       - name: Build Static Web Apps artifact
         run: npm run build:frontend
         env:
+          ENABLE_SHARING: false
           FRONTEND_API_ORIGIN: https://backend.example.azurecontainerapps.io
+          PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING: ''
           SITE_ORIGIN: https://frontend.example
 
   # ── Backend tests ─────────────────────────────────────────────────

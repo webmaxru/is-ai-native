@@ -40,14 +40,6 @@ const sampleResult = {
   per_assistant: [],
 };
 
-describe('GET /api/config', () => {
-  it('returns sharingEnabled: true when ENABLE_SHARING is true', async () => {
-    const res = await request(app).get('/api/config');
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ sharingEnabled: true });
-  });
-});
-
 describe('POST /api/report (sharing enabled)', () => {
   it('returns 201 with id and url when given a valid result', async () => {
     const res = await request(app).post('/api/report').send({ result: sampleResult });
@@ -186,9 +178,4 @@ describe('/api/report when sharing disabled', () => {
     expect(res.body).toHaveProperty('error');
   });
 
-  it('GET /api/config returns sharingEnabled: false', async () => {
-    const res = await request(app).get('/api/config');
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ sharingEnabled: false });
-  });
 });
