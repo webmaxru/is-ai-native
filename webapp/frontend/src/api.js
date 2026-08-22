@@ -48,16 +48,6 @@ async function parseJsonResponse(res, fallbackMessage) {
   return data;
 }
 
-export async function fetchConfig(signal) {
-  const res = await fetch(apiUrl('/config'), {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-    signal,
-  });
-  const data = await parseJsonResponse(res, 'Failed to fetch config');
-  return data; // { sharingEnabled: bool, appInsightsConnectionString: string | null }
-}
-
 export async function scanRepo(repoUrl, signal) {
   const res = await fetch(apiUrl('/scan'), {
     method: 'POST',

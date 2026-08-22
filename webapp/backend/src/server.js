@@ -7,7 +7,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { createScanRouter } from './routes/scan.js';
 import { createReportRouter } from './routes/report.js';
-import { createConfigRouter } from './routes/config.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
@@ -365,7 +364,6 @@ export function createApp(runtime = createRuntime()) {
   );
   app.use(cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : false }));
 
-  app.use('/api/config', express.json({ limit: '1kb' }), createConfigRouter(runtime));
   app.use('/api/scan', scanLimiter, express.json({ limit: '10kb' }), createScanRouter(runtime));
   app.use('/api/report', reportLimiter, express.json({ limit: '100kb' }), createReportRouter(runtime));
 

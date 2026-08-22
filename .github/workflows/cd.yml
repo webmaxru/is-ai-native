@@ -182,19 +182,42 @@ jobs:
           # NOTE: .bicepparam files cannot be mixed with inline overrides.
           # Manual deploy defaults live in infra/main.bicepparam, but this workflow
           # is the production source of truth because it passes its own overrides.
-          # Keep one idle replica warm for faster startup. Change this override back
-          # to containerStartupStrategy=scale-to-zero to restore zero idle cost.
+          # Keep the ACA scaled to zero until production traffic justifies an idle replica.
+          # Change this override to containerStartupStrategy=keep-warm for faster startup.
           parameters: >
             containerImage=${{ needs.build-push.outputs.immutable_image }}
             githubToken=${{ secrets.GH_TOKEN_FOR_SCAN }}
             enableSharing=true
             enableAvailabilityMonitoring=true
-            containerStartupStrategy=keep-warm
+            containerStartupStrategy=scale-to-zero
             monitoringAlertEmail=${{ secrets.MONITORING_ALERT_EMAIL != '' && secrets.MONITORING_ALERT_EMAIL || env.MONITORING_ALERT_EMAIL }}
             monitoringUrl=${{ secrets.SITE_ORIGIN }}
             siteOrigin=${{ secrets.SITE_ORIGIN }}
             staticWebAppCustomDomainName=${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
           failOnStdErr: false
+
+      - name: Resolve frontend build telemetry configuration
+        id: frontend-config
+        shell: bash
+        env:
+          APP_INSIGHTS_NAME: ${{ steps.bicep.outputs.appInsightsName }}
+        run: |
+          set -euo pipefail
+
+          app_insights_connection_string=""
+          if [[ -n "$APP_INSIGHTS_NAME" ]]; then
+            app_insights_connection_string=$(az monitor app-insights component show \
+              --app "$APP_INSIGHTS_NAME" \
+              --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
+              --query connectionString \
+              --output tsv)
+          fi
+
+          if [[ -n "$app_insights_connection_string" ]]; then
+            echo "::add-mask::$app_insights_connection_string"
+          fi
+
+          echo "app_insights_connection_string=$app_insights_connection_string" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
@@ -203,7 +226,9 @@ jobs:
       - name: Build static frontend
         run: npm run build:frontend
         env:
+          ENABLE_SHARING: true
           FRONTEND_API_ORIGIN: ${{ steps.bicep.outputs.backendUrl }}
+          PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ steps.frontend-config.outputs.app_insights_connection_string }}
           SITE_ORIGIN: ${{ steps.bicep.outputs.appUrl }}
 
       - name: Get Static Web Apps deployment token

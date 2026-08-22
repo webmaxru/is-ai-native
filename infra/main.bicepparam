@@ -25,7 +25,8 @@ param enableAvailabilityMonitoring = true
 // Default website availability alert email for manual deployments.
 param monitoringAlertEmail = 'salnikov@gmail.com'
 
-// Use 'keep-warm' to keep one replica ready and avoid scale-to-zero cold starts.
+// Keep the default at scale-to-zero until production traffic justifies an idle replica.
+// Use 'keep-warm' to keep one replica ready and avoid cold starts.
 param containerStartupStrategy = 'scale-to-zero'
 
 param tags = {

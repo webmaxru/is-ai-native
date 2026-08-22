@@ -110,16 +110,6 @@ Scan a GitHub repository.
 
 `branch` is optional. The response includes the scan result plus metadata such as the scanned branch, source, and `paths_scanned`.
 
-### `GET /api/config`
-
-Returns server configuration flags.
-
-**Response:**
-
-```json
-{ "sharingEnabled": false }
-```
-
 ### `POST /api/report`
 
 Save a scan result for sharing when `ENABLE_SHARING=true`.
@@ -157,7 +147,7 @@ The workflow:
 
 ## Cloud Deployment (Azure)
 
-The static frontend runs on **Azure Static Web Apps Free**. The Express API remains on **Azure Container Apps Consumption**. Static Web Apps linked backends require the Standard plan, so the Free topology embeds the ACA origin in `runtime-config.js` and allows only the generated SWA origin plus the configured public site origin through backend CORS.
+The static frontend runs on **Azure Static Web Apps Free**. The Express API remains on **Azure Container Apps Consumption**. Static Web Apps linked backends require the Standard plan, so the Free topology embeds the ACA origin and public frontend settings in `runtime-config.js` at build time, then allows only the generated SWA origin plus the configured public site origin through backend CORS.
 
 ### Infrastructure as Code
 
@@ -183,7 +173,7 @@ Optional deployment features:
 
 Container scale settings are configured in infrastructure, not via the public API:
 
-- For manual deployments, set `containerStartupStrategy` in [infra/main.bicepparam](infra/main.bicepparam) or pass `--parameters containerStartupStrategy=keep-warm` when running `az deployment group create`.
+- For manual deployments, `containerStartupStrategy` defaults to `scale-to-zero`; pass `--parameters containerStartupStrategy=keep-warm` only when faster cold-start recovery justifies an idle replica.
 - For the GitHub Actions production deployment, set the inline `containerStartupStrategy=...` override in [.github/workflows/cd.yml](.github/workflows/cd.yml).
 - `minReplicas` is derived from `containerStartupStrategy` in [infra/main.bicep](infra/main.bicep).
 - `maxReplicas` is set directly in the `template.scale.maxReplicas` block in [infra/main.bicep](infra/main.bicep).
@@ -268,6 +258,8 @@ Build the standalone static artifact with:
 
 ```powershell
 $env:FRONTEND_API_ORIGIN = 'http://localhost:3000'
+$env:ENABLE_SHARING = 'false'
+$env:PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING = ''
 $env:SITE_ORIGIN = 'http://localhost:8080'
 npm run build:frontend
 ```
@@ -328,9 +320,9 @@ npm run build:vscode-extension
 | `PORT` | `3000` | Express server port |
 | `NODE_ENV` | — | Set to `production` in deployed environments |
 | `GH_TOKEN_FOR_SCAN` | — | GitHub PAT for higher scan API rate limits |
-| `ENABLE_SHARING` | `false` | Enable shared reports |
+| `ENABLE_SHARING` | `false` | Enable shared reports in the backend and static frontend build |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Server-side Application Insights connection string |
-| `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Frontend telemetry connection string |
+| `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING` | — | Browser telemetry connection string embedded in the static frontend build |
 | `REPORTS_DIR` | `./data/reports` | Shared report storage directory |
 | `FRONTEND_PATH` | unset | Path to a source-checkout frontend directory |
 | `TRUST_PROXY` | `1` in production, otherwise `false` | Express trust proxy setting |
@@ -339,7 +331,7 @@ npm run build:vscode-extension
 | `REPORT_RATE_LIMIT_WINDOW_MS` | `900000` | `/api/report` rate-limit window |
 | `REPORT_RATE_LIMIT_MAX` | `240` | `/api/report` rate-limit max unsafe requests |
 | `ALLOWED_ORIGINS` | unset | Comma-separated exact frontend origins allowed by backend CORS |
-| `FRONTEND_API_ORIGIN` | same origin | ACA origin embedded in the static frontend artifact |
+| `FRONTEND_API_ORIGIN` | same origin | ACA origin embedded in the static frontend artifact at build time |
 | `SITE_ORIGIN` | SWA or configured custom-domain URL in Azure | Public frontend origin for canonical tags, static site files, monitoring, and backend CORS |
 | `SITE_NAME` | `IsAINative` | Product name used by the optional Express frontend renderer |
 | `SITE_SHORT_NAME` | `SITE_NAME` | Short product name used by the optional Express frontend renderer |

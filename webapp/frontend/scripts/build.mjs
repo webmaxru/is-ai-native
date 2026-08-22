@@ -49,6 +49,35 @@ function normalizeOrigin(value, label, { allowEmpty = false } = {}) {
   return url.origin;
 }
 
+function normalizeBoolean(value, label) {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (normalized === '' || normalized === 'false') {
+    return false;
+  }
+
+  if (normalized === 'true') {
+    return true;
+  }
+
+  throw new Error(`${label} must be true or false`);
+}
+
+function normalizeOptionalString(value, label) {
+  if (value == null) {
+    return '';
+  }
+
+  if (typeof value !== 'string') {
+    throw new TypeError(`${label} must be a string`);
+  }
+
+  return value.trim();
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -194,11 +223,21 @@ function createManifest() {
 
 export async function buildFrontend({
   apiOrigin = process.env.FRONTEND_API_ORIGIN || '',
+  appInsightsConnectionString =
+    process.env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING ||
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING ||
+    '',
   outputDir = process.env.FRONTEND_OUTPUT_DIR || DEFAULT_OUTPUT_DIR,
+  sharingEnabled = process.env.ENABLE_SHARING || false,
   siteOrigin = process.env.SITE_ORIGIN || DEFAULT_SITE_ORIGIN,
 } = {}) {
   const normalizedApiOrigin = normalizeOrigin(apiOrigin, 'FRONTEND_API_ORIGIN', { allowEmpty: true });
+  const normalizedAppInsightsConnectionString = normalizeOptionalString(
+    appInsightsConnectionString,
+    'PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING'
+  );
   const normalizedSiteOrigin = normalizeOrigin(siteOrigin, 'SITE_ORIGIN');
+  const normalizedSharingEnabled = normalizeBoolean(sharingEnabled, 'ENABLE_SHARING');
   const absoluteOutputDir = resolve(outputDir);
   const brandAssetsDir = join(FRONTEND_ROOT, 'assets', 'brand');
 
@@ -225,7 +264,11 @@ export async function buildFrontend({
     robots: 'noindex, nofollow, noarchive',
   });
   const runtimeConfig = `globalThis.__IS_AI_NATIVE_CONFIG__ = Object.freeze(${JSON.stringify(
-    { apiOrigin: normalizedApiOrigin },
+    {
+      apiOrigin: normalizedApiOrigin,
+      sharingEnabled: normalizedSharingEnabled,
+      appInsightsConnectionString: normalizedAppInsightsConnectionString,
+    },
     null,
     2
   )});\n`;
@@ -271,7 +314,9 @@ export async function buildFrontend({
 
   return {
     apiOrigin: normalizedApiOrigin,
+    appInsightsConnectionString: normalizedAppInsightsConnectionString,
     outputDir: absoluteOutputDir,
+    sharingEnabled: normalizedSharingEnabled,
     siteOrigin: normalizedSiteOrigin,
   };
 }

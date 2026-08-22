@@ -1,4 +1,4 @@
-import { scanRepo, fetchSharedReport, fetchConfig } from './api.js';
+import { scanRepo, fetchSharedReport } from './api.js';
 import { renderReport } from './report.js';
 import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
 import { classifyScanSource, getTrackedLinkTelemetry } from './engagement-telemetry.js';
@@ -578,7 +578,7 @@ async function handleScan(repoUrl, sharingEnabled, options = {}) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   initThemeSwitcher();
   syncViewState();
   installOutboundLinkTelemetry();
@@ -590,15 +590,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.pathname.match(/^\/_\/report\/[^/]+$/)
   );
 
-  let sharingEnabled = false;
-  try {
-    const config = await fetchConfig();
-    sharingEnabled = config.sharingEnabled === true;
-    telemetryConfig = config;
-  } catch {
-    // If config fetch fails, treat sharing as disabled
-    telemetryConfig = null;
-  }
+  const config = globalThis.__IS_AI_NATIVE_CONFIG__;
+  const sharingEnabled = config?.sharingEnabled === true;
+  telemetryConfig = {
+    appInsightsConnectionString:
+      typeof config?.appInsightsConnectionString === 'string'
+        ? config.appInsightsConnectionString
+        : '',
+  };
 
   if (telemetryConfig?.appInsightsConnectionString && getAnalyticsConsent() !== 'denied') {
     initTelemetry(telemetryConfig);

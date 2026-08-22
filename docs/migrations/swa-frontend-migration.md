@@ -10,7 +10,7 @@ The web application now deploys as two independent workloads:
 - **Frontend:** generated static files hosted on Azure Static Web Apps Free
 - **Backend:** Express API hosted on Azure Container Apps Consumption
 
-The backend image no longer contains the SPA. Static assets are delivered by the SWA global edge network, while scans, configuration, telemetry setup, and shared-report storage remain in ACA.
+The backend image no longer contains the SPA. Static assets are delivered by the SWA global edge network, while scans, backend telemetry setup, and shared-report storage remain in ACA.
 
 ## Free-Plan Constraint
 
@@ -22,6 +22,7 @@ This implementation uses direct browser-to-ACA HTTPS requests instead:
 2. The frontend build writes that origin to `runtime-config.js`.
 3. `webapp/frontend/src/api.js` sends API requests to `<ACA origin>/api`.
 4. Bicep configures ACA with the exact SWA default origin and optional public custom origin in `ALLOWED_ORIGINS`.
+5. The build embeds sharing and browser telemetry settings in `runtime-config.js`; the browser does not call `/api/config`.
 
 References:
 
@@ -61,7 +62,8 @@ The build:
 - creates root favicon and social-card aliases
 - generates `robots.txt`, `sitemap.xml`, and `site.webmanifest`
 - validates and copies `staticwebapp.config.json`
-- writes `runtime-config.js` using `FRONTEND_API_ORIGIN`
+- writes `runtime-config.js` using `FRONTEND_API_ORIGIN`, `ENABLE_SHARING`, and `PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING`
+- embeds all browser configuration at build time; no configuration API request is required
 - fails if template placeholders remain unresolved
 
 The generated `dist/` directory is ignored by Git and uploaded directly by the SWA deployment action.
@@ -118,7 +120,7 @@ The production workflow:
 
 1. builds and scans the backend image
 2. deploys Bicep and the ACA revision through Azure OIDC
-3. builds the static frontend with the deployed `backendUrl`
+3. resolves the public Application Insights connection string and builds the static frontend with the deployed `backendUrl` and feature settings
 4. requests the SWA deployment token through Azure Resource Manager
 5. uploads `webapp/frontend/dist/` with `Azure/static-web-apps-deploy`
 6. verifies backend health, frontend HTML, runtime configuration, CORS preflight, WebMCP routing, and static brand assets
