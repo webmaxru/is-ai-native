@@ -194,10 +194,6 @@ jobs:
             monitoringUrl=${{ secrets.SITE_ORIGIN }}
             siteOrigin=${{ secrets.SITE_ORIGIN }}
             staticWebAppCustomDomainName=${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
-            customDomainName=${{ secrets.CUSTOM_DOMAIN_NAME }}
-            managedCertName=${{ secrets.MANAGED_CERT_NAME }}
-            secondaryCustomDomainName=${{ secrets.SECONDARY_CUSTOM_DOMAIN_NAME }}
-            secondaryManagedCertName=${{ secrets.SECONDARY_MANAGED_CERT_NAME }}
           failOnStdErr: false
 
       - uses: actions/setup-node@v4

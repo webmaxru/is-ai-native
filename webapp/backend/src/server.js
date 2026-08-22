@@ -154,9 +154,7 @@ function resolveRateLimitPolicy(env = process.env, { windowMsKey, maxKey, defaul
 }
 
 export function resolveAllowedOrigins(env = process.env) {
-  const configuredValues = [env.ALLOWED_ORIGINS, env.ALLOWED_ORIGIN]
-    .filter((value) => typeof value === 'string' && value.trim())
-    .flatMap((value) => value.split(','))
+  const configuredValues = (typeof env.ALLOWED_ORIGINS === 'string' ? env.ALLOWED_ORIGINS.split(',') : [])
     .map((value) => value.trim())
     .filter(Boolean);
 

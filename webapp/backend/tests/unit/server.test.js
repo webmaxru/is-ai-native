@@ -87,13 +87,13 @@ describe('runtime Docker image packaging', () => {
 });
 
 describe('resolveAllowedOrigins', () => {
-  it('combines the comma-separated setting with the legacy single-origin setting', async () => {
+  it('normalizes and deduplicates comma-separated origins', async () => {
     const { resolveAllowedOrigins } = await import('../../src/server.js');
 
     expect(
       resolveAllowedOrigins({
-        ALLOWED_ORIGINS: 'https://frontend.example.com, http://localhost:8080',
-        ALLOWED_ORIGIN: 'https://frontend.example.com',
+        ALLOWED_ORIGINS:
+          'https://frontend.example.com, http://localhost:8080, https://frontend.example.com',
       })
     ).toEqual(['https://frontend.example.com', 'http://localhost:8080']);
   });

@@ -170,7 +170,7 @@ All Azure resources are defined in [infra/main.bicep](infra/main.bicep) with def
 | **Shared Azure Workbook** | Growth and engagement dashboard over page views, sessions, CTA clicks, shares, and report activity |
 | **Azure Static Web App** | Free-plan global hosting for the generated frontend artifact |
 | **Container Apps Environment** | Consumption-plan hosting environment |
-| **Container App** | Backend API runtime with probes, autoscaling, and managed identity |
+| **Container App** | Backend API runtime with probes and autoscaling |
 | **Azure Storage Account + File Share** | Optional persistence for shared reports |
 | **Action Group + Availability Test + Alert Rule** | Optional email alerting for site availability |
 
@@ -178,7 +178,6 @@ Optional deployment features:
 
 - `acrName` for Azure Container Registry image pulls
 - `staticWebAppCustomDomainName` for the frontend hostname after its DNS TXT validation record exists
-- `customDomainName`, `managedCertName`, and their secondary equivalents to retain legacy ACA hostnames during DNS migration or rollback
 - `monitoringAlertEmail` and `monitoringUrl` for low-cost availability monitoring
 - `enableEngagementWorkbook=false` if you need to skip workbook deployment while keeping Application Insights enabled
 
@@ -340,7 +339,6 @@ npm run build:vscode-extension
 | `REPORT_RATE_LIMIT_WINDOW_MS` | `900000` | `/api/report` rate-limit window |
 | `REPORT_RATE_LIMIT_MAX` | `240` | `/api/report` rate-limit max unsafe requests |
 | `ALLOWED_ORIGINS` | unset | Comma-separated exact frontend origins allowed by backend CORS |
-| `ALLOWED_ORIGIN` | unset | Legacy single-origin CORS setting |
 | `FRONTEND_API_ORIGIN` | same origin | ACA origin embedded in the static frontend artifact |
 | `SITE_ORIGIN` | SWA or configured custom-domain URL in Azure | Public frontend origin for canonical tags, static site files, monitoring, and backend CORS |
 | `SITE_NAME` | `IsAINative` | Product name used by the optional Express frontend renderer |

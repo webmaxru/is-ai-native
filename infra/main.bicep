@@ -47,20 +47,8 @@ param monitoringUrl string = ''
 ])
 param containerStartupStrategy string = 'scale-to-zero'
 
-@description('Azure Container Registry name. When provided, the Container App pulls from ACR using its managed identity.')
+@description('Azure Container Registry name. When provided, the Container App pulls from ACR using registry credentials.')
 param acrName string = ''
-
-@description('Legacy custom domain name to keep bound to the Container App during frontend DNS migration or rollback.')
-param customDomainName string = ''
-
-@description('Name of the existing managed certificate for the legacy Container App custom domain.')
-param managedCertName string = ''
-
-@description('Optional secondary custom domain name to keep bound alongside the primary domain during migrations or cutovers.')
-param secondaryCustomDomainName string = ''
-
-@description('Name of the existing managed certificate for the optional secondary custom domain.')
-param secondaryManagedCertName string = ''
 
 @description('Public frontend origin used for canonical URLs, sitemap entries, social cards, and backend CORS. Leave empty to use the default Static Web Apps URL.')
 param siteOrigin string = ''
@@ -199,17 +187,6 @@ resource caStorage 'Microsoft.App/managedEnvironments/storages@2024-03-01' = if 
   }
 }
 
-// ── Managed TLS certificate (reference existing — created by one-time CLI setup) ─
-resource managedCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (managedCertName != '') {
-  parent: containerEnv
-  name: managedCertName
-}
-
-resource secondaryManagedCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = if (secondaryManagedCertName != '') {
-  parent: containerEnv
-  name: secondaryManagedCertName
-}
-
 // ── ACR reference (for admin credentials) ────────────────────────
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = if (acrName != '') {
   name: acrName
@@ -282,23 +259,6 @@ var monitoringLocationIds = [
   'us-il-ch1-azr'
 ]
 
-var customDomainBindings = concat(
-  (customDomainName != '' && managedCertName != '') ? [
-    {
-      name: customDomainName
-      bindingType: 'SniEnabled'
-      certificateId: managedCert.id
-    }
-  ] : [],
-  (secondaryCustomDomainName != '' && secondaryManagedCertName != '') ? [
-    {
-      name: secondaryCustomDomainName
-      bindingType: 'SniEnabled'
-      certificateId: secondaryManagedCert.id
-    }
-  ] : []
-)
-
 // ── Container App ─────────────────────────────────────────────────
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${namePrefix}-app'
@@ -312,7 +272,6 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 3000
         transport: 'http'
         allowInsecure: false
-        customDomains: customDomainBindings
       }
       secrets: concat(appSecrets, appInsightsSecrets, acrName != '' ? [
         #disable-next-line BCP422

@@ -249,4 +249,14 @@ Verified behavior includes homepage delivery, generated runtime configuration, W
 
 ## 14. Next Step
 
-Production is live on SWA and the API-only ACA release is deployed. `www.isainative.dev` is bound to SWA and HTTPS is verified. Azure resource deletion remains pending explicit per-candidate confirmation.
+Production is live on SWA and the API-only ACA release is deployed. `www.isainative.dev` is bound to SWA and HTTPS is verified. Confirmed active-resource cleanup is complete; Azure will automatically purge the two deleted sandbox workspaces after their recovery window.
+
+---
+
+## 15. Orphan Audit
+
+- **Deployment code:** Removed legacy ACA custom-domain parameters, certificate references, workflow inputs, and the `ALLOWED_ORIGIN` compatibility variable. Regenerated `infra/main.json`.
+- **GitHub settings:** Every repository secret and variable is referenced. The `production` environment has 98 deployments. The empty `copilot` environment is reserved for GitHub Copilot rather than application deployment.
+- **ACA runtime:** Every environment variable, secret, volume, and mount is referenced by the application or infrastructure. No custom domains, managed certificates, registry entries, or managed identity remain.
+- **Azure resources:** The 11 active resources match the production Bicep architecture. The two deleted sandbox workspaces remain temporarily recoverable in Azure's 14-day soft-delete cache; permanent purge was not approved, so Azure will purge them automatically.
+- **Deployment files:** `infra/budget.bicep` maps to the live `is-ai-native-daily-limit` budget. The serialized workbook JSON is loaded by its Bicep module. `infra/main.json` is the tracked compiled representation of `infra/main.bicep`.
