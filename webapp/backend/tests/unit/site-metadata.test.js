@@ -1,8 +1,10 @@
 import {
   buildPageMetadata,
+  createIndexHtmlRenderer,
   createSiteMetadata,
   getRobotsTxt,
   getWebManifest,
+  renderIndexHtml,
 } from '../../src/services/site-metadata.js';
 
 describe('site metadata', () => {
@@ -114,5 +116,73 @@ describe('site metadata', () => {
         }),
       ])
     );
+  });
+});
+
+describe('createIndexHtmlRenderer', () => {
+  const template = [
+    '<title>__PAGE_TITLE__</title>',
+    '<meta name="robots" content="__PAGE_ROBOTS__" />',
+    '<link rel="canonical" href="__PAGE_CANONICAL__" />',
+    '<script type="application/ld+json">__STRUCTURED_DATA__</script>',
+  ].join('\n');
+
+  function buildRuntime() {
+    const env = { NODE_ENV: 'production', SITE_ORIGIN: 'https://scan.example.com' };
+    return { env, siteMetadata: createSiteMetadata(env) };
+  }
+
+  it('returns null when no template is configured', () => {
+    const renderer = createIndexHtmlRenderer(buildRuntime(), null);
+    expect(renderer.render('/')).toBeNull();
+    expect(renderer.size).toBe(0);
+  });
+
+  it('produces identical html + robots to the uncached path', () => {
+    const runtime = buildRuntime();
+    const renderer = createIndexHtmlRenderer(runtime, template);
+    const pageMetadata = buildPageMetadata(runtime, '/webmaxru/is-ai-native');
+    const expectedHtml = renderIndexHtml(template, pageMetadata);
+
+    const { html, robots } = renderer.render('/webmaxru/is-ai-native');
+
+    expect(html).toBe(expectedHtml);
+    expect(robots).toBe(pageMetadata.robots);
+  });
+
+  it('reuses the cached entry for repeat pathnames', () => {
+    const renderer = createIndexHtmlRenderer(buildRuntime(), template);
+    const first = renderer.render('/');
+    const second = renderer.render('/');
+
+    expect(second).toBe(first);
+    expect(renderer.size).toBe(1);
+  });
+
+  it('evicts the oldest entry once maxEntries is exceeded', () => {
+    const renderer = createIndexHtmlRenderer(buildRuntime(), template, { maxEntries: 2 });
+
+    renderer.render('/a');
+    renderer.render('/b');
+    renderer.render('/c');
+
+    expect(renderer.size).toBe(2);
+
+    // Rendering `/a` again should be a fresh entry (a distinct object identity
+    // from the one produced before eviction). Rendering `/c` should still hit
+    // the cache from the previous step.
+    const firstC = renderer.render('/c');
+    const secondC = renderer.render('/c');
+    expect(secondC).toBe(firstC);
+  });
+
+  it('clear() empties the cache', () => {
+    const renderer = createIndexHtmlRenderer(buildRuntime(), template);
+    renderer.render('/');
+    renderer.render('/webmaxru/is-ai-native');
+    expect(renderer.size).toBe(2);
+
+    renderer.clear();
+    expect(renderer.size).toBe(0);
   });
 });

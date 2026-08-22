@@ -177,6 +177,67 @@ export function buildPageMetadata(runtime, pathname = '/') {
   };
 }
 
+const DEFAULT_INDEX_HTML_CACHE_MAX_ENTRIES = 500;
+
+/**
+ * Builds a memoized renderer for a given HTML template + runtime pair.
+ *
+ * Every SPA page request runs `buildPageMetadata` + `renderIndexHtml`, which
+ * scans the whole template with 14 sequential `.replaceAll` passes and builds
+ * the structured-data JSON. The result is fully determined by
+ * `(template, siteMetadata, pathname)`, so a bounded per-pathname cache avoids
+ * that work on repeat hits (home, popular repo slugs, shared-report ids).
+ *
+ * Returns `{ render(pathname), size, clear() }`. `render` yields
+ * `{ html, robots }` so the caller can still set the `X-Robots-Tag` header
+ * without recomputing the page metadata.
+ *
+ * @param {object} runtime
+ * @param {string | null | undefined} template
+ * @param {{ maxEntries?: number }} [options]
+ */
+export function createIndexHtmlRenderer(runtime, template, { maxEntries = DEFAULT_INDEX_HTML_CACHE_MAX_ENTRIES } = {}) {
+  const cache = new Map();
+
+  function render(pathname = '/') {
+    if (!template) {
+      return null;
+    }
+
+    const existing = cache.get(pathname);
+    if (existing !== undefined) {
+      // Refresh insertion order so hot paths survive FIFO eviction.
+      cache.delete(pathname);
+      cache.set(pathname, existing);
+      return existing;
+    }
+
+    const pageMetadata = buildPageMetadata(runtime, pathname);
+    const entry = {
+      html: renderIndexHtml(template, pageMetadata),
+      robots: pageMetadata.robots,
+    };
+
+    cache.set(pathname, entry);
+    if (cache.size > maxEntries) {
+      const oldestKey = cache.keys().next().value;
+      cache.delete(oldestKey);
+    }
+
+    return entry;
+  }
+
+  return {
+    render,
+    get size() {
+      return cache.size;
+    },
+    clear() {
+      cache.clear();
+    },
+  };
+}
+
 export function renderIndexHtml(template, pageMetadata) {
   return template
     .replaceAll('__PAGE_TITLE__', escapeHtml(pageMetadata.title))

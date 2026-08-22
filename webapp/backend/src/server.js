@@ -13,12 +13,11 @@ import { loadConfig } from './services/config-loader.js';
 import { cleanupExpired } from './services/storage.js';
 import { isAppInsightsEnabled, parseConnectionString, trackRateLimitHit } from './services/app-insights.js';
 import {
-  buildPageMetadata,
+  createIndexHtmlRenderer,
   createSiteMetadata,
   getRobotsTxt,
   getSitemapXml,
   getWebManifest,
-  renderIndexHtml,
 } from './services/site-metadata.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -403,18 +402,17 @@ export function createApp(runtime = createRuntime()) {
   }
 
   if (runtime.frontendPath && runtime.webmcpTemplate) {
+    const webmcpRenderer = createIndexHtmlRenderer(runtime, runtime.webmcpTemplate);
     // Non-strict routing means a single registration also matches the
     // trailing-slash variant; the canonical URL is fixed to `/_webmcp_/`.
     app.get('/_webmcp_/', (_req, res) => {
-      const pageMetadata = buildPageMetadata(runtime, '/_webmcp_/');
-      res
-        .set('X-Robots-Tag', pageMetadata.robots)
-        .type('html')
-        .send(renderIndexHtml(runtime.webmcpTemplate, pageMetadata));
+      const { html, robots } = webmcpRenderer.render('/_webmcp_/');
+      res.set('X-Robots-Tag', robots).type('html').send(html);
     });
   }
 
   if (runtime.frontendPath && runtime.frontendTemplate) {
+    const indexRenderer = createIndexHtmlRenderer(runtime, runtime.frontendTemplate);
     app.use(
       express.static(runtime.frontendPath, {
         index: false,
@@ -424,11 +422,8 @@ export function createApp(runtime = createRuntime()) {
       })
     );
     app.get(/^(?!\/api(\/|$))/, (req, res) => {
-      const pageMetadata = buildPageMetadata(runtime, req.path);
-      res
-        .set('X-Robots-Tag', pageMetadata.robots)
-        .type('html')
-        .send(renderIndexHtml(runtime.frontendTemplate, pageMetadata));
+      const { html, robots } = indexRenderer.render(req.path);
+      res.set('X-Robots-Tag', robots).type('html').send(html);
     });
   } else if (runtime.env.NODE_ENV === 'production') {
     console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
