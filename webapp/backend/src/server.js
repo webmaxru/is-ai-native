@@ -39,6 +39,13 @@ const STATIC_ASSET_ALIASES = new Map([
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const FRONTEND_GRAPHIC_EXTENSIONS = new Set(['.png', '.svg', '.ico', '.jpg', '.jpeg', '.gif', '.webp', '.avif']);
+// Graphics rarely change between deploys (they're hash-independent brand
+// files), so a full day of caching mirrors the aliased brand-asset headers
+// below. JS/CSS/HTML get a shorter TTL because unhashed filenames need to
+// pick up new deploys promptly; ETags still handle revalidation.
+const FRONTEND_GRAPHIC_CACHE_CONTROL = 'public, max-age=86400';
+const FRONTEND_DEFAULT_CACHE_CONTROL = 'public, max-age=3600, must-revalidate';
+const FRONTEND_DEFAULT_MAX_AGE_MS = 60 * 60 * 1000;
 const DEFAULT_SCAN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_SCAN_RATE_LIMIT_MAX = 120;
 const DEFAULT_REPORT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
@@ -46,13 +53,28 @@ const DEFAULT_REPORT_RATE_LIMIT_MAX = 240;
 
 function isFrontendGraphicAssetPath(assetPath = '') {
   const normalizedAssetPath = String(assetPath).toLowerCase();
-  return [...FRONTEND_GRAPHIC_EXTENSIONS].some((extension) => normalizedAssetPath.endsWith(extension));
+  for (const extension of FRONTEND_GRAPHIC_EXTENSIONS) {
+    if (normalizedAssetPath.endsWith(extension)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function applyFrontendGraphicHeaders(res, assetPath) {
   if (isFrontendGraphicAssetPath(assetPath)) {
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
   }
+}
+
+function applyFrontendStaticHeaders(res, assetPath) {
+  if (isFrontendGraphicAssetPath(assetPath)) {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.set('Cache-Control', FRONTEND_GRAPHIC_CACHE_CONTROL);
+    return;
+  }
+
+  res.set('Cache-Control', FRONTEND_DEFAULT_CACHE_CONTROL);
 }
 
 function sendFrontendAsset(runtime, res, assetPath) {
@@ -414,8 +436,9 @@ export function createApp(runtime = createRuntime()) {
     app.use(
       express.static(runtime.frontendPath, {
         index: false,
+        maxAge: FRONTEND_DEFAULT_MAX_AGE_MS,
         setHeaders: (res, filePath) => {
-          applyFrontendGraphicHeaders(res, filePath);
+          applyFrontendStaticHeaders(res, filePath);
         },
       })
     );
