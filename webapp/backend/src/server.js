@@ -43,6 +43,11 @@ const DEFAULT_SCAN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_SCAN_RATE_LIMIT_MAX = 120;
 const DEFAULT_REPORT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_REPORT_RATE_LIMIT_MAX = 240;
+// SPA HTML is deterministic for a given pathname (site metadata is static once
+// the app boots). Memoize the rendered output so repeat requests to the same
+// URL — the home page, popular /owner/repo scan pages, shared reports — skip
+// the buildPageMetadata + JSON.stringify + 15-way replaceAll pipeline.
+const DEFAULT_SPA_HTML_CACHE_MAX_SIZE = 256;
 
 function isFrontendGraphicAssetPath(assetPath = '') {
   const normalizedAssetPath = String(assetPath).toLowerCase();
@@ -227,6 +232,37 @@ function createApiRateLimiter({ policyName, route, windowMs, max }) {
   });
 }
 
+export function createSpaHtmlRenderer(runtime, template, { maxSize = DEFAULT_SPA_HTML_CACHE_MAX_SIZE } = {}) {
+  // Small FIFO cache keyed by pathname. Cap the size so that crawlers hitting
+  // many unique URLs cannot blow up memory; eviction is oldest-first, which
+  // approximates LRU because we re-insert on hit below.
+  const cache = new Map();
+
+  return function renderSpaHtml(pathname) {
+    const cached = cache.get(pathname);
+    if (cached) {
+      // Refresh recency so hot paths are not evicted before cold ones.
+      cache.delete(pathname);
+      cache.set(pathname, cached);
+      return cached;
+    }
+
+    const pageMetadata = buildPageMetadata(runtime, pathname);
+    const rendered = {
+      html: renderIndexHtml(template, pageMetadata),
+      robots: pageMetadata.robots,
+    };
+
+    cache.set(pathname, rendered);
+    if (cache.size > maxSize) {
+      const oldestKey = cache.keys().next().value;
+      cache.delete(oldestKey);
+    }
+
+    return rendered;
+  };
+}
+
 export function buildContentSecurityPolicyDirectives(runtime) {
   const directives = helmet.contentSecurityPolicy.getDefaultDirectives();
   const appInsightsSettings = parseConnectionString(runtime.appInsightsWebConnectionString);
@@ -399,18 +435,17 @@ export function createApp(runtime = createRuntime()) {
   }
 
   if (runtime.frontendPath && runtime.webmcpTemplate) {
+    const renderWebmcpHtml = createSpaHtmlRenderer(runtime, runtime.webmcpTemplate, { maxSize: 4 });
     // Non-strict routing means a single registration also matches the
     // trailing-slash variant; the canonical URL is fixed to `/_webmcp_/`.
     app.get('/_webmcp_/', (_req, res) => {
-      const pageMetadata = buildPageMetadata(runtime, '/_webmcp_/');
-      res
-        .set('X-Robots-Tag', pageMetadata.robots)
-        .type('html')
-        .send(renderIndexHtml(runtime.webmcpTemplate, pageMetadata));
+      const { html, robots } = renderWebmcpHtml('/_webmcp_/');
+      res.set('X-Robots-Tag', robots).type('html').send(html);
     });
   }
 
   if (runtime.frontendPath && runtime.frontendTemplate) {
+    const renderSpaHtml = createSpaHtmlRenderer(runtime, runtime.frontendTemplate);
     app.use(
       express.static(runtime.frontendPath, {
         index: false,
@@ -420,11 +455,8 @@ export function createApp(runtime = createRuntime()) {
       })
     );
     app.get(/^(?!\/api(\/|$))/, (req, res) => {
-      const pageMetadata = buildPageMetadata(runtime, req.path);
-      res
-        .set('X-Robots-Tag', pageMetadata.robots)
-        .type('html')
-        .send(renderIndexHtml(runtime.frontendTemplate, pageMetadata));
+      const { html, robots } = renderSpaHtml(req.path);
+      res.set('X-Robots-Tag', robots).type('html').send(html);
     });
   } else if (runtime.env.NODE_ENV === 'production') {
     console.warn('Frontend assets were not found; non-API routes will return JSON 404 responses');
