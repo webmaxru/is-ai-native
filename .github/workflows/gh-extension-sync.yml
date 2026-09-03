@@ -26,7 +26,7 @@ jobs:
       TARGET_REPOSITORY: ${{ inputs.target_repository || vars.GH_EXTENSION_REPOSITORY }}
     steps:
       - name: Check out source repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
