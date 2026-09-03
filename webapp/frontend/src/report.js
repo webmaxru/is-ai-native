@@ -1,6 +1,7 @@
 import { shareReport } from './api.js';
 import { showToast } from './app.js';
 import { trackUiEvent } from './telemetry.js';
+import { fireConfetti, CONFETTI_SCORE_THRESHOLD } from './confetti.js';
 
 export function escapeHtml(str) {
   return String(str)
@@ -404,6 +405,15 @@ export function renderReport(result, { sharingEnabled = false } = {}) {
 
   if (sharingEnabled) {
     addShareButton(result);
+  }
+
+  if (displayedScore >= CONFETTI_SCORE_THRESHOLD && !result.__confettiFired) {
+    fireConfetti({
+      verdict: displayedVerdict,
+      assistantId: preferredAssistant?.id,
+      score: displayedScore,
+    });
+    Object.defineProperty(result, '__confettiFired', { value: true, enumerable: false });
   }
 }
 
