@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname, isAbsolute, resolve } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -355,6 +356,18 @@ export function createApp(runtime = createRuntime()) {
   });
 
   app.set('trust proxy', runtime.trustProxy);
+  app.use(
+    compression({
+      // Skip compression when a client explicitly opts out via `x-no-compression`,
+      // otherwise fall back to the module's default heuristics (content-type + size).
+      filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+    })
+  );
   app.use(
     helmet({
       contentSecurityPolicy: {
