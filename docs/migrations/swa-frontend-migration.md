@@ -146,7 +146,26 @@ Do not set `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` until the TXT validation record e
 
 The production workflow also refuses to deploy the API-only backend until the custom hostname is already bound to SWA and its public `runtime-config.js` is reachable. This guard keeps the existing ACA-served frontend live during the initial DNS migration.
 
-The WebMCP origin-trial tokens are issued for `isainative.dev`, so WebMCP activation must be validated on that custom domain rather than on the default `*.azurestaticapps.net` hostname.
+The WebMCP origin-trial tokens are issued for `isainative.dev` with subdomain coverage, so moving to `repo.isainative.dev` does not by itself require a different origin scope. The checked-in tokens have expired as of 18 November 2026; renewal or a browser with native/flag-enabled support is a separate prerequisite for WebMCP activation. They do not cover the default `*.azurestaticapps.net` hostname.
+
+## Moving to repo.isainative.dev
+
+The target for this application is **https://repo.isainative.dev**; the apex will serve `webmaxru/agent-ready-check`. As of 18 November 2026 the DNS cutover is pending: the existing apex and `www` bindings are still intact.
+
+The full cross-repository order and rollback commands are maintained in [Agent-Ready Check's publishing guide](https://github.com/webmaxru/agent-ready-check/blob/main/docs/PUBLISHING.md#domain-migration-isainativedev-and-repoisainativedev).
+
+For this repository:
+
+1. Add a DNS-only Cloudflare CNAME `repo` to `victorious-pebble-0d07f890f.7.azurestaticapps.net`.
+2. The Free SWA already has two domains. In an agreed maintenance window, release its old `www.isainative.dev` binding, then bind `repo.isainative.dev` with CNAME validation. Keep the old apex until the new hostname works.
+3. Wait for the Azure binding to be `Ready` and HTTPS frontend/runtime configuration to respond.
+4. Set repository Actions variables `SITE_ORIGIN=https://repo.isainative.dev`, `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME=repo.isainative.dev`, and `STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD=cname-delegation`.
+5. Run **CD** on `main` using its manual trigger. It updates backend CORS/origin, monitoring and frontend metadata without moving or deleting saved reports.
+6. Verify repository scans, a saved report and CORS on the new hostname before transferring the apex. Existing report paths remain the same; change only the hostname in shared links.
+
+The workflow prefers these non-secret variables over the legacy `SITE_ORIGIN` and `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` secrets; leaving them unset preserves the old deployment until cutover. It refuses to deploy against a hostname whose Azure status is not `Ready`. Do not change the variables before the DNS/binding steps.
+
+The standalone CLI, VS Code extension and GitHub CLI extension run their scanner locally and do not require a backend endpoint change. The web and GitHub-extension social-card assets now advertise the planned repository-scanner hostname; package publishing is not part of this infrastructure migration.
 
 ## Local Development
 

@@ -13,6 +13,8 @@ Available surfaces:
 - **GitHub CLI extension** in [packages/gh-extension/README.md](packages/gh-extension/README.md)
 - **Standalone CLI** in [packages/cli/README.md](packages/cli/README.md)
 
+> **Domain migration:** the web app is moving to **https://repo.isainative.dev**, while **https://isainative.dev** will host Agent-Ready Check. DNS cutover is pending; see the [migration procedure](docs/migrations/swa-frontend-migration.md#moving-to-repoisainativedev).
+
 | Verdict | Strongest Assistant Score |
 | --- | --- |
 | **AI-Native** | ≥ 60 % |

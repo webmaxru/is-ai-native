@@ -26,9 +26,9 @@
   <text x="92" y="244" fill="#F5F7FA" font-size="84" font-weight="700" font-family="Segoe UI, Arial, sans-serif">Is AI-Native?</text>
   <text x="92" y="314" fill="#D7E0E7" font-size="40" font-family="Segoe UI, Arial, sans-serif">Scan &gt; Review &gt; Improve</text>
   <text x="92" y="392" fill="#9FB0C0" font-size="27" font-family="Segoe UI, Arial, sans-serif">Instructions, skills, custom agents, agent hooks, MCP, and more</text>
-  <rect x="92" y="450" width="552" height="58" rx="29" fill="#0F1A20" stroke="#2B3640" />
+  <rect x="92" y="450" width="680" height="58" rx="29" fill="#0F1A20" stroke="#2B3640" />
   <text x="122" y="488" font-size="24" font-family="Consolas, monospace">
-    <tspan fill="#00FF41">isainative.dev</tspan><tspan fill="#7C8E9E">/&lt;repo owner&gt;/&lt;repo name&gt;</tspan>
+    <tspan fill="#00FF41">repo.isainative.dev</tspan><tspan fill="#7C8E9E">/&lt;repo owner&gt;/&lt;repo name&gt;</tspan>
   </text>
   <svg x="822" y="96" width="256" height="256" viewBox="0 0 256 256">
   <rect width="256" height="256" rx="34" fill="#0B1017" />

@@ -3,9 +3,16 @@ import {
   createSiteMetadata,
   getRobotsTxt,
   getWebManifest,
+  getSocialCardSvg,
 } from '../../src/services/site-metadata.js';
 
 describe('site metadata', () => {
+  it('uses the configured frontend hostname in social cards after a domain move', () => {
+    const svg = getSocialCardSvg({ env: { SITE_ORIGIN: 'https://repo.isainative.dev' } });
+    expect(svg).toContain('>repo.isainative.dev</tspan>');
+    expect(svg).not.toContain('>isainative.dev</tspan>');
+  });
+
   it('allows homepage indexing in production by default', () => {
     const runtime = {
       env: {

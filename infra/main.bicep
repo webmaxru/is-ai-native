@@ -59,6 +59,13 @@ param staticWebAppLocation string = 'eastus2'
 @description('Optional frontend custom domain to bind to Static Web Apps after its DNS TXT validation record exists.')
 param staticWebAppCustomDomainName string = ''
 
+@description('Keep dns-txt-token for an apex; use cname-delegation for a subdomain with a DNS-only CNAME.')
+@allowed([
+  'dns-txt-token'
+  'cname-delegation'
+])
+param staticWebAppDomainValidationMethod string = 'dns-txt-token'
+
 @description('Tags applied to every resource.')
 param tags object = {
   application: 'is-ai-native'
@@ -119,7 +126,7 @@ resource staticWebAppCustomDomain 'Microsoft.Web/staticSites/customDomains@2023-
   parent: staticWebApp
   name: staticWebAppCustomDomainName
   properties: {
-    validationMethod: 'dns-txt-token'
+    validationMethod: staticWebAppDomainValidationMethod
   }
 }
 

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   group: is-ai-native-production
@@ -132,8 +133,8 @@ jobs:
       - name: Verify Static Web Apps production cutover
         shell: bash
         env:
-          PUBLIC_SITE_ORIGIN: ${{ secrets.SITE_ORIGIN }}
-          STATIC_WEB_APP_CUSTOM_DOMAIN_NAME: ${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
+          PUBLIC_SITE_ORIGIN: ${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
+          STATIC_WEB_APP_CUSTOM_DOMAIN_NAME: ${{ vars.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME || secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
         run: |
           set -euo pipefail
 
@@ -150,7 +151,7 @@ jobs:
           bound_hostname_count=$(az staticwebapp hostname list \
             --name "${{ env.STATIC_WEB_APP_NAME }}" \
             --resource-group "${{ env.AZURE_RESOURCE_GROUP }}" \
-            --query "[?domainName=='$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME'] | length(@)" \
+            --query "[?domainName=='$STATIC_WEB_APP_CUSTOM_DOMAIN_NAME' && status=='Ready'] | length(@)" \
             --output tsv)
 
           if [[ "$bound_hostname_count" != "1" ]]; then
@@ -191,9 +192,10 @@ jobs:
             enableAvailabilityMonitoring=true
             containerStartupStrategy=scale-to-zero
             monitoringAlertEmail=${{ secrets.MONITORING_ALERT_EMAIL != '' && secrets.MONITORING_ALERT_EMAIL || env.MONITORING_ALERT_EMAIL }}
-            monitoringUrl=${{ secrets.SITE_ORIGIN }}
-            siteOrigin=${{ secrets.SITE_ORIGIN }}
-            staticWebAppCustomDomainName=${{ secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
+            monitoringUrl=${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
+            siteOrigin=${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
+            staticWebAppCustomDomainName=${{ vars.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME || secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
+            staticWebAppDomainValidationMethod=${{ vars.STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD || 'dns-txt-token' }}
           failOnStdErr: false
 
       - name: Resolve frontend build telemetry configuration
