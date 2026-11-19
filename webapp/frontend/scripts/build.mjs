@@ -227,6 +227,8 @@ export async function buildFrontend({
     process.env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING ||
     process.env.APPLICATIONINSIGHTS_CONNECTION_STRING ||
     '',
+  posthogHost = process.env.POSTHOG_HOST || '',
+  posthogProjectToken = process.env.POSTHOG_PROJECT_TOKEN || '',
   outputDir = process.env.FRONTEND_OUTPUT_DIR || DEFAULT_OUTPUT_DIR,
   sharingEnabled = process.env.ENABLE_SHARING || false,
   siteOrigin = process.env.SITE_ORIGIN || DEFAULT_SITE_ORIGIN,
@@ -237,6 +239,11 @@ export async function buildFrontend({
     'PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING'
   );
   const normalizedSiteOrigin = normalizeOrigin(siteOrigin, 'SITE_ORIGIN');
+  const normalizedPosthogHost = normalizeOptionalString(posthogHost, 'POSTHOG_HOST');
+  const normalizedPosthogProjectToken = normalizeOptionalString(
+    posthogProjectToken,
+    'POSTHOG_PROJECT_TOKEN'
+  );
   const normalizedSharingEnabled = normalizeBoolean(sharingEnabled, 'ENABLE_SHARING');
   const absoluteOutputDir = resolve(outputDir);
   const brandAssetsDir = join(FRONTEND_ROOT, 'assets', 'brand');
@@ -268,6 +275,8 @@ export async function buildFrontend({
       apiOrigin: normalizedApiOrigin,
       sharingEnabled: normalizedSharingEnabled,
       appInsightsConnectionString: normalizedAppInsightsConnectionString,
+      posthogHost: normalizedPosthogHost,
+      posthogProjectToken: normalizedPosthogProjectToken,
     },
     null,
     2
@@ -315,6 +324,8 @@ export async function buildFrontend({
   return {
     apiOrigin: normalizedApiOrigin,
     appInsightsConnectionString: normalizedAppInsightsConnectionString,
+    posthogHost: normalizedPosthogHost,
+    posthogProjectToken: normalizedPosthogProjectToken,
     outputDir: absoluteOutputDir,
     sharingEnabled: normalizedSharingEnabled,
     siteOrigin: normalizedSiteOrigin,

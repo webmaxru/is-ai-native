@@ -7,6 +7,7 @@ import {
   supportsWebMcp,
 } from './webmcp.js';
 import { buildRepoPathname, normalizeRepoInputValue } from './repo-location.js';
+import { initPostHog, posthog } from './posthog.js';
 
 const THEME_STORAGE_KEY = 'is-ai-native-theme';
 const THEME_OPTIONS = new Set(['system', 'light', 'dark']);
@@ -210,7 +211,7 @@ function renderDemoResult(result) {
   panel.classList.remove('hidden');
 }
 
-async function runScan(repoUrl) {
+async function runScan(repoUrl, { invocation = 'manual_form' } = {}) {
   if (activeScan) {
     throw new Error('A repository scan is already in progress. Wait for it to finish before starting another scan.');
   }
@@ -234,11 +235,24 @@ async function runScan(repoUrl) {
   }
 
   try {
+    posthog.capture('scan_started', { invocation, scan_surface: 'webmcp_demo' });
     const result = await scanRepo(normalized);
     renderDemoResult(result);
+    posthog.capture('scan_completed', {
+      invocation,
+      scan_surface: 'webmcp_demo',
+      verdict: result.verdict,
+      score: Number(result.score),
+      paths_scanned: Number(result.paths_scanned),
+    });
     return result;
   } catch (error) {
     showDemoError(error.message);
+    posthog.capture('scan_failed', {
+      invocation,
+      scan_surface: 'webmcp_demo',
+      error_name: error.name,
+    });
     throw error;
   } finally {
     activeScan = false;
@@ -273,7 +287,9 @@ function wireDeclarativeForm() {
       return;
     }
 
-    const runPromise = runScan(repoUrl);
+    const runPromise = runScan(repoUrl, {
+      invocation: event.agentInvoked ? 'webmcp_form' : 'manual_form',
+    });
 
     if (event.agentInvoked && typeof event.respondWith === 'function') {
       event.respondWith(
@@ -309,6 +325,7 @@ function registerImperativeTool() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initPostHog(globalThis.__IS_AI_NATIVE_CONFIG__);
   initThemeSwitcher();
   renderWebMcpStatus();
   wireDeclarativeForm();

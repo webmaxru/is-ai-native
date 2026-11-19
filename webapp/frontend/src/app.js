@@ -1,6 +1,7 @@
 import { scanRepo, fetchSharedReport } from './api.js';
 import { renderReport } from './report.js';
 import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
+import { initPostHog, posthog, posthogLogger } from './posthog.js';
 import { classifyScanSource, getTrackedLinkTelemetry } from './engagement-telemetry.js';
 import {
   buildRepoScanErrorPayload,
@@ -75,7 +76,7 @@ function renderAnalyticsConsentControl() {
     return;
   }
 
-  if (!telemetryConfig?.appInsightsConnectionString) {
+  if (!telemetryConfig?.appInsightsConnectionString && !telemetryConfig?.posthogConfigured) {
     el.classList.remove('hidden');
     el.textContent = 'analytics: unavailable';
     return;
@@ -100,6 +101,7 @@ function renderAnalyticsConsentControl() {
 
     if (action === 'allow') {
       setAnalyticsConsent('granted');
+      posthog.opt_in_capturing();
       if (telemetryConfig) {
         initTelemetry(telemetryConfig);
         trackUiEvent('analytics_consent_updated', { consent: 'granted' });
@@ -107,6 +109,7 @@ function renderAnalyticsConsentControl() {
     } else {
       setAnalyticsConsent('denied');
       trackUiEvent('analytics_consent_updated', { consent: 'denied' });
+      posthog.opt_out_capturing();
       disableTelemetry();
       clearTelemetryIdentity();
     }
@@ -516,6 +519,11 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
     }
 
     try {
+      posthog.capture('scan_started', { source, scan_surface: 'main_scanner' });
+      posthogLogger.info('repository scan started', {
+        scan_surface: 'main_scanner',
+        source,
+      });
       trackUiEvent('scan_requested_client', {
         repo_reference: repoReference,
         source,
@@ -525,6 +533,20 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
       setTopbarScope('result');
       renderReport(result, { sharingEnabled });
       syncViewState();
+      posthog.capture('scan_completed', {
+        source,
+        scan_surface: 'main_scanner',
+        verdict: result.verdict,
+        score: Number(result.score),
+        paths_scanned: Number(result.paths_scanned),
+      });
+      posthogLogger.info('repository scan completed', {
+        scan_surface: 'main_scanner',
+        source,
+        verdict: result.verdict,
+        score: Number(result.score),
+        paths_scanned: Number(result.paths_scanned),
+      });
       trackUiEvent(
         'scan_succeeded_client',
         {
@@ -541,6 +563,16 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
       hideProgress();
       if (err.name !== 'AbortError') {
         showError(err.message);
+        posthog.capture('scan_failed', {
+          source,
+          scan_surface: 'main_scanner',
+          error_name: err.name,
+        });
+        posthogLogger.error('repository scan failed', {
+          scan_surface: 'main_scanner',
+          source,
+          error_name: err.name,
+        });
         trackUiEvent('scan_failed_client', {
           repo_reference: repoReference,
           error_name: err.name,
@@ -591,15 +623,21 @@ document.addEventListener('DOMContentLoaded', () => {
   );
 
   const config = globalThis.__IS_AI_NATIVE_CONFIG__;
+  initPostHog(config);
+  const analyticsConsent = getAnalyticsConsent();
+  if (analyticsConsent === 'denied') {
+    posthog.opt_out_capturing();
+  }
   const sharingEnabled = config?.sharingEnabled === true;
   telemetryConfig = {
     appInsightsConnectionString:
       typeof config?.appInsightsConnectionString === 'string'
         ? config.appInsightsConnectionString
         : '',
+    posthogConfigured: Boolean(config?.posthogProjectToken && config?.posthogHost),
   };
 
-  if (telemetryConfig?.appInsightsConnectionString && getAnalyticsConsent() !== 'denied') {
+  if (telemetryConfig?.appInsightsConnectionString && analyticsConsent !== 'denied') {
     initTelemetry(telemetryConfig);
   }
 

@@ -1,6 +1,7 @@
 import { shareReport } from './api.js';
 import { showToast } from './app.js';
 import { trackUiEvent } from './telemetry.js';
+import { posthog } from './posthog.js';
 
 export function escapeHtml(str) {
   return String(str)
@@ -443,6 +444,7 @@ function addShareButton(result) {
     await navigator.clipboard.writeText(url);
     showToast('permalink copied to clipboard');
     setButtonState({ disabled: false, text: 'copied!' });
+    posthog.capture('report_shared', { method: 'clipboard', source });
     trackUiEvent('report_shared_client', {
       repo_name: result.repo_name,
       method: 'clipboard',
@@ -461,6 +463,7 @@ function addShareButton(result) {
     await navigator.share(shareData);
     showToast('report link ready to share');
     setButtonState({ disabled: false, text: 'shared' });
+    posthog.capture('report_shared', { method: 'native_share', source });
     trackUiEvent('report_shared_client', {
       repo_name: result.repo_name,
       method: 'native_share',
@@ -479,6 +482,7 @@ function addShareButton(result) {
         cta_type: 'button',
         repo_name: result.repo_name,
       });
+      posthog.capture('report_share_requested', { source: shareSource });
       trackUiEvent('report_share_requested_client', {
         repo_name: result.repo_name,
         source: shareSource,
@@ -495,6 +499,10 @@ function addShareButton(result) {
           return;
         }
         showToast(`error: ${err.message}`);
+        posthog.capture('report_share_failed', {
+          source: shareSource,
+          error_name: err.name,
+        });
         trackUiEvent('report_share_failed_client', {
           repo_name: result.repo_name,
           error_name: err.name,
