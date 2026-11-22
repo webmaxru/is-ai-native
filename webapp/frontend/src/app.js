@@ -1,3 +1,4 @@
+import posthog, { isPosthogConfigured } from './posthog.js';
 import { scanRepo, fetchSharedReport } from './api.js';
 import { renderReport } from './report.js';
 import { initTelemetry, trackUiEvent, disableTelemetry, clearTelemetryIdentity } from './telemetry.js';
@@ -27,6 +28,7 @@ const THEME_OPTIONS = new Set(['system', 'light', 'dark']);
 const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 const ANALYTICS_CONSENT_KEY = 'is-ai-native-analytics-consent';
+const scanLogger = posthog.logger;
 
 const PROGRESS_STAGES = [
   { label: 'Fetching file tree…', percent: 20 },
@@ -520,6 +522,10 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
         repo_reference: repoReference,
         source,
       });
+      if (isPosthogConfigured) {
+        posthog.capture('repository_scan_requested', { source });
+        scanLogger.info('repository scan requested', { source });
+      }
       const result = await scanRepo(repoReference, controller.signal);
       hideProgress();
       setTopbarScope('result');
@@ -536,6 +542,18 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
           score: Number(result.score),
         }
       );
+      if (isPosthogConfigured) {
+        posthog.capture('repository_scan_completed', {
+          source,
+          verdict: result.verdict,
+          score: Number(result.score),
+        });
+        scanLogger.info('repository scan completed', {
+          source,
+          verdict: result.verdict,
+          score: Number(result.score),
+        });
+      }
       return result;
     } catch (err) {
       hideProgress();
@@ -547,6 +565,14 @@ async function executeScan(repoUrl, sharingEnabled, { source = 'landing_form' } 
           reason: err.message,
           source,
         });
+        if (isPosthogConfigured) {
+          const errorType = err.name || 'unknown_error';
+          posthog.capture('repository_scan_failed', {
+            source,
+            error_type: errorType,
+          });
+          scanLogger.error('repository scan failed', { source, error_type: errorType });
+        }
       }
       throw err;
     } finally {

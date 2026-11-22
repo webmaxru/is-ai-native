@@ -1,6 +1,7 @@
 import { cp, copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { build as bundle } from 'esbuild';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_ROOT = resolve(SCRIPT_DIR, '..');
@@ -227,6 +228,8 @@ export async function buildFrontend({
     process.env.PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING ||
     process.env.APPLICATIONINSIGHTS_CONNECTION_STRING ||
     '',
+  posthogHost = process.env.PUBLIC_POSTHOG_HOST || '',
+  posthogKey = process.env.PUBLIC_POSTHOG_KEY || '',
   outputDir = process.env.FRONTEND_OUTPUT_DIR || DEFAULT_OUTPUT_DIR,
   sharingEnabled = process.env.ENABLE_SHARING || false,
   siteOrigin = process.env.SITE_ORIGIN || DEFAULT_SITE_ORIGIN,
@@ -237,6 +240,8 @@ export async function buildFrontend({
     'PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING'
   );
   const normalizedSiteOrigin = normalizeOrigin(siteOrigin, 'SITE_ORIGIN');
+  const normalizedPosthogHost = normalizeOptionalString(posthogHost, 'PUBLIC_POSTHOG_HOST');
+  const normalizedPosthogKey = normalizeOptionalString(posthogKey, 'PUBLIC_POSTHOG_KEY');
   const normalizedSharingEnabled = normalizeBoolean(sharingEnabled, 'ENABLE_SHARING');
   const absoluteOutputDir = resolve(outputDir);
   const brandAssetsDir = join(FRONTEND_ROOT, 'assets', 'brand');
@@ -247,6 +252,13 @@ export async function buildFrontend({
     cp(join(FRONTEND_ROOT, 'assets'), join(absoluteOutputDir, 'assets'), { recursive: true }),
     cp(join(FRONTEND_ROOT, 'src'), join(absoluteOutputDir, 'src'), { recursive: true }),
   ]);
+  await bundle({
+    bundle: true,
+    entryPoints: [join(FRONTEND_ROOT, 'src', 'posthog.js')],
+    format: 'esm',
+    outfile: join(absoluteOutputDir, 'src', 'posthog.js'),
+    platform: 'browser',
+  });
 
   const [indexTemplate, webmcpTemplate, staticWebAppConfigText] = await Promise.all([
     readFile(join(FRONTEND_ROOT, 'index.html'), 'utf8'),
@@ -268,6 +280,8 @@ export async function buildFrontend({
       apiOrigin: normalizedApiOrigin,
       sharingEnabled: normalizedSharingEnabled,
       appInsightsConnectionString: normalizedAppInsightsConnectionString,
+      posthogHost: normalizedPosthogHost,
+      posthogKey: normalizedPosthogKey,
     },
     null,
     2
@@ -316,6 +330,8 @@ export async function buildFrontend({
     apiOrigin: normalizedApiOrigin,
     appInsightsConnectionString: normalizedAppInsightsConnectionString,
     outputDir: absoluteOutputDir,
+    posthogHost: normalizedPosthogHost,
+    posthogKey: normalizedPosthogKey,
     sharingEnabled: normalizedSharingEnabled,
     siteOrigin: normalizedSiteOrigin,
   };

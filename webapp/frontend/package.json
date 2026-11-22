@@ -9,5 +9,11 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "dependencies": {
+    "posthog-js": "^1.453.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
   }
 }
