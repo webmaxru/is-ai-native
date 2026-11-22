@@ -1,4 +1,5 @@
 import { scanRepo } from './api.js';
+import posthog, { isPosthogConfigured } from './posthog.js';
 import {
   buildRepoScanErrorPayload,
   buildRepoScanPayload,
@@ -234,11 +235,27 @@ async function runScan(repoUrl) {
   }
 
   try {
+    if (isPosthogConfigured) {
+      posthog.capture('repository_scan_requested', { source: 'webmcp_demo' });
+    }
     const result = await scanRepo(normalized);
     renderDemoResult(result);
+    if (isPosthogConfigured) {
+      posthog.capture('repository_scan_completed', {
+        source: 'webmcp_demo',
+        verdict: result.verdict,
+        score: Number(result.score),
+      });
+    }
     return result;
   } catch (error) {
     showDemoError(error.message);
+    if (isPosthogConfigured) {
+      posthog.capture('repository_scan_failed', {
+        source: 'webmcp_demo',
+        error_type: error.name || 'unknown_error',
+      });
+    }
     throw error;
   } finally {
     activeScan = false;

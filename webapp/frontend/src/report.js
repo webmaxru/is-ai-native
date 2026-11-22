@@ -1,4 +1,5 @@
 import { shareReport } from './api.js';
+import posthog, { isPosthogConfigured } from './posthog.js';
 import { showToast } from './app.js';
 import { trackUiEvent } from './telemetry.js';
 
@@ -448,6 +449,9 @@ function addShareButton(result) {
       method: 'clipboard',
       source,
     });
+    if (isPosthogConfigured) {
+      posthog.capture('report_shared', { method: 'clipboard', source });
+    }
   };
 
   const shareWithNativeApi = async (url, source) => {
@@ -466,6 +470,9 @@ function addShareButton(result) {
       method: 'native_share',
       source,
     });
+    if (isPosthogConfigured) {
+      posthog.capture('report_shared', { method: 'native_share', source });
+    }
     return true;
   };
 
@@ -483,6 +490,9 @@ function addShareButton(result) {
         repo_name: result.repo_name,
         source: shareSource,
       });
+      if (isPosthogConfigured) {
+        posthog.capture('report_share_requested', { source: shareSource });
+      }
       try {
         const url = await resolveShareUrl();
         const shared = await shareWithNativeApi(url, shareSource);
