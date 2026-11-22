@@ -134,15 +134,15 @@ The Azure OIDC deployment identity needs `Microsoft.Web/staticSites/listSecrets/
 Use a staged cutover so the current ACA hostname remains a rollback target.
 
 1. Deploy and validate the default `*.azurestaticapps.net` URL.
-2. Add the SWA DNS TXT validation record.
-3. Set the `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` production secret to the hostname without a scheme.
-4. Keep `SITE_ORIGIN` set to the public HTTPS origin.
+2. For an apex domain, add the SWA DNS TXT validation record. A subdomain is validated by its CNAME instead.
+3. Set the `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` repository Actions variable to the hostname without a scheme, and `STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD` to `dns-txt-token` (apex) or `cname-delegation` (subdomain, the default).
+4. Set the `SITE_ORIGIN` Actions variable to the public HTTPS origin. Both variables take precedence over the legacy secrets of the same names.
 5. Deploy again so Bicep binds the SWA custom domain.
 6. Point the hostname CNAME or apex record to SWA.
 7. Validate HTTPS, scans, shared reports, telemetry, and social assets.
 8. Remove the legacy ACA custom-domain bindings, certificates, parameters, and secrets after the rollback window.
 
-Do not set `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` until the TXT validation record exists; Azure rejects an unvalidated domain deployment.
+Do not set `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` until the domain can be validated (TXT record for an apex, DNS-only CNAME for a subdomain); Azure rejects an unvalidated domain deployment.
 
 The production workflow also refuses to deploy the API-only backend until the custom hostname is already bound to SWA and its public `runtime-config.js` is reachable. This guard keeps the existing ACA-served frontend live during the initial DNS migration.
 
@@ -150,11 +150,14 @@ The WebMCP origin-trial tokens are issued for `isainative.dev` with subdomain co
 
 ## Moving to repo.isainative.dev
 
-The target for this application is **https://repo.isainative.dev**; the apex will serve `webmaxru/agent-ready-check`. As of 18 November 2026 the DNS cutover is pending: the existing apex and `www` bindings are still intact.
+This application is live at **https://repo.isainative.dev**; the apex and `www` serve `webmaxru/agent-ready-check`. The cutover was completed on 19 November 2026:
+- `repo` is a DNS-only Cloudflare CNAME to `victorious-pebble-0d07f890f.7.azurestaticapps.net`, bound to `is-ai-native-frontend` with CNAME validation (Ready).
+- The scanner's old apex and `www` bindings were released.
+- The Actions variables below are set, and CD redeployed backend CORS, monitoring and frontend metadata.
 
-The full cross-repository order and rollback commands are maintained in [Agent-Ready Check's publishing guide](https://github.com/webmaxru/agent-ready-check/blob/main/docs/PUBLISHING.md#domain-migration-isainativedev-and-repoisainativedev).
+The full cross-repository order, final DNS state and rollback commands are maintained in the [website checker's publishing guide](https://github.com/webmaxru/agent-ready-check/blob/main/docs/PUBLISHING.md#domain-migration-isainativedev-and-repoisainativedev).
 
-For this repository:
+The procedure followed for this repository was:
 
 1. Add a DNS-only Cloudflare CNAME `repo` to `victorious-pebble-0d07f890f.7.azurestaticapps.net`.
 2. The Free SWA already has two domains. In an agreed maintenance window, release its old `www.isainative.dev` binding, then bind `repo.isainative.dev` with CNAME validation. Keep the old apex until the new hostname works.
@@ -163,9 +166,9 @@ For this repository:
 5. Run **CD** on `main` using its manual trigger. It updates backend CORS/origin, monitoring and frontend metadata without moving or deleting saved reports.
 6. Verify repository scans, a saved report and CORS on the new hostname before transferring the apex. Existing report paths remain the same; change only the hostname in shared links.
 
-The workflow prefers these non-secret variables over the legacy `SITE_ORIGIN` and `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` secrets; leaving them unset preserves the old deployment until cutover. It refuses to deploy against a hostname whose Azure status is not `Ready`. Do not change the variables before the DNS/binding steps.
+The workflow prefers these non-secret variables over the legacy `SITE_ORIGIN` and `STATIC_WEB_APP_CUSTOM_DOMAIN_NAME` secrets, which now hold the same `repo` values. The validation method defaults to `cname-delegation`. It refuses to deploy against a hostname whose Azure status is not `Ready`. For a manual deployment, `infra/main.bicepparam` carries the same production domain values.
 
-The standalone CLI, VS Code extension and GitHub CLI extension run their scanner locally and do not require a backend endpoint change. The web and GitHub-extension social-card assets now advertise the planned repository-scanner hostname; package publishing is not part of this infrastructure migration.
+The standalone CLI, VS Code extension and GitHub CLI extension run their scanner locally and do not require a backend endpoint change. The web and GitHub-extension social-card assets advertise the repository-scanner hostname; package publishing is not part of this infrastructure migration.
 
 ## Local Development
 

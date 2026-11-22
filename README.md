@@ -13,7 +13,7 @@ Available surfaces:
 - **GitHub CLI extension** in [packages/gh-extension/README.md](packages/gh-extension/README.md)
 - **Standalone CLI** in [packages/cli/README.md](packages/cli/README.md)
 
-> **Domain migration:** the web app is moving to **https://repo.isainative.dev**, while **https://isainative.dev** will host Agent-Ready Check. DNS cutover is pending; see the [migration procedure](docs/migrations/swa-frontend-migration.md#moving-to-repoisainativedev).
+> **Domain:** the web app is live at **https://repo.isainative.dev**. Since 19 November 2026, **https://isainative.dev** hosts the [Is AI-Native website checker](https://github.com/webmaxru/agent-ready-check). Old scan and shared-report links work with the hostname changed to `repo.isainative.dev`; see the [migration record](docs/migrations/swa-frontend-migration.md#moving-to-repoisainativedev).
 
 | Verdict | Strongest Assistant Score |
 | --- | --- |

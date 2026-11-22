@@ -222,7 +222,7 @@ Production resources retained are `is-ai-native-logs`, `is-ai-native-appi`, `is-
 |---------|-----|-------|
 | SWA frontend | `https://victorious-pebble-0d07f890f.7.azurestaticapps.net` | Deployed and verified |
 | ACA backend | `https://is-ai-native-app.wittybush-059f5ba1.eastus2.azurecontainerapps.io` | API-only revision deployed; SWA and custom-origin CORS verified |
-| Production | `https://isainative.dev` | Bound to SWA, TLS-ready, DNS cut over, and verified |
+| Production | `https://repo.isainative.dev` | Bound to SWA (CNAME validation), TLS-ready, DNS cut over, and verified on 19 November 2026. The former `https://isainative.dev` apex and `www` now serve the Is AI-Native website checker (`webmaxru/agent-ready-check`). |
 
 Verified behavior includes homepage delivery, generated runtime configuration, WebMCP routing, shared-report fallback/noindex headers, API configuration, CORS preflight, and a live cross-origin repository scan.
 
@@ -249,7 +249,7 @@ Verified behavior includes homepage delivery, generated runtime configuration, W
 
 ## 14. Next Step
 
-Production is live on SWA and the API-only ACA release is deployed. `www.isainative.dev` is bound to SWA and HTTPS is verified. Confirmed active-resource cleanup is complete; Azure will automatically purge the two deleted sandbox workspaces after their recovery window.
+Production is live on SWA at `repo.isainative.dev` and the API-only ACA release is deployed. The scanner released its `isainative.dev` and `www.isainative.dev` bindings to the Is AI-Native website checker (`webmaxru/agent-ready-check`) on 19 November 2026; `repo.isainative.dev` is its only custom domain and HTTPS is verified. Confirmed active-resource cleanup is complete; Azure will automatically purge the two deleted sandbox workspaces after their recovery window.
 
 ---
 

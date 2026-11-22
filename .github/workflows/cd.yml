@@ -195,7 +195,7 @@ jobs:
             monitoringUrl=${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
             siteOrigin=${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
             staticWebAppCustomDomainName=${{ vars.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME || secrets.STATIC_WEB_APP_CUSTOM_DOMAIN_NAME }}
-            staticWebAppDomainValidationMethod=${{ vars.STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD || 'dns-txt-token' }}
+            staticWebAppDomainValidationMethod=${{ vars.STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD || 'cname-delegation' }}
           failOnStdErr: false
 
       - name: Resolve frontend build telemetry configuration
