@@ -25,6 +25,14 @@ param enableAvailabilityMonitoring = true
 // Default website availability alert email for manual deployments.
 param monitoringAlertEmail = 'salnikov@gmail.com'
 
+// Production frontend domain. Agent-Ready Check (webmaxru/agent-ready-check) serves the
+// isainative.dev apex and www, so this scanner lives on the repo subdomain. The CD workflow
+// passes the same values from the SITE_ORIGIN, STATIC_WEB_APP_CUSTOM_DOMAIN_NAME and
+// STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD repository variables.
+param siteOrigin = 'https://repo.isainative.dev'
+param staticWebAppCustomDomainName = 'repo.isainative.dev'
+param staticWebAppDomainValidationMethod = 'cname-delegation'
+
 // Keep the default at scale-to-zero until production traffic justifies an idle replica.
 // Use 'keep-warm' to keep one replica ready and avoid cold starts.
 param containerStartupStrategy = 'scale-to-zero'

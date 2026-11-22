@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "15890843404527521692"
+      "templateHash": "14834222606940844510"
     }
   },
   "parameters": {
@@ -119,6 +119,17 @@
         "description": "Optional frontend custom domain to bind to Static Web Apps after its DNS TXT validation record exists."
       }
     },
+    "staticWebAppDomainValidationMethod": {
+      "type": "string",
+      "defaultValue": "dns-txt-token",
+      "allowedValues": [
+        "dns-txt-token",
+        "cname-delegation"
+      ],
+      "metadata": {
+        "description": "Keep dns-txt-token for an apex; use cname-delegation for a subdomain with a DNS-only CNAME."
+      }
+    },
     "tags": {
       "type": "object",
       "defaultValue": {
@@ -211,7 +222,7 @@
       "apiVersion": "2023-12-01",
       "name": "[format('{0}/{1}', format('{0}-frontend', parameters('namePrefix')), parameters('staticWebAppCustomDomainName'))]",
       "properties": {
-        "validationMethod": "dns-txt-token"
+        "validationMethod": "[parameters('staticWebAppDomainValidationMethod')]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/staticSites', format('{0}-frontend', parameters('namePrefix')))]"
