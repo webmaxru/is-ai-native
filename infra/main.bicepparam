@@ -25,7 +25,7 @@ param enableAvailabilityMonitoring = true
 // Default website availability alert email for manual deployments.
 param monitoringAlertEmail = 'salnikov@gmail.com'
 
-// Production frontend domain. Agent-Ready Check (webmaxru/agent-ready-check) serves the
+// Production frontend domain. Is AI-Native (webmaxru/agent-ready-check) serves the
 // isainative.dev apex and www, so this scanner lives on the repo subdomain. The CD workflow
 // passes the same values from the SITE_ORIGIN, STATIC_WEB_APP_CUSTOM_DOMAIN_NAME and
 // STATIC_WEB_APP_DOMAIN_VALIDATION_METHOD repository variables.

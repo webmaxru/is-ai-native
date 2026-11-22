@@ -155,7 +155,7 @@ This application is live at **https://repo.isainative.dev**; the apex and `www` 
 - The scanner's old apex and `www` bindings were released.
 - The Actions variables below are set, and CD redeployed backend CORS, monitoring and frontend metadata.
 
-The full cross-repository order, final DNS state and rollback commands are maintained in [Agent-Ready Check's publishing guide](https://github.com/webmaxru/agent-ready-check/blob/main/docs/PUBLISHING.md#domain-migration-isainativedev-and-repoisainativedev).
+The full cross-repository order, final DNS state and rollback commands are maintained in the [website checker's publishing guide](https://github.com/webmaxru/agent-ready-check/blob/main/docs/PUBLISHING.md#domain-migration-isainativedev-and-repoisainativedev).
 
 The procedure followed for this repository was:
 

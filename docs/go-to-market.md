@@ -14,7 +14,7 @@ This project now covers the minimum technical discovery surface for launch:
 
 Set these production deployment values so metadata resolves to the real public domain and launch positioning:
 
-- The repository-scanner hostname is `repo.isainative.dev`; since 19 November 2026 `isainative.dev` and `www.isainative.dev` host Agent-Ready Check.
+- The repository-scanner hostname is `repo.isainative.dev`; since 19 November 2026 `isainative.dev` and `www.isainative.dev` host the Is AI-Native website checker (`webmaxru/agent-ready-check`).
 - The deployment uses the GitHub Actions repository variable `SITE_ORIGIN` (falling back to the legacy secret) for frontend metadata, backend CORS and monitoring in Bicep.
 - `SITE_ORIGIN` is `https://repo.isainative.dev`. Change it only after a new Azure custom-domain binding is Ready and its frontend is reachable; see [domain migration](migrations/swa-frontend-migration.md#moving-to-repoisainativedev).
 
